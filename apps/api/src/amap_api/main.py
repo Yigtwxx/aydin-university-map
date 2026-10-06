@@ -6,6 +6,7 @@ module (tests, OpenAPI export) never reads the local ``.env``.
 
 import logging
 import math
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -13,15 +14,24 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from amap_api import __version__
+from amap_api.assistant.agent import (
+    USAGE_LIMITS,
+    AssistantDeps,
+    build_agent,
+    build_model,
+)
+from amap_api.assistant.knowledge import Knowledge
+from amap_api.assistant.testing import offline_model
 from amap_api.db import Database
 from amap_api.directions import instruction
 from amap_api.graph_store import GraphStore, load_graph
 from amap_api.places import Place, build_places, search_places
+from amap_api.rate_limit import TokenBucket
 from amap_api.routing import NoRouteError, shortest_route
 from amap_api.schemas import (
     BuildingOut,
@@ -40,6 +50,30 @@ from amap_contracts import search_key
 from amap_contracts.graph import NodeKind
 
 log = logging.getLogger("amap_api")
+os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
+
+MAX_CHAT_CHARS = 1000
+# About three questions a minute per visitor, with a short burst.
+CHAT_BUCKET = TokenBucket(capacity=6, refill_per_s=1 / 20)
+
+
+def _client_key(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    return forwarded.split(",")[0].strip() or (
+        request.client.host if request.client else "unknown"
+    )
+
+
+def _last_user_chars(body: dict[str, Any]) -> int:
+    """Characters in the newest user message of an AI SDK UI-message request."""
+    for message in reversed(body.get("messages") or []):
+        if isinstance(message, dict) and message.get("role") == "user":
+            return sum(
+                len(str(part.get("text", "")))
+                for part in message.get("parts") or []
+                if isinstance(part, dict) and part.get("type") == "text"
+            )
+    return 0
 
 
 def require_store(request: Request) -> GraphStore:
@@ -88,6 +122,19 @@ def create_app(
             db = Database(cfg.amap_api_database_url)
             await db.open()
         app.state.database = db
+        app.state.assistant = None
+        try:
+            model = (
+                offline_model()
+                if cfg.amap_assistant_model == "offline"
+                else build_model(cfg.groq_api_key, cfg.gemini_api_key)
+            )
+            app.state.assistant = build_agent(model)
+        except ValueError as exc:
+            log.warning("assistant disabled: %s", exc)
+        app.state.knowledge = (
+            Knowledge(db, cfg.gemini_api_key) if db and cfg.gemini_api_key else None
+        )
         yield
         await app.state.http.aclose()
         if db is not None and database is None:
@@ -101,6 +148,7 @@ def create_app(
         allow_origins=cfg.cors_origin_list,
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type"],
+        expose_headers=["x-vercel-ai-ui-message-stream"],
     )
 
     def place_out(place: Place) -> PlaceOut:
@@ -231,5 +279,43 @@ def create_app(
         except WeatherUnavailableError as exc:
             raise HTTPException(503, str(exc)) from exc
         return WeatherOut(**asdict(current))
+
+    @app.post(
+        "/chat",
+        responses={
+            413: {"model": ErrorOut},
+            429: {"model": ErrorOut},
+            503: {"model": ErrorOut},
+        },
+    )
+    async def chat(request: Request, store: StoreDep) -> Response:
+        """Campus assistant; streams the Vercel AI SDK UI message protocol (v7)."""
+        from pydantic_ai.ui.vercel_ai import VercelAIAdapter
+
+        agent = request.app.state.assistant
+        if agent is None:
+            raise HTTPException(503, "assistant is not configured")
+        if not CHAT_BUCKET.allow(_client_key(request)):
+            raise HTTPException(429, "too many questions, wait a moment")
+        try:
+            body = await request.json()
+        except ValueError as exc:
+            raise HTTPException(422, "invalid JSON body") from exc
+        if _last_user_chars(body if isinstance(body, dict) else {}) > MAX_CHAT_CHARS:
+            raise HTTPException(
+                413, f"questions are limited to {MAX_CHAT_CHARS} characters"
+            )
+        deps = AssistantDeps(
+            store=store,
+            places=request.app.state.places,
+            knowledge=request.app.state.knowledge,
+        )
+        return await VercelAIAdapter.dispatch_request(
+            request,
+            agent=agent,
+            sdk_version=7,
+            deps=deps,
+            usage_limits=USAGE_LIMITS,
+        )
 
     return app

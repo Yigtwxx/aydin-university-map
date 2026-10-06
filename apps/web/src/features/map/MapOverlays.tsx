@@ -148,7 +148,7 @@ function PanoSpots({
                       'transition-transform duration-150 ease-out-soft hover:scale-150 focus-visible:scale-150',
                       tier === 'near'
                         ? 'size-3.5 border-[3px]'
-                        : 'size-2.5 border-2',
+                        : 'size-2 border-[1.5px] opacity-80',
                     ].join(' ')}
                   />
                 }

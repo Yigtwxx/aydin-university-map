@@ -116,5 +116,29 @@
     "panoSpot": "360° view: {label}",
     "block": "Block {code}",
     "loading": "Preparing the campus"
+  },
+  "Panel": {
+    "label": "Panel",
+    "directions": "Directions",
+    "assistant": "Assistant"
+  },
+  "Chat": {
+    "title": "Campus assistant",
+    "intro": "Ask about a place on campus, a floor, or how to walk there. Route answers are drawn on the map.",
+    "suggest1": "How do I get to the A Block entrance?",
+    "suggest2": "How many floors does the library have, and what is inside?",
+    "suggest3": "What can I see at the campus entrance?",
+    "placeholder": "Type a question",
+    "send": "Send",
+    "stop": "Stop",
+    "thinking": "Thinking…",
+    "routing": "Finding the route…",
+    "searching": "Searching campus information…",
+    "looking": "Looking up places…",
+    "routeSummary": "{minutes} min, {metres} m walk",
+    "showSteps": "Steps",
+    "error": "The assistant is unavailable right now. Try again in a moment.",
+    "rateLimited": "Too many questions at once; wait a few seconds and try again.",
+    "notice": "Answers come from free AI services (Groq, Google Gemini); providers may use questions to improve their services. Do not share personal information."
   }
 }

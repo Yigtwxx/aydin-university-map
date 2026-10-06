@@ -116,5 +116,29 @@
     "panoSpot": "360° görünüm: {label}",
     "block": "{code} Blok",
     "loading": "Kampüs hazırlanıyor"
+  },
+  "Panel": {
+    "label": "Panel",
+    "directions": "Yol tarifi",
+    "assistant": "Asistan"
+  },
+  "Chat": {
+    "title": "Kampüs asistanı",
+    "intro": "Kampüste bir yeri, katı ya da oraya nasıl yürüneceğini sorun. Rota sorularında yol haritaya çizilir.",
+    "suggest1": "A Blok girişine nasıl giderim?",
+    "suggest2": "Kütüphane kaç katlı, içinde neler var?",
+    "suggest3": "Kampüs girişinde neler görünüyor?",
+    "placeholder": "Bir soru yazın",
+    "send": "Gönder",
+    "stop": "Durdur",
+    "thinking": "Düşünüyor…",
+    "routing": "Rota hesaplanıyor…",
+    "searching": "Kampüs bilgileri aranıyor…",
+    "looking": "Yerler aranıyor…",
+    "routeSummary": "{minutes} dk, {metres} m yürüyüş",
+    "showSteps": "Adımlar",
+    "error": "Asistana şu an ulaşılamıyor. Biraz sonra tekrar deneyin.",
+    "rateLimited": "Çok hızlı soruldu; birkaç saniye bekleyip tekrar deneyin.",
+    "notice": "Yanıtlar ücretsiz yapay zekâ servisleriyle (Groq, Google Gemini) üretilir; sağlayıcılar soruları hizmetlerini geliştirmek için kullanabilir. Kişisel bilgi yazmayın."
   }
 }

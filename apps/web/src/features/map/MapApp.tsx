@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
+import { MessageCircle, Navigation } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { FanMark } from '@/components/brand/FanMark';
@@ -30,6 +31,7 @@ import {
 } from '@/features/environment/store';
 import { conditionOf } from '@/features/environment/weather';
 import { PanoInset, type PanoStep } from '@/features/pano/PanoInset';
+import { AssistantPanel } from '@/features/chat/AssistantPanel';
 import { DirectionsPanel } from '@/features/route/DirectionsPanel';
 import { StepIcon } from '@/features/route/StepIcon';
 import { useRouteStore } from '@/features/route/store';
@@ -76,6 +78,9 @@ export function MapApp() {
     setExploreNode,
   } = useRouteStore();
   const route = useRoute(from?.id, to?.id, avoidStairs);
+  const [panelTab, setPanelTab] = useState<'directions' | 'assistant'>(
+    'directions',
+  );
   const routeData = route.isError ? undefined : route.data;
 
   const steps = routeData?.steps ?? [];
@@ -220,9 +225,12 @@ export function MapApp() {
             variant="thick"
             radius={28}
             refract={false}
-            className="pointer-events-auto flex max-h-full min-h-0 flex-col"
+            className={[
+              'pointer-events-auto flex max-h-full min-h-0 flex-col',
+              panelTab === 'assistant' ? 'h-full' : '',
+            ].join(' ')}
           >
-            <header className="flex items-center gap-3 px-5 pt-5 pb-4">
+            <header className="flex items-center gap-3 px-5 pt-5 pb-3">
               <span className="flex size-10 items-center justify-center rounded-xl bg-ink text-stone-raised shadow-elevation-1">
                 <FanMark className="size-6" />
               </span>
@@ -235,7 +243,43 @@ export function MapApp() {
                 </p>
               </div>
             </header>
-            <div className="min-h-0 flex-1 [scrollbar-width:thin] overflow-y-auto overscroll-contain px-4 pb-4">
+            <div
+              role="tablist"
+              aria-label={t('Panel.label')}
+              className="mx-4 mb-3 grid grid-cols-2 rounded-xl bg-accent p-1"
+            >
+              {(['directions', 'assistant'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  id={`tab-${tab}`}
+                  aria-selected={panelTab === tab}
+                  aria-controls={`panel-${tab}`}
+                  onClick={() => setPanelTab(tab)}
+                  className={[
+                    'flex h-8 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold transition-colors duration-150 ease-out-soft',
+                    panelTab === tab
+                      ? 'bg-stone-raised text-ink shadow-elevation-1'
+                      : 'text-ink-muted hover:text-ink',
+                  ].join(' ')}
+                >
+                  {tab === 'directions' ? (
+                    <Navigation className="size-3.5" aria-hidden />
+                  ) : (
+                    <MessageCircle className="size-3.5" aria-hidden />
+                  )}
+                  {t(`Panel.${tab}`)}
+                </button>
+              ))}
+            </div>
+            <div
+              role="tabpanel"
+              id="panel-directions"
+              aria-labelledby="tab-directions"
+              hidden={panelTab !== 'directions'}
+              className="min-h-0 flex-1 [scrollbar-width:thin] overflow-y-auto overscroll-contain px-4 pb-4"
+            >
               {graph.isError ? (
                 <p className="rounded-2xl bg-brick/10 p-4 text-sm">
                   {t('Route.apiDown')}
@@ -249,6 +293,17 @@ export function MapApp() {
                   reducedMotion={reducedMotion}
                 />
               )}
+            </div>
+            <div
+              role="tabpanel"
+              id="panel-assistant"
+              aria-labelledby="tab-assistant"
+              hidden={panelTab !== 'assistant'}
+              className="flex min-h-0 flex-1 flex-col px-4 pb-4"
+            >
+              <AssistantPanel
+                onShowDirections={() => setPanelTab('directions')}
+              />
             </div>
           </Glass>
         </motion.aside>

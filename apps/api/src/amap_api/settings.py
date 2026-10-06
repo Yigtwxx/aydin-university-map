@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # Transaction-pooler URL of the least-privilege `amap_api` role
     # (`amap db api-role`); empty = run without a database.
     amap_api_database_url: str = ""
+    # "" = Groq/Gemini; "offline" = deterministic test model (E2E, no keys).
+    amap_assistant_model: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
