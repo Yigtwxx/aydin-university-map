@@ -1,7 +1,7 @@
-export type Locale = "tr" | "en";
+export type Locale = 'tr' | 'en';
 
 const numberFormat = (locale: Locale, digits: number) =>
-  new Intl.NumberFormat(locale === "tr" ? "tr-TR" : "en-GB", {
+  new Intl.NumberFormat(locale === 'tr' ? 'tr-TR' : 'en-GB', {
     maximumFractionDigits: digits,
   });
 
@@ -18,5 +18,5 @@ export function formatDistance(metres: number, locale: Locale): string {
 /** Walking time: at least one minute, whole minutes. */
 export function formatDuration(seconds: number, locale: Locale): string {
   const minutes = Math.max(1, Math.round(seconds / 60));
-  return locale === "tr" ? `${minutes} dk` : `${minutes} min`;
+  return locale === 'tr' ? `${minutes} dk` : `${minutes} min`;
 }

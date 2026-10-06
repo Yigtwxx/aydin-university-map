@@ -1,26 +1,231 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
+/* Night theme is driven by the live sky (data-theme="night" on <html>),
+   not by the OS colour scheme: the map shows the campus as it is right now. */
+@custom-variant dark (&:where([data-theme='night'], [data-theme='night'] *));
+
+/* Design tokens: docs/design-system.md. shadcn's semantic variables below are
+   aliases of these, so there is one palette. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #131a24;
+  --ink-muted: #586170;
+  --stone: #e9e7e1;
+  --stone-raised: #fbfaf7;
+  --stone-deep: #d5d2c9;
+  --ochre: #dfa53c;
+  --brick: #b2432f;
+  --plane: #557a4c;
+  --marmara: #2d5d7c;
+  --route: #1f5fd6;
+  --route-soft: rgb(31 95 214 / 0.12);
+  --panel: rgb(251 250 247 / 0.92);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.32, 1.4, 0.48, 1);
+
+  /* Materials (docs/design-system.md#materials). Thick glass carries text
+     over the map, regular glass carries controls, tinted glass sits on photos. */
+  --glass-thick: rgb(251 250 247 / 0.8);
+  --glass-regular: rgb(251 250 247 / 0.58);
+  --glass-tint: rgb(14 20 30 / 0.3);
+  --glass-edge: rgb(255 255 255 / 0.7);
+  --glass-edge-soft: rgb(255 255 255 / 0.28);
+  --hairline: rgb(19 26 36 / 0.08);
+  --elevation-1:
+    0 1px 1px rgb(19 26 36 / 0.05), 0 4px 14px -2px rgb(19 26 36 / 0.12);
+  --elevation-2:
+    0 1px 2px rgb(19 26 36 / 0.06), 0 24px 56px -16px rgb(19 26 36 / 0.32);
+
+  --background: var(--stone);
+  --foreground: var(--ink);
+  --card: var(--stone-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--stone-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--route);
+  --primary-foreground: #ffffff;
+  --secondary: var(--stone-deep);
+  --secondary-foreground: var(--ink);
+  --muted: color-mix(in oklch, var(--stone-deep) 45%, var(--stone));
+  --muted-foreground: var(--ink-muted);
+  --accent: rgb(19 26 36 / 0.06);
+  --accent-foreground: var(--ink);
+  --destructive: var(--brick);
+  --border: var(--stone-deep);
+  --input: var(--stone-deep);
+  --ring: var(--route);
+  --radius: 0.75rem;
+}
+
+:root[data-theme='night'] {
+  --ink: #eceee9;
+  --ink-muted: #a3abb7;
+  --stone: #0f1520;
+  --stone-raised: #1a2230;
+  --stone-deep: #2a3445;
+  --ochre: #f2b84b;
+  --brick: #e0705a;
+  --plane: #3e5a3c;
+  --marmara: #7fb0cf;
+  --route: #5aa2ff;
+  --route-soft: rgb(90 162 255 / 0.16);
+  --panel: rgb(26 34 48 / 0.9);
+  --primary-foreground: #0b1422;
+
+  --glass-thick: rgb(22 29 41 / 0.78);
+  --glass-regular: rgb(22 29 41 / 0.55);
+  --glass-tint: rgb(8 12 20 / 0.38);
+  --glass-edge: rgb(255 255 255 / 0.16);
+  --glass-edge-soft: rgb(255 255 255 / 0.08);
+  --hairline: rgb(255 255 255 / 0.08);
+  --elevation-1: 0 1px 1px rgb(0 0 0 / 0.3), 0 4px 14px -2px rgb(0 0 0 / 0.45);
+  --elevation-2:
+    0 1px 2px rgb(0 0 0 / 0.3), 0 24px 56px -16px rgb(0 0 0 / 0.65);
+  --accent: rgb(255 255 255 / 0.07);
 }
 
 @theme inline {
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-stone: var(--stone);
+  --color-stone-raised: var(--stone-raised);
+  --color-stone-deep: var(--stone-deep);
+  --color-ochre: var(--ochre);
+  --color-brick: var(--brick);
+  --color-plane: var(--plane);
+  --color-marmara: var(--marmara);
+  --color-route: var(--route);
+  --color-panel: var(--panel);
+  --color-route-soft: var(--route-soft);
+  --color-hairline: var(--hairline);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-atkinson), system-ui, sans-serif;
+  --font-display: var(--font-barlow), var(--font-atkinson), sans-serif;
+  --font-heading: var(--font-display);
+  --ease-out-soft: var(--ease-out);
+
+  --text-xs: 0.8125rem;
+  --text-sm: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5625rem;
+  --text-xl: 1.9375rem;
+  --text-2xl: 2.4375rem;
+  --text-3xl: 3.0625rem;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+
+  --shadow-elevation-1: var(--elevation-1);
+  --shadow-elevation-2: var(--elevation-2);
+
+  --animate-fan: fan-sweep 1.4s var(--ease-out) infinite;
+  --animate-ping-soft: ping-soft 2.2s var(--ease-out) infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes fan-sweep {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes ping-soft {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  80%,
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body {
+    height: 100%;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--route);
+    outline-offset: 2px;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Frosted fallback for <Glass>; the refractive edge is added in Chromium. */
+  .glass {
+    position: relative;
+    isolation: isolate;
+    background: var(--glass-bg, var(--glass-regular));
+    -webkit-backdrop-filter: blur(var(--glass-blur, 22px)) saturate(1.8);
+    backdrop-filter: blur(var(--glass-blur, 22px)) saturate(1.8);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-edge),
+      inset 0 0 0 1px var(--glass-edge-soft),
+      var(--glass-shadow, var(--elevation-1));
+  }
+  .glass-thick {
+    --glass-bg: var(--glass-thick);
+    --glass-blur: 30px;
+    --glass-shadow: var(--elevation-2);
+  }
+  .glass-tint {
+    --glass-bg: var(--glass-tint);
+    --glass-blur: 14px;
+    --glass-edge: rgb(255 255 255 / 0.32);
+    --glass-edge-soft: rgb(255 255 255 / 0.14);
+    color: #fff;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,0 +1,120 @@
+{
+  "Meta": {
+    "title": "Aydın Campus Map",
+    "description": "Florya kampüsünde en kısa yürüyüş yolunu 3D haritada bulun ve 360° önizleyin."
+  },
+  "Brand": {
+    "name": "Aydın Campus Map",
+    "independent": "Bağımsız bir proje; resmi üniversite uygulaması değildir.",
+    "campus": "Florya Yerleşkesi"
+  },
+  "Route": {
+    "title": "Rota",
+    "from": "Neredesiniz?",
+    "to": "Nereye?",
+    "fromLabel": "Başlangıç",
+    "toLabel": "Varış",
+    "swap": "Başlangıç ve varışı değiştir",
+    "avoidStairs": "Merdivensiz rota",
+    "noResults": "Bu adla bir yer bulunamadı.",
+    "searching": "Aranıyor…",
+    "empty": "Başlangıç ve varış seçin; en kısa yürüyüş yolu haritada çizilsin.",
+    "summary": "{duration} yürüyüş, {distance}",
+    "noRoute": "Bu iki yer arasında henüz yürünebilir bir yol yok. Yakındaki bir girişi deneyin.",
+    "apiDown": "Rota servisine ulaşılamıyor. Birkaç saniye sonra tekrar deneyin.",
+    "steps": "Adımlar",
+    "openPano": "360° görünümde aç",
+    "arrival": "Varış",
+    "walkDistance": "{distance} yürüyüş",
+    "startWalk": "360° yürüyüşü başlat",
+    "suggested": "Önerilen yerler",
+    "coverage": "Şimdilik kampüs girişi ile A ve E blokları rota ağında. Diğer binalar sanal turdan işlendikçe eklenecek.",
+    "clear": "{field} alanını temizle"
+  },
+  "Pano": {
+    "title": "360° görünüm",
+    "close": "360° görünümü kapat",
+    "expand": "Tam ekran",
+    "previous": "Önceki adım",
+    "next": "Sonraki adım",
+    "stepOf": "Adım {index}/{count}",
+    "explore": "360° görünüm",
+    "goToStep": "{index}. adıma git"
+  },
+  "Environment": {
+    "live": "Canlı",
+    "backToLive": "Canlıya dön",
+    "time": "Saat",
+    "weather": "Hava",
+    "condition": {
+      "clear": "Açık",
+      "mainlyClear": "Az bulutlu",
+      "partlyCloudy": "Parçalı bulutlu",
+      "overcast": "Kapalı",
+      "fog": "Sisli",
+      "drizzle": "Çiseliyor",
+      "rain": "Yağmurlu",
+      "showers": "Sağanak yağışlı",
+      "snow": "Karlı",
+      "storm": "Gök gürültülü fırtına"
+    },
+    "details": "Saat ve hava durumu ayrıntıları",
+    "now": "Florya, şu an",
+    "unavailable": "Hava durumu şu an alınamıyor.",
+    "unavailableShort": "Hava durumu yok",
+    "wind": "Rüzgâr",
+    "windValue": "{direction}, {speed} km/sa",
+    "visibility": "Görüş",
+    "clouds": "Bulut",
+    "sunrise": "Gün doğumu",
+    "sunset": "Gün batımı",
+    "stale": "Son bilinen ölçüm.",
+    "source": "Kaynak: Open-Meteo. Saatler kampüs saatiyle (UTC+3).",
+    "preview": "Önizleme",
+    "previewBadge": "Önizleme"
+  },
+  "Attribution": {
+    "imagery": "360° görüntüler: İstanbul Aydın Üniversitesi sanal turu",
+    "map": "© OpenStreetMap katkıcıları",
+    "weather": "Hava durumu: Open-Meteo"
+  },
+  "Language": {
+    "label": "Dil",
+    "tr": "Türkçe",
+    "en": "English"
+  },
+  "Turns": {
+    "start": "{direction} yönünde yürüyün",
+    "straight": "Düz devam edin",
+    "slight_left": "Hafif sola",
+    "left": "Sola dönün",
+    "sharp_left": "Keskin sola",
+    "slight_right": "Hafif sağa",
+    "right": "Sağa dönün",
+    "sharp_right": "Keskin sağa",
+    "u_turn": "Geri dönün",
+    "arrive": "Varış: {place}"
+  },
+  "Compass": {
+    "0": "Kuzey",
+    "1": "Kuzeydoğu",
+    "2": "Doğu",
+    "3": "Güneydoğu",
+    "4": "Güney",
+    "5": "Güneybatı",
+    "6": "Batı",
+    "7": "Kuzeybatı"
+  },
+  "Map": {
+    "north": "Kuzeye çevir",
+    "northLetter": "K",
+    "zoomIn": "Yakınlaştır",
+    "zoomOut": "Uzaklaştır",
+    "view2d": "Kuşbakışı görünüm",
+    "view3d": "3D görünüm",
+    "fit": "Görünüme sığdır",
+    "panoSpot": "360° görünüm: {label}",
+    "block": "{code} Blok",
+    "loading": "Kampüs hazırlanıyor"
+  }
+}

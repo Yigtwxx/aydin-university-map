@@ -1,7 +1,8 @@
-import path from "node:path";
-import type { NextConfig } from "next";
+import path from 'node:path';
+import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 
-const repoRoot = path.join(__dirname, "..", "..");
+const repoRoot = path.join(__dirname, '..', '..');
 
 const nextConfig: NextConfig = {
   typedRoutes: true,
@@ -10,4 +11,4 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: repoRoot,
 };
 
-export default nextConfig;
+export default createNextIntlPlugin()(nextConfig);

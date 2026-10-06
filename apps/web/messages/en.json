@@ -1,0 +1,120 @@
+{
+  "Meta": {
+    "title": "Aydın Campus Map",
+    "description": "Find the shortest walking route on the Florya campus in 3D and preview it in 360°."
+  },
+  "Brand": {
+    "name": "Aydın Campus Map",
+    "independent": "An independent project, not an official university app.",
+    "campus": "Florya Campus"
+  },
+  "Route": {
+    "title": "Route",
+    "from": "Where are you?",
+    "to": "Where to?",
+    "fromLabel": "Start",
+    "toLabel": "Destination",
+    "swap": "Swap start and destination",
+    "avoidStairs": "Avoid stairs",
+    "noResults": "No place matches that name.",
+    "searching": "Searching…",
+    "empty": "Pick a start and a destination to draw the shortest walking route.",
+    "summary": "{duration} walk, {distance}",
+    "noRoute": "There is no walkable route between these places yet. Try a nearby entrance.",
+    "apiDown": "The route service is not reachable. Try again in a few seconds.",
+    "steps": "Steps",
+    "openPano": "Open in 360° view",
+    "arrival": "Arrive",
+    "walkDistance": "{distance} on foot",
+    "startWalk": "Start the 360° walk",
+    "suggested": "Suggested places",
+    "coverage": "The route network covers the campus entrance and blocks A and E for now. More buildings follow as the virtual tour is processed.",
+    "clear": "Clear {field}"
+  },
+  "Pano": {
+    "title": "360° view",
+    "close": "Close the 360° view",
+    "expand": "Full screen",
+    "previous": "Previous step",
+    "next": "Next step",
+    "stepOf": "Step {index} of {count}",
+    "explore": "360° view",
+    "goToStep": "Go to step {index}"
+  },
+  "Environment": {
+    "live": "Live",
+    "backToLive": "Back to live",
+    "time": "Time",
+    "weather": "Weather",
+    "condition": {
+      "clear": "Clear",
+      "mainlyClear": "Mainly clear",
+      "partlyCloudy": "Partly cloudy",
+      "overcast": "Overcast",
+      "fog": "Fog",
+      "drizzle": "Drizzle",
+      "rain": "Rain",
+      "showers": "Showers",
+      "snow": "Snow",
+      "storm": "Thunderstorm"
+    },
+    "details": "Time and weather details",
+    "now": "Florya, right now",
+    "unavailable": "Weather is unavailable right now.",
+    "unavailableShort": "No weather",
+    "wind": "Wind",
+    "windValue": "{direction}, {speed} km/h",
+    "visibility": "Visibility",
+    "clouds": "Cloud cover",
+    "sunrise": "Sunrise",
+    "sunset": "Sunset",
+    "stale": "Last known reading.",
+    "source": "Source: Open-Meteo. Times in campus time (UTC+3).",
+    "preview": "Preview",
+    "previewBadge": "Preview"
+  },
+  "Attribution": {
+    "imagery": "360° imagery: İstanbul Aydın University virtual tour",
+    "map": "© OpenStreetMap contributors",
+    "weather": "Weather: Open-Meteo"
+  },
+  "Language": {
+    "label": "Language",
+    "tr": "Türkçe",
+    "en": "English"
+  },
+  "Turns": {
+    "start": "Head {direction}",
+    "straight": "Continue straight",
+    "slight_left": "Bear left",
+    "left": "Turn left",
+    "sharp_left": "Sharp left",
+    "slight_right": "Bear right",
+    "right": "Turn right",
+    "sharp_right": "Sharp right",
+    "u_turn": "Turn around",
+    "arrive": "Arrive at {place}"
+  },
+  "Compass": {
+    "0": "north",
+    "1": "northeast",
+    "2": "east",
+    "3": "southeast",
+    "4": "south",
+    "5": "southwest",
+    "6": "west",
+    "7": "northwest"
+  },
+  "Map": {
+    "north": "Face north",
+    "northLetter": "N",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "view2d": "Top-down view",
+    "view3d": "3D view",
+    "fit": "Fit to view",
+    "panoSpot": "360° view: {label}",
+    "block": "Block {code}",
+    "loading": "Preparing the campus"
+  }
+}
