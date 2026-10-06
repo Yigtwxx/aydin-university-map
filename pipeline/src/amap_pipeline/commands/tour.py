@@ -23,9 +23,13 @@ OverridesOption = Annotated[
 ]
 
 
+# Committed corrections; scene names are tour identifiers, not tour content.
+DEFAULT_OVERRIDES = Path(__file__).parents[3] / "configs" / "scene_overrides.toml"
+
+
 def _load(raw: Path | None, overrides: Path | None) -> ClassifiedTour:
     raw_path = raw or paths.raw_dump()
-    overrides_path = overrides or paths.derived_dir() / "scene_overrides.toml"
+    overrides_path = overrides or DEFAULT_OVERRIDES
     return classify_tour(load_dump(raw_path), load_overrides(overrides_path))
 
 

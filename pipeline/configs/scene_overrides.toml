@@ -1,0 +1,6 @@
+# Scene kinds that the label keywords get wrong (see docs/adr/0003-sfm-spike.md).
+# Read by `amap tour build|select`; a --overrides file replaces this one.
+
+[overrides]
+# "Konferans Salonu Giriş" is an indoor corridor in A Blok, not a doorway.
+scene_428305 = "indoor"

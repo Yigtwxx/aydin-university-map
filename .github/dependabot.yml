@@ -36,3 +36,19 @@ updates:
           ['next', 'eslint-config-next', 'react', 'react-dom', '@types/react*']
       test-tools:
         patterns: ['vitest', 'vite', '@vitejs/*', '@testing-library/*', 'jsdom']
+    ignore:
+      # Photo Sphere Viewer depends on three ^0.185; a newer three would ship
+      # a second copy. Bump three by hand together with a PSV release.
+      - dependency-name: 'three'
+        update-types: ['version-update:semver-minor']
+      - dependency-name: '@types/three'
+        update-types: ['version-update:semver-minor']
+      # typescript-eslint does not support TypeScript 7 yet.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      # eslint-config-next's React plugin breaks on ESLint 10.
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      # Node types follow the runtime in .nvmrc (24 LTS).
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
