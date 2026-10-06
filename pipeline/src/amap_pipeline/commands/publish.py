@@ -20,6 +20,7 @@ HEADERS = """/*
   X-Content-Type-Options: nosniff
 
 /panos/*
+  ! Cache-Control
   Cache-Control: public, max-age=604800, stale-while-revalidate=86400
 """
 
