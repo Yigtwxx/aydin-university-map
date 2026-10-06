@@ -120,6 +120,9 @@ const MOBILE_CONTROLS_BOTTOM_PX = 56 + 3 * 36 + 9 + 12;
 
 const PHOTOREAL_TOKEN = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN || undefined;
 
+/** The map's chrome never waits longer than this for the opening. */
+const OPENING_DEADLINE_MS = 12_000;
+
 /** The opening plays once per browser session (and never over a shared route). */
 const OPENING_SEEN_KEY = 'amap.opening.seen';
 
@@ -345,6 +348,16 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
     if (intro === 'assemble') markOpeningSeen();
   }, [intro]);
   const assembling = intro === 'assemble' && introShown;
+  // Last resort: the panel comes in this long after the data, whatever the
+  // scene does (the opening itself ends after about 3 s).
+  useEffect(() => {
+    if (!assembling || !(graph.data && buildings.data)) return;
+    const id = window.setTimeout(() => {
+      reveal();
+      setIntroPhase('done');
+    }, OPENING_DEADLINE_MS);
+    return () => window.clearTimeout(id);
+  }, [assembling, graph.data, buildings.data, reveal]);
   const photoreal = useCameraStore((s) => s.photoreal);
   const [credits, setCredits] = useState<Credit[]>();
   const finishIntro = useCallback(() => setIntroPhase('done'), []);

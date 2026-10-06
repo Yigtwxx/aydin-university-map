@@ -9,6 +9,13 @@ import { INTRO, INTRO_OVER, introClock, introLight } from './opening';
 const SKIP_SPEED = 4;
 /** Frames to wait before the clock runs: shaders compile in the first ones. */
 const WARMUP_FRAMES = 3;
+/** Longest step of one frame (s): a hitch skips a little, never the rest. */
+const MAX_STEP_S = 0.1;
+/**
+ * If frames stall (a background tab, a lost WebGL context, a very slow GPU),
+ * the opening ends by wall clock this long after it should have.
+ */
+const WATCHDOG_S = 4;
 
 /** Development only: `?openingAt=1.4` holds the opening at 1.4 s for review. */
 function heldAt(): number | undefined {
@@ -36,6 +43,28 @@ export function OpeningClock({ onGlide, onReveal, onDone }: OpeningClockProps) {
   const fired = useRef({ glide: false, reveal: false, done: false });
   const [held] = useState(heldAt);
 
+  // Stalled frames must never leave the map without its panel: finish by
+  // the wall clock, with every building standing.
+  useEffect(() => {
+    // A held opening (review in development) stays where it is.
+    if (held !== undefined) return;
+    const id = window.setTimeout(
+      () => {
+        const f = fired.current;
+        introClock.time.value = INTRO_OVER;
+        introClock.light.value = 1;
+        if (!f.glide) onGlide();
+        if (!f.reveal) onReveal();
+        if (!f.done) onDone();
+        fired.current = { glide: true, reveal: true, done: true };
+      },
+      (INTRO.doneS + WATCHDOG_S) * 1000,
+    );
+    return () => window.clearTimeout(id);
+    // Started once, when the opening starts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [held]);
+
   // Any touch, scroll or key: play the rest quickly instead of cutting.
   useEffect(() => {
     const skip = () => {
@@ -59,7 +88,8 @@ export function OpeningClock({ onGlide, onReveal, onDone }: OpeningClockProps) {
     }
     // A long frame (tab switch, a hitch) must not jump the animation.
     const t =
-      held ?? introClock.time.value + Math.min(delta, 1 / 30) * speed.current;
+      held ??
+      introClock.time.value + Math.min(delta, MAX_STEP_S) * speed.current;
     introClock.time.value = t;
     introClock.light.value = introLight(t);
     const f = fired.current;
