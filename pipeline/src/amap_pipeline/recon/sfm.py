@@ -14,6 +14,7 @@ Workspace layout (``data/recon/<run>/``)::
 import json
 import os
 import shutil
+import subprocess
 import time
 import tomllib
 from collections import deque
@@ -26,6 +27,17 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from amap_pipeline.recon.cubemap import FACES, TRANSFORMS, rig_config
+
+EXTRACTORS = {
+    "sift": "SIFT",
+    "aliked_n16rot": "ALIKED_N16ROT",
+    "aliked_n32": "ALIKED_N32",
+}
+MATCHERS = {
+    "sift_bruteforce": "SIFT_BRUTEFORCE",
+    "sift_lightglue": "SIFT_LIGHTGLUE",
+    "aliked_lightglue": "ALIKED_LIGHTGLUE",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +52,25 @@ class SfmConfig:
     estimate_affine_shape: bool = False
     domain_size_pooling: bool = False
     mapper: str = "incremental"
+    # Incremental mapper thresholds (COLMAP defaults: 100 / 10 / 30). Wide
+    # baselines between tour panoramas give 40-120 verified inliers per pair, so
+    # the default initialisation threshold rejects whole clusters.
+    init_min_num_inliers: int = 100
+    init_min_tri_angle: float = 16.0
+    min_model_size: int = 10
+    abs_pose_min_num_inliers: int = 30
+    # Features/matcher: "sift" | "aliked_n16rot" | "aliked_n32" and
+    # "sift_bruteforce" | "sift_lightglue" | "aliked_lightglue" (pretrained
+    # inference via ONNX; no training).
+    extractor: str = "sift"
+    matcher: str = "sift_bruteforce"
+    learned_max_features: int = 4096
+
+    @property
+    def uses_onnx(self) -> bool:
+        """Learned features need the ONNX-enabled COLMAP CLI (pip pycolmap lacks it)."""
+        return self.extractor != "sift" or self.matcher != "sift_bruteforce"
+
     transforms: dict[str, str] = field(
         default_factory=lambda: dict.fromkeys(FACES, "id")
     )
@@ -55,6 +86,10 @@ class SfmConfig:
             raise ValueError(f"faces must include 'f' and be a subset of {FACES}")
         if cfg.mapper not in {"incremental", "global"}:
             raise ValueError(f"unknown mapper {cfg.mapper!r}")
+        if cfg.extractor not in EXTRACTORS or cfg.matcher not in MATCHERS:
+            raise ValueError(f"unknown extractor/matcher {cfg.extractor}/{cfg.matcher}")
+        if cfg.extractor.split("_")[0] != cfg.matcher.split("_")[0]:
+            raise ValueError("matcher must match the extractor's descriptor family")
         return cfg
 
 
@@ -202,30 +237,27 @@ def summarise_models(models: Mapping[int, Any], cfg: SfmConfig) -> list[dict[str
     return summaries
 
 
-def run_sfm(
+def _extract_and_match(
     cfg: SfmConfig,
     scenes: Sequence[str],
-    adjacency: Mapping[str, set[str]],
+    pairs: Sequence[tuple[str, str]],
     tiles_dir: Path,
     workspace: Path,
-) -> dict[str, Any]:
-    """Run the full sparse reconstruction and return (and write) a report."""
+    timer: StageTimer,
+) -> None:
+    """Stage images and masks, extract SIFT, apply the rig and match pairs."""
     import pycolmap
 
-    timer = StageTimer()
     images_dir, masks_dir = workspace / "images", workspace / "masks"
     database = workspace / "database.db"
-    sparse = workspace / "sparse"
-    database.unlink(missing_ok=True)
-    shutil.rmtree(sparse, ignore_errors=True)
-    sparse.mkdir(parents=True)
-
     names = stage_images(scenes, tiles_dir, images_dir, cfg)
     write_masks(scenes, masks_dir, cfg)
-    pairs = scene_pairs(scenes, adjacency, cfg.pair_hops)
-    num_image_pairs = write_pairs(workspace / "pairs.txt", pairs, cfg.faces)
+    write_pairs(workspace / "pairs.txt", pairs, cfg.faces)
     write_workspace_rig(workspace / "rig_config.json", cfg)
     timer.lap("stage")
+    if cfg.uses_onnx:
+        _extract_and_match_cli(cfg, names, workspace, timer)
+        return
 
     focal = cfg.face_px / 2.0
     reader = pycolmap.ImageReaderOptions()
@@ -233,6 +265,7 @@ def run_sfm(
     reader.camera_params = f"{focal},{focal},{focal}"
     reader.mask_path = str(masks_dir)
     extraction = pycolmap.FeatureExtractionOptions()
+    extraction.type = getattr(pycolmap.FeatureExtractorType, EXTRACTORS[cfg.extractor])
     extraction.sift.max_num_features = cfg.max_num_features
     extraction.sift.estimate_affine_shape = cfg.estimate_affine_shape
     extraction.sift.domain_size_pooling = cfg.domain_size_pooling
@@ -256,6 +289,7 @@ def run_sfm(
     timer.lap("rig")
 
     matching = pycolmap.FeatureMatchingOptions()
+    matching.type = getattr(pycolmap.FeatureMatcherType, MATCHERS[cfg.matcher])
     matching.rig_verification = True
     matching.skip_image_pairs_in_same_frame = True
     pairing = pycolmap.ImportedPairingOptions()
@@ -265,6 +299,89 @@ def run_sfm(
     )
     timer.lap("match")
 
+
+class ColmapError(RuntimeError):
+    """A COLMAP CLI step failed; the message carries the tail of its log."""
+
+
+def _colmap(*args: str) -> None:
+    """Run the COLMAP CLI (``$COLMAP_BIN`` or ``colmap`` on PATH)."""
+    binary = os.environ.get("COLMAP_BIN", "colmap")
+    proc = subprocess.run([binary, *args], capture_output=True, text=True)
+    if proc.returncode != 0:
+        tail = "\n".join((proc.stderr or proc.stdout).splitlines()[-25:])
+        raise ColmapError(f"colmap {args[0]} exited with {proc.returncode}:\n{tail}")
+
+
+def _extract_and_match_cli(
+    cfg: SfmConfig, names: Sequence[str], workspace: Path, timer: StageTimer
+) -> None:
+    database = str(workspace / "database.db")
+    image_list = workspace / "image_list.txt"
+    image_list.write_text("\n".join(names) + "\n", encoding="utf-8")
+    focal = cfg.face_px / 2.0
+    family = "Aliked" if cfg.extractor.startswith("aliked") else "Sift"
+    _colmap(
+        "feature_extractor",
+        "--database_path", database,
+        "--image_path", str(workspace / "images"),
+        "--image_list_path", str(image_list),
+        "--ImageReader.single_camera_per_folder", "1",
+        "--ImageReader.camera_model", "SIMPLE_PINHOLE",
+        "--ImageReader.camera_params", f"{focal},{focal},{focal}",
+        "--ImageReader.mask_path", str(workspace / "masks"),
+        "--FeatureExtraction.type", EXTRACTORS[cfg.extractor],
+        f"--{family}Extraction.max_num_features",
+        str(cfg.learned_max_features if family == "Aliked" else cfg.max_num_features),
+    )  # fmt: skip
+    timer.lap("extract")
+    _colmap(
+        "rig_configurator",
+        "--database_path", database,
+        "--rig_config_path", str(workspace / "rig_config.json"),
+    )  # fmt: skip
+    timer.lap("rig")
+    _colmap(
+        "matches_importer",
+        "--database_path", database,
+        "--match_list_path", str(workspace / "pairs.txt"),
+        "--match_type", "pairs",
+        "--FeatureMatching.type", MATCHERS[cfg.matcher],
+        "--FeatureMatching.rig_verification", "1",
+        "--FeatureMatching.skip_image_pairs_in_same_frame", "1",
+    )  # fmt: skip
+    timer.lap("match")
+
+
+def run_sfm(
+    cfg: SfmConfig,
+    scenes: Sequence[str],
+    adjacency: Mapping[str, set[str]],
+    tiles_dir: Path,
+    workspace: Path,
+    map_only: bool = False,
+) -> dict[str, Any]:
+    """Run the sparse reconstruction and return (and write) a report.
+
+    ``map_only`` reuses the existing database (features + matches) and only
+    re-runs the mapper, e.g. after tuning mapper thresholds.
+    """
+    import pycolmap
+
+    timer = StageTimer()
+    images_dir = workspace / "images"
+    database = workspace / "database.db"
+    sparse = workspace / "sparse"
+    if map_only and not database.is_file():
+        raise FileNotFoundError(f"--map-only needs an existing {database}")
+    shutil.rmtree(sparse, ignore_errors=True)
+    sparse.mkdir(parents=True)
+    pairs = scene_pairs(scenes, adjacency, cfg.pair_hops)
+    num_image_pairs = len(pairs) * len(cfg.faces) ** 2
+    if not map_only:
+        database.unlink(missing_ok=True)
+        _extract_and_match(cfg, scenes, pairs, tiles_dir, workspace, timer)
+
     if cfg.mapper == "global":
         models = pycolmap.global_mapping(database, images_dir, sparse)
     else:
@@ -273,6 +390,10 @@ def run_sfm(
         options.ba_refine_focal_length = False
         options.ba_refine_principal_point = False
         options.ba_refine_extra_params = False
+        options.min_model_size = cfg.min_model_size
+        options.mapper.init_min_num_inliers = cfg.init_min_num_inliers
+        options.mapper.init_min_tri_angle = cfg.init_min_tri_angle
+        options.mapper.abs_pose_min_num_inliers = cfg.abs_pose_min_num_inliers
         models = pycolmap.incremental_mapping(database, images_dir, sparse, options)
     timer.lap("map")
 

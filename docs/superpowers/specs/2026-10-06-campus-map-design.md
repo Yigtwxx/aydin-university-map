@@ -1,6 +1,7 @@
 # Aydın University Map — 3D campus from the 360 tour + shortest walking paths (Florya)
 
 > Approved design (2026-10-06). Living document: later changes are recorded as ADRs in `docs/adr/`.
+> Updates: hosting moved from R2 to Cloudflare Pages ([ADR-0004](../../adr/0004-free-hosting-without-domain.md)); app name "Aydın Campus Map", independent branding, desktop-first UI; spike results in [ADR-0003](../../adr/0003-sfm-spike.md).
 
 ## Context
 

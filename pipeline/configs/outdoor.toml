@@ -1,0 +1,16 @@
+# Phase 2: every outdoor/entrance scene of Florya (one SfM run, several models
+# expected where tour links are teleports).
+[sfm]
+set = "outdoor97"
+run = "outdoor97_v1"
+faces = ["f", "r", "b", "l", "d"]
+face_px = 1300
+pair_hops = 2
+nadir_mask_radius = 0.18
+max_num_features = 8192
+estimate_affine_shape = false
+domain_size_pooling = false
+mapper = "incremental"
+init_min_num_inliers = 40
+min_model_size = 2
+abs_pose_min_num_inliers = 20

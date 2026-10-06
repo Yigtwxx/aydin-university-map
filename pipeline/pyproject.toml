@@ -18,6 +18,11 @@ amap = "amap_pipeline.cli:app"
 recon = [
     "pycolmap>=4.2.1",
 ]
+geo = [
+    "pyproj>=3.7",
+    "scipy>=1.15",
+    "shapely>=2.1",
+]
 
 [tool.uv.sources]
 amap-contracts = { workspace = true }

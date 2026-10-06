@@ -65,3 +65,26 @@ def tour_select(
     for scene_name in selected:
         kinds[tour.kinds[scene_name].value] += 1
     typer.echo(f"selected {len(selected)} scenes {kinds} -> {out_path}")
+
+
+@app.command("select-all")
+def tour_select_all(
+    hub: Annotated[str, typer.Option(help="Outdoor hub to order the set from.")],
+    name: Annotated[str, typer.Option(help="Set name, e.g. florya_all.")],
+    raw: RawOption = None,
+    overrides: OverridesOption = None,
+) -> None:
+    """Every Florya scene: outdoor/entrance first (BFS from hub), then the rest."""
+    tour = _load(raw, overrides)
+    outdoor = tour.names_of_kind(SceneKind.OUTDOOR, SceneKind.ENTRANCE)
+    ordered = bfs_select(tour.adjacency, hub, len(outdoor), outdoor)
+    seen = set(ordered)
+    ordered += [s.name for s in tour.scenes if s.name in outdoor and s.name not in seen]
+    seen = set(ordered)
+    ordered += [s.name for s in tour.scenes if s.name not in seen]
+    out_path = paths.sets_dir() / f"{name}.txt"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(ordered) + "\n", encoding="utf-8")
+    typer.echo(
+        f"selected {len(ordered)} scenes ({len(outdoor)} outdoor/entrance first)"
+    )

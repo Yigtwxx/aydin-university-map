@@ -1,4 +1,4 @@
-# Aydın University Map
+# Aydın Campus Map
 
 [![CI](https://github.com/Yigtwxx/aydin-university-map/actions/workflows/ci.yml/badge.svg)](https://github.com/Yigtwxx/aydin-university-map/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -39,10 +39,10 @@ flowchart LR
   S --> G[Georeferans: yerçekimi + kamera yüksekliği + OSM]
   G --> M[OpenMVS: yoğun nokta bulutu, mesh, doku]
   G --> W[Metrik yürüyüş grafı + POI]
-  M --> R2[(R2: GLB / KTX2)]
+  M --> CDN[(Cloudflare Pages: GLB / WebP)]
   W --> DB[(Supabase: PostGIS + pgvector)]
   DB --> API[FastAPI: A*, arama, hava, sohbet]
-  R2 --> WEB[Next.js: R3F 3D harita + 360° tur]
+  CDN --> WEB[Next.js: R3F 3D harita + 360° tur]
   API --> WEB
 ```
 
@@ -100,7 +100,7 @@ Bkz. [docs/data-policy.md](docs/data-policy.md).
 
 Python 3.12 (uv, pycolmap, OpenMVS as an external tool, Open3D, osmnx, FastAPI,
 NetworkX, pydantic-ai) · Next.js 16 + TypeScript (React Three Fiber, Photo Sphere
-Viewer, GSAP, Tailwind, next-intl) · Supabase (PostGIS, pgvector) · Cloudflare R2.
+Viewer, GSAP, Tailwind, next-intl) · Supabase (PostGIS, pgvector) · Cloudflare Pages.
 
 ### Development
 
@@ -120,6 +120,7 @@ and never committed. See [docs/data-policy.md](docs/data-policy.md).
 
 ## License & attribution
 
-- Code: [MIT](LICENSE) © 2026 Yiğit Erdoğan
+- Code: [MIT](LICENSE) © 2026 Yiğit Erdoğan. Independent project, not an official university product.
+- 360° görüntüler / 360° imagery: İstanbul Aydın Üniversitesi sanal turu, used with permission
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - Weather data by [Open-Meteo](https://open-meteo.com/) (CC BY 4.0)

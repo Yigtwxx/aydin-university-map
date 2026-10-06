@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Shared data contracts and helpers for the Aydın University Map pipeline, API and web app."
 license = "MIT"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.11",
+]
 
 [build-system]
 requires = ["hatchling>=1.27"]

@@ -38,3 +38,15 @@ def test_tour_select_writes_outdoor_set(data_root: Path) -> None:
         "scene_900003",
         "scene_900004",
     ], f"Got {selected}"
+
+
+def test_tour_select_all_orders_outdoor_first(data_root: Path) -> None:
+    result = runner.invoke(
+        app, ["tour", "select-all", "--hub", "scene_900001", "--name", "all"]
+    )
+    assert result.exit_code == 0, result.output
+    selected = (data_root / "derived" / "sets" / "all.txt").read_text("utf-8").split()
+    assert len(selected) == 10, f"Expected all 10 Florya scenes, got {selected}"
+    assert selected[0] == "scene_900001", f"Hub must come first, got {selected[0]}"
+    indoor_first = min(selected.index("scene_900007"), selected.index("scene_900008"))
+    assert indoor_first >= 8, f"Indoor scenes must come last: {selected}"

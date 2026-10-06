@@ -8,15 +8,17 @@ The 3D model and walking graph are derived from the official İstanbul Aydın
 University 360° virtual tour (`360.aydin.edu.tr`). Panoramas, tiles, tour
 metadata dumps and everything derived from them (point clouds, meshes, textures,
 pano poses, generated descriptions) belong to the university and the tour vendor.
-The project uses them with permission obtained by the maintainer.
+The project uses them with permission obtained by the maintainer. In the app
+they are credited as "360° görüntüler: İstanbul Aydın Üniversitesi sanal turu".
 
 Rules:
 
 1. Everything under `data/` is gitignored and must never be committed.
 2. No panoramas, tiles, crops, screenshots of panoramas, meshes or point clouds in
    issues, pull requests, docs or test fixtures. Tests use **synthetic** fixtures only.
-3. Generated assets are published to object storage (Cloudflare R2) and served
-   to the web app from there, never from git.
+3. Generated assets are published to Cloudflare Pages (see
+   [ADR-0004](adr/0004-free-hosting-without-domain.md)) and served to the web app
+   from there, never from git. The maintainer confirmed public display is allowed.
 4. `tools/repo_guard.py` enforces rules 1–2 in pre-commit and CI; gitleaks scans
    for secrets.
 

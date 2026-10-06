@@ -30,6 +30,9 @@ app = typer.Typer(help="Structure-from-Motion commands.", no_args_is_help=True)
 @app.command("run")
 def sfm_run(
     config: Annotated[Path, typer.Option(help="SfM TOML config.")],
+    map_only: Annotated[
+        bool, typer.Option(help="Reuse features/matches, only re-run the mapper.")
+    ] = False,
 ) -> None:
     """Stage faces, extract/match SIFT on tour-link pairs and map the rig."""
     transforms_file = paths.recon_dir() / "face_transforms.json"
@@ -45,7 +48,9 @@ def sfm_run(
         load_overrides(paths.derived_dir() / "scene_overrides.toml"),
     )
     workspace = paths.recon_dir() / cfg.run
-    report = run_sfm(cfg, scenes, tour.adjacency, paths.tiles_dir(), workspace)
+    report = run_sfm(
+        cfg, scenes, tour.adjacency, paths.tiles_dir(), workspace, map_only=map_only
+    )
     for model in report["models"][:5]:
         typer.echo(
             f"model {model['model']}: {model['reg_frames']} frames, "
