@@ -128,19 +128,46 @@ def _overlay(
     img.save(path)
 
 
+def georef_path(workspace: Path, model: int) -> Path:
+    return workspace / f"georef_m{model}.json"
+
+
 @app.command("run")
 def georef_run(
     run: Annotated[str, typer.Option(help="SfM run name under data/recon/.")],
     model: Annotated[
-        int | None, typer.Option(help="Model index (default: largest).")
+        int | None, typer.Option(help="Model index (default: every model).")
     ] = None,
+    min_frames: Annotated[
+        int, typer.Option(help="Skip models with fewer panoramas.")
+    ] = 3,
 ) -> None:
-    """Gravity-level the model, search yaw/scale/shift against OSM, refine with ICP."""
-    import pycolmap
+    """Level each model, search yaw/scale/shift against OSM, refine with ICP.
 
+    Every model gets its own ``georef_m<N>.json``; ``amap graph export`` merges
+    them and keeps the best-fitting pose per scene.
+    """
     workspace = paths.recon_dir() / run
     sfm_report = json.loads((workspace / "report.json").read_text("utf-8"))
-    model_index = model if model is not None else sfm_report["models"][0]["model"]
+    models = [
+        m["model"]
+        for m in sfm_report["models"]
+        if (model is None and m["reg_frames"] >= min_frames) or m["model"] == model
+    ]
+    if not models:
+        typer.echo("no model to georeference")
+        raise typer.Exit(code=1)
+    for index in models:
+        typer.echo(f"--- model {index}")
+        try:
+            georef_model(run, workspace, index)
+        except typer.Exit:
+            typer.echo(f"model {index}: skipped")
+
+
+def georef_model(run: str, workspace: Path, model_index: int) -> None:
+    import pycolmap
+
     rec = pycolmap.Reconstruction(workspace / "sparse" / str(model_index))
     poses = extract_poses(rec)
     down, level_dev = gravity(poses)
@@ -268,9 +295,11 @@ def georef_run(
         },
         "scenes": scenes,
     }
-    (workspace / "georef.json").write_text(json.dumps(result, indent=2) + "\n", "utf-8")
+    georef_path(workspace, model_index).write_text(
+        json.dumps(result, indent=2) + "\n", "utf-8"
+    )
     _overlay(
-        paths.data_dir() / "debug" / f"{run}_georef.png",
+        paths.data_dir() / "debug" / f"{run}_m{model_index}_georef.png",
         buildings,
         walls_map,
         cams_map,
@@ -286,5 +315,6 @@ def georef_run(
         f"margin vs other yaw {margin:.2f}"
     )
     typer.echo(
-        f"cameras inside buildings: {len(inside)}  -> {workspace / 'georef.json'}"
+        f"cameras inside buildings: {len(inside)}  -> "
+        f"{georef_path(workspace, model_index)}"
     )

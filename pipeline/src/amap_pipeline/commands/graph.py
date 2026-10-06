@@ -1,6 +1,7 @@
 """``amap graph``: export the metric walking graph as GeoJSON."""
 
 import json
+from pathlib import Path
 from typing import Annotated, Any
 
 import typer
@@ -17,6 +18,36 @@ from amap_pipeline.graph.build import GraphParams, build_graph, summarise
 
 app = typer.Typer(help="Walking graph commands.", no_args_is_help=True)
 
+# A model whose fit is worse than this is not trusted for node positions.
+MAX_ICP_RMS_M = 2.5
+MAX_INSIDE_SHARE = 0.15
+
+
+def georef_files(workspace: Path) -> list[Path]:
+    """Per-model georeference files (``georef_m<N>.json``; legacy ``georef.json``)."""
+    files = sorted(workspace.glob("georef_m*.json"))
+    legacy = workspace / "georef.json"
+    return files or ([legacy] if legacy.is_file() else [])
+
+
+def trusted(georef: dict[str, Any]) -> bool:
+    quality = georef["quality"]
+    inside = len(quality["cameras_inside_buildings"]) / max(len(georef["scenes"]), 1)
+    return quality["icp_rms_m"] <= MAX_ICP_RMS_M and inside <= MAX_INSIDE_SHARE
+
+
+def merge_poses(georefs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Scene -> pose from the best-fitting trusted model that contains it."""
+    best: dict[str, tuple[float, dict[str, Any]]] = {}
+    for georef in georefs:
+        if not trusted(georef):
+            continue
+        rms = float(georef["quality"]["icp_rms_m"])
+        for scene, record in georef["scenes"].items():
+            if scene not in best or rms < best[scene][0]:
+                best[scene] = (rms, record)
+    return {scene: record for scene, (_, record) in best.items()}
+
 
 @app.command("export")
 def graph_export(
@@ -27,13 +58,17 @@ def graph_export(
     infer_radius_m: Annotated[float, typer.Option(help="Line-of-sight radius.")] = 12,
 ) -> None:
     """Merge georeferenced runs and write data/out/graph.geojson + report."""
-    posed: dict[str, dict[str, Any]] = {}
+    georefs: list[dict[str, Any]] = []
     for run in runs:
-        georef = json.loads(
-            (paths.recon_dir() / run / "georef.json").read_text("utf-8")
-        )
-        for scene, record in georef["scenes"].items():
-            posed.setdefault(scene, record)
+        for path in georef_files(paths.recon_dir() / run):
+            georef = json.loads(path.read_text("utf-8"))
+            status = "ok" if trusted(georef) else "skipped (poor fit)"
+            typer.echo(
+                f"{path.relative_to(paths.recon_dir())}: {len(georef['scenes'])} "
+                f"scenes, ICP {georef['quality']['icp_rms_m']} m, {status}"
+            )
+            georefs.append(georef)
+    posed = merge_poses(georefs)
     scenes = {
         s["name"]: s
         for s in json.loads((paths.derived_dir() / "scenes.json").read_text("utf-8"))

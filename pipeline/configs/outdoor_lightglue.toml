@@ -1,0 +1,17 @@
+# Phase 2: every outdoor/entrance scene of Florya with pretrained ALIKED +
+# LightGlue on CUDA/MPS (inference only). SIFT registered 49/97 scenes; the
+# learned matcher finds about 4x more inliers on wide tour baselines.
+[sfm]
+set = "outdoor96"
+run = "outdoor96_lg"
+faces = ["f", "r", "b", "l", "d"]
+face_px = 1300
+pair_hops = 2
+nadir_mask_radius = 0.18
+extractor = "aliked_n16"
+matcher = "lightglue"
+learned_max_features = 4096
+mapper = "incremental"
+init_min_num_inliers = 40
+min_model_size = 2
+abs_pose_min_num_inliers = 20

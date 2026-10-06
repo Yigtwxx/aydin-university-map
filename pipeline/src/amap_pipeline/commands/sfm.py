@@ -11,6 +11,7 @@ import typer
 
 from amap_pipeline import paths
 from amap_pipeline.acquire.sink import read_scene_set
+from amap_pipeline.commands.tour import DEFAULT_OVERRIDES
 from amap_pipeline.recon.evaluate import (
     edge_lengths_m,
     extract_poses,
@@ -33,6 +34,9 @@ def sfm_run(
     map_only: Annotated[
         bool, typer.Option(help="Reuse features/matches, only re-run the mapper.")
     ] = False,
+    resume: Annotated[
+        bool, typer.Option(help="Keep the database of an interrupted LightGlue run.")
+    ] = False,
 ) -> None:
     """Stage faces, extract/match SIFT on tour-link pairs and map the rig."""
     transforms_file = paths.recon_dir() / "face_transforms.json"
@@ -45,11 +49,17 @@ def sfm_run(
     scenes = read_scene_set(paths.sets_dir(), cfg.set)
     tour = classify_tour(
         load_dump(paths.raw_dump()),
-        load_overrides(paths.derived_dir() / "scene_overrides.toml"),
+        load_overrides(DEFAULT_OVERRIDES),
     )
     workspace = paths.recon_dir() / cfg.run
     report = run_sfm(
-        cfg, scenes, tour.adjacency, paths.tiles_dir(), workspace, map_only=map_only
+        cfg,
+        scenes,
+        tour.adjacency,
+        paths.tiles_dir(),
+        workspace,
+        map_only=map_only,
+        resume=resume,
     )
     for model in report["models"][:5]:
         typer.echo(

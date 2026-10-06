@@ -23,6 +23,16 @@ geo = [
     "scipy>=1.15",
     "shapely>=2.1",
 ]
+db = [
+    "psycopg[binary]>=3.3",
+    "python-dotenv>=1.1",
+]
+# Pretrained ALIKED + LightGlue inference on CUDA/MPS (no training). Heavy, so
+# CI and start.sh never install it.
+learned = [
+    "kornia==0.8.3",
+    "torch>=2.14",
+]
 
 [tool.uv.sources]
 amap-contracts = { workspace = true }

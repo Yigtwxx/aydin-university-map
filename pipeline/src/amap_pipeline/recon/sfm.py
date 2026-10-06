@@ -27,6 +27,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from amap_pipeline.recon.cubemap import FACES, TRANSFORMS, rig_config
+from amap_pipeline.recon.learned import TORCH_EXTRACTORS
 
 EXTRACTORS = {
     "sift": "SIFT",
@@ -38,6 +39,8 @@ MATCHERS = {
     "sift_lightglue": "SIFT_LIGHTGLUE",
     "aliked_lightglue": "ALIKED_LIGHTGLUE",
 }
+# Pretrained ALIKED/DISK + LightGlue in PyTorch (CUDA/MPS), see recon/learned.py.
+TORCH_MATCHER = "lightglue"
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,16 +62,23 @@ class SfmConfig:
     init_min_tri_angle: float = 16.0
     min_model_size: int = 10
     abs_pose_min_num_inliers: int = 30
-    # Features/matcher: "sift" | "aliked_n16rot" | "aliked_n32" and
-    # "sift_bruteforce" | "sift_lightglue" | "aliked_lightglue" (pretrained
-    # inference via ONNX; no training).
+    # Features/matcher (pretrained inference only, no training):
+    # - COLMAP: "sift" | "aliked_n16rot" | "aliked_n32" with "sift_bruteforce" |
+    #   "sift_lightglue" | "aliked_lightglue" (learned ones via the ONNX CLI);
+    # - PyTorch on CUDA/MPS: "aliked_n16" | "disk" with "lightglue".
     extractor: str = "sift"
     matcher: str = "sift_bruteforce"
     learned_max_features: int = 4096
 
     @property
+    def uses_torch(self) -> bool:
+        return self.matcher == TORCH_MATCHER
+
+    @property
     def uses_onnx(self) -> bool:
         """Learned features need the ONNX-enabled COLMAP CLI (pip pycolmap lacks it)."""
+        if self.uses_torch:
+            return False
         return self.extractor != "sift" or self.matcher != "sift_bruteforce"
 
     transforms: dict[str, str] = field(
@@ -86,6 +96,10 @@ class SfmConfig:
             raise ValueError(f"faces must include 'f' and be a subset of {FACES}")
         if cfg.mapper not in {"incremental", "global"}:
             raise ValueError(f"unknown mapper {cfg.mapper!r}")
+        if cfg.uses_torch:
+            if cfg.extractor not in TORCH_EXTRACTORS:
+                raise ValueError(f"lightglue needs one of {sorted(TORCH_EXTRACTORS)}")
+            return cfg
         if cfg.extractor not in EXTRACTORS or cfg.matcher not in MATCHERS:
             raise ValueError(f"unknown extractor/matcher {cfg.extractor}/{cfg.matcher}")
         if cfg.extractor.split("_")[0] != cfg.matcher.split("_")[0]:
@@ -255,6 +269,21 @@ def _extract_and_match(
     write_pairs(workspace / "pairs.txt", pairs, cfg.faces)
     write_workspace_rig(workspace / "rig_config.json", cfg)
     timer.lap("stage")
+    if cfg.uses_torch:
+        from amap_pipeline.recon import learned
+
+        timer.seconds.update(
+            learned.extract_and_match(
+                names,
+                workspace,
+                focal=cfg.face_px / 2.0,
+                face_px=cfg.face_px,
+                options=learned.LearnedOptions(
+                    extractor=cfg.extractor, max_keypoints=cfg.learned_max_features
+                ),
+            )
+        )
+        return
     if cfg.uses_onnx:
         _extract_and_match_cli(cfg, names, workspace, timer)
         return
@@ -304,12 +333,32 @@ class ColmapError(RuntimeError):
     """A COLMAP CLI step failed; the message carries the tail of its log."""
 
 
-def _colmap(*args: str) -> None:
-    """Run the COLMAP CLI (``$COLMAP_BIN`` or ``colmap`` on PATH)."""
+def _colmap(
+    *args: str, log_dir: Path | None = None, timeout_s: float | None = None
+) -> None:
+    """Run the COLMAP CLI (``$COLMAP_BIN`` or ``colmap`` on PATH).
+
+    The full output goes to ``log_dir/colmap_<step>.log`` so long or crashed
+    runs leave a record; failures raise with the log's tail.
+    """
     binary = os.environ.get("COLMAP_BIN", "colmap")
-    proc = subprocess.run([binary, *args], capture_output=True, text=True)
+    log_path = (log_dir or Path(".")) / f"colmap_{args[0]}.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("w", encoding="utf-8") as log:
+        try:
+            proc = subprocess.run(
+                [binary, *args],
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=timeout_s,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise ColmapError(
+                f"colmap {args[0]} timed out after {timeout_s} s"
+            ) from exc
     if proc.returncode != 0:
-        tail = "\n".join((proc.stderr or proc.stdout).splitlines()[-25:])
+        tail = "\n".join(log_path.read_text("utf-8").splitlines()[-25:])
         raise ColmapError(f"colmap {args[0]} exited with {proc.returncode}:\n{tail}")
 
 
@@ -317,6 +366,7 @@ def _extract_and_match_cli(
     cfg: SfmConfig, names: Sequence[str], workspace: Path, timer: StageTimer
 ) -> None:
     database = str(workspace / "database.db")
+    logs = workspace / "logs"
     image_list = workspace / "image_list.txt"
     image_list.write_text("\n".join(names) + "\n", encoding="utf-8")
     focal = cfg.face_px / 2.0
@@ -333,12 +383,14 @@ def _extract_and_match_cli(
         "--FeatureExtraction.type", EXTRACTORS[cfg.extractor],
         f"--{family}Extraction.max_num_features",
         str(cfg.learned_max_features if family == "Aliked" else cfg.max_num_features),
+        log_dir=logs,
     )  # fmt: skip
     timer.lap("extract")
     _colmap(
         "rig_configurator",
         "--database_path", database,
         "--rig_config_path", str(workspace / "rig_config.json"),
+        log_dir=logs,
     )  # fmt: skip
     timer.lap("rig")
     _colmap(
@@ -349,6 +401,7 @@ def _extract_and_match_cli(
         "--FeatureMatching.type", MATCHERS[cfg.matcher],
         "--FeatureMatching.rig_verification", "1",
         "--FeatureMatching.skip_image_pairs_in_same_frame", "1",
+        log_dir=logs,
     )  # fmt: skip
     timer.lap("match")
 
@@ -360,11 +413,13 @@ def run_sfm(
     tiles_dir: Path,
     workspace: Path,
     map_only: bool = False,
+    resume: bool = False,
 ) -> dict[str, Any]:
     """Run the sparse reconstruction and return (and write) a report.
 
     ``map_only`` reuses the existing database (features + matches) and only
-    re-runs the mapper, e.g. after tuning mapper thresholds.
+    re-runs the mapper, e.g. after tuning mapper thresholds. ``resume`` keeps
+    the database of an interrupted PyTorch run and matches only missing pairs.
     """
     import pycolmap
 
@@ -379,7 +434,10 @@ def run_sfm(
     pairs = scene_pairs(scenes, adjacency, cfg.pair_hops)
     num_image_pairs = len(pairs) * len(cfg.faces) ** 2
     if not map_only:
-        database.unlink(missing_ok=True)
+        if not (resume and cfg.uses_torch):
+            # SQLite side files of an old database would corrupt the new one.
+            for suffix in ("", "-wal", "-shm"):
+                Path(f"{database}{suffix}").unlink(missing_ok=True)
         _extract_and_match(cfg, scenes, pairs, tiles_dir, workspace, timer)
 
     if cfg.mapper == "global":
