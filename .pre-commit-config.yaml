@@ -9,6 +9,7 @@ repos:
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
+        exclude: ^pnpm-lock\.yaml$ # pnpm 12 lockfiles are multi-document
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: trailing-whitespace
