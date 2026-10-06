@@ -50,8 +50,7 @@ import {
   useEnvironmentStore,
 } from '@/features/environment/store';
 import { conditionOf } from '@/features/environment/weather';
-import { PanoInset, type PanoStep } from '@/features/pano/PanoInset';
-import { AssistantPanel } from '@/features/chat/AssistantPanel';
+import type { PanoStep } from '@/features/pano/PanoInset';
 import { DirectionsPanel } from '@/features/route/DirectionsPanel';
 import { RouteUrlSync } from '@/features/route/RouteUrlSync';
 import { StepIcon } from '@/features/route/StepIcon';
@@ -64,14 +63,27 @@ import { useCameraStore } from './cameraStore';
 import { MapControls } from './MapControls';
 import { MapOverlays } from './MapOverlays';
 import { PanelShell } from './PanelShell';
-import { type Credit } from '@/features/landing/GoogleTiles';
-import { IntroDive } from '@/features/landing/IntroDive';
+import type { Credit } from '@/features/landing/GoogleTiles';
 import { coveredHeight, type SheetSnap, snapHeights } from './sheet';
 
 // WebGL only exists in the browser.
 const CampusScene = dynamic(
   () => import('@/features/campus/CampusScene').then((m) => m.CampusScene),
   { ssr: false },
+);
+// Not needed for the first paint, and heavy: the 360° viewer
+// (photo-sphere-viewer), the assistant (AI SDK) and the landing dive (Lenis,
+// the earth scene). Each loads as its own chunk.
+const PanoInset = dynamic(
+  () => import('@/features/pano/PanoInset').then((m) => m.PanoInset),
+  { ssr: false },
+);
+const AssistantPanel = dynamic(
+  () => import('@/features/chat/AssistantPanel').then((m) => m.AssistantPanel),
+  { ssr: false },
+);
+const IntroDive = dynamic(() =>
+  import('@/features/landing/IntroDive').then((m) => m.IntroDive),
 );
 
 const EASE = [0.2, 0.7, 0.2, 1] as const;
@@ -215,6 +227,21 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
   const dataReady = Boolean(graph.data && buildings.data);
   // The map's own chrome (panel, controls, labels) waits for the dive.
   const ready = dataReady && !diving;
+  // Once the map is idle, warm the lazy chunks so the first 360° view or chat
+  // opens at once.
+  useEffect(() => {
+    if (!ready || introShown) return;
+    const warm = () => {
+      void import('@/features/pano/PanoInset');
+      void import('@/features/chat/AssistantPanel');
+    };
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(warm, { timeout: 5000 });
+      return () => cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(warm, 1500);
+    return () => window.clearTimeout(id);
+  }, [ready, introShown]);
   const viewport = useViewport();
   const desktop = viewport.width >= DESKTOP_PX;
   const heights = useMemo(
@@ -266,6 +293,12 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
     setShownTab(panelTab);
     if (panelTab === 'assistant' && snap === 'peek') setSnap('half');
   }
+  // The assistant mounts on first open, then stays so a chat survives tab
+  // switches.
+  const [assistantMounted, setAssistantMounted] = useState(
+    panelTab === 'assistant',
+  );
+  if (panelTab === 'assistant' && !assistantMounted) setAssistantMounted(true);
   const selectTab = (tab: PanelTab) => setPanelTab(tab);
   const condition =
     preview.condition ??
@@ -454,9 +487,11 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
               hidden={panelTab !== 'assistant'}
               className="flex min-h-0 flex-1 flex-col px-4 pb-4"
             >
-              <AssistantPanel
-                onShowDirections={() => selectTab('directions')}
-              />
+              {assistantMounted && (
+                <AssistantPanel
+                  onShowDirections={() => selectTab('directions')}
+                />
+              )}
             </div>
           </PanelShell>
 
