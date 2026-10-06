@@ -25,10 +25,11 @@ from amap_contracts import CAMPUS_ORIGIN_LAT, CAMPUS_ORIGIN_LNG, METRIC_CRS, BBo
 
 FloatArray = NDArray[np.float64]
 
+# The main instance first; kumi.systems as the fallback. (private.coffee and
+# others were dropped after timing out for hours on 2026-10-06.)
 OVERPASS_URLS = (
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter",
 )
 USER_AGENT = (
     "aydin-university-map/0.1 (+https://github.com/Yigtwxx/aydin-university-map)"
