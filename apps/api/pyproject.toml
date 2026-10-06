@@ -14,9 +14,6 @@ dependencies = [
     "pydantic-settings>=2.15",
 ]
 
-[tool.vercel]
-entrypoint = "amap_api.vercel:app"
-
 [tool.uv.sources]
 amap-contracts = { workspace = true }
 

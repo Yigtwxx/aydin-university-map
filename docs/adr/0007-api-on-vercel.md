@@ -14,8 +14,8 @@ which means through the Supabase pooler.
 ## Decision
 
 - The API runs as a Vercel project with root directory `apps/api`. The
-  entrypoint is `amap_api.vercel:app` (`[tool.vercel]` in
-  `apps/api/pyproject.toml`). Vercel's builder installs it from the
+  entrypoint is `apps/api/index.py` (auto-detected; Vercel resolves
+  entrypoints from the project root, not `src/`). Vercel's builder installs it from the
   workspace `uv.lock`, so `amap-contracts` comes along.
 - Settings: region `fra1` (close to Supabase and İstanbul), fluid compute,
   and a 60 s function limit. That is enough for streamed assistant answers.
