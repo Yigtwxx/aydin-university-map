@@ -18,7 +18,8 @@ from pathlib import Path
 from PIL import Image
 
 FACES: tuple[str, ...] = ("f", "r", "b", "l", "u", "d")
-FACE_SIZE = 1300
+# Faces vary per scene (most 1300 px, some 966 px); staging resizes them for SfM.
+MIN_FACE_SIZE = 512
 MAX_TILE_BYTES = 8_000_000
 _SCENE_RE = re.compile(r"^scene_\d{1,12}$")
 
@@ -33,6 +34,7 @@ class StoredTile:
     face: str
     sha256: str
     size_bytes: int
+    face_px: int
 
 
 def validate_key(scene: str, face: str) -> None:
@@ -42,8 +44,8 @@ def validate_key(scene: str, face: str) -> None:
         raise TileError(f"invalid face {face!r}")
 
 
-def check_jpeg(data: bytes, expected_size: int) -> None:
-    """Reject anything that is not a complete JPEG of the expected square size."""
+def check_jpeg(data: bytes, min_size: int) -> int:
+    """Return the edge length of a complete, square JPEG face or raise TileError."""
     if len(data) > MAX_TILE_BYTES:
         raise TileError(f"tile too large ({len(data)} bytes)")
     if not (
@@ -56,14 +58,18 @@ def check_jpeg(data: bytes, expected_size: int) -> None:
             size = img.size
     except Exception as exc:  # Pillow raises many error types for bad data
         raise TileError(f"JPEG does not decode: {exc}") from exc
-    if size != (expected_size, expected_size):
-        raise TileError(f"unexpected size {size}, want {expected_size}x{expected_size}")
+    width, height = size
+    if width != height:
+        raise TileError(f"face is not square: {size}")
+    if width < min_size:
+        raise TileError(f"face too small: {width}px < {min_size}px")
+    return width
 
 
 class TileStore:
-    def __init__(self, tiles_dir: Path, face_size: int = FACE_SIZE) -> None:
+    def __init__(self, tiles_dir: Path, min_face_size: int = MIN_FACE_SIZE) -> None:
         self.tiles_dir = tiles_dir
-        self.face_size = face_size
+        self.min_face_size = min_face_size
         self.manifest = tiles_dir / "manifest.jsonl"
         tiles_dir.mkdir(parents=True, exist_ok=True)
 
@@ -83,7 +89,7 @@ class TileStore:
         digest = hashlib.sha256(data).hexdigest()
         if digest != sha256_hex.strip().lower():
             raise TileError("sha256 mismatch")
-        check_jpeg(data, self.face_size)
+        face_px = check_jpeg(data, self.min_face_size)
         target.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=target.parent, suffix=".part")
         try:
@@ -93,7 +99,7 @@ class TileStore:
         except BaseException:
             Path(tmp).unlink(missing_ok=True)
             raise
-        tile = StoredTile(scene, face, digest, len(data))
+        tile = StoredTile(scene, face, digest, len(data), face_px)
         self._append_manifest(tile)
         return tile
 
@@ -103,6 +109,7 @@ class TileStore:
             "face": tile.face,
             "sha256": tile.sha256,
             "bytes": tile.size_bytes,
+            "face_px": tile.face_px,
             "received_at": datetime.now(UTC).isoformat(timespec="seconds"),
         }
         with self.manifest.open("a", encoding="utf-8") as fh:
@@ -133,7 +140,7 @@ def verify(store: TileStore, scenes: list[str]) -> VerifyReport:
                 scene_ok = False
                 continue
             try:
-                check_jpeg(path.read_bytes(), store.face_size)
+                check_jpeg(path.read_bytes(), store.min_face_size)
             except TileError as exc:
                 corrupt.append((scene, face, str(exc)))
                 scene_ok = False

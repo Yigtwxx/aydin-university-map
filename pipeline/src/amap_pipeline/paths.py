@@ -23,3 +23,7 @@ def sets_dir() -> Path:
 
 def tiles_dir() -> Path:
     return data_dir() / "tiles"
+
+
+def recon_dir() -> Path:
+    return data_dir() / "recon"

@@ -1,14 +1,22 @@
 import hashlib
+import io
 import json
 from collections.abc import Callable
 
 import pytest
+from PIL import Image
 
 from amap_pipeline.acquire.store import FACES, TileError, TileStore, verify
 
 
 def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _non_square_jpeg() -> bytes:
+    buffer = io.BytesIO()
+    Image.new("RGB", (32, 16), (10, 20, 30)).save(buffer, format="JPEG")
+    return buffer.getvalue()
 
 
 def test_tile_store_save_valid_jpeg_writes_file_and_manifest(
@@ -36,7 +44,8 @@ def test_tile_store_save_sha_mismatch_raises_tile_error(
     [
         ("garbage", "SOI/EOI"),
         ("truncated", "decode"),
-        ("wrong_size", "unexpected size"),
+        ("too_small", "too small"),
+        ("not_square", "not square"),
     ],
 )
 def test_tile_store_save_bad_image_raises_tile_error(
@@ -45,7 +54,8 @@ def test_tile_store_save_bad_image_raises_tile_error(
     data = {
         "garbage": b"not a jpeg",
         "truncated": jpeg_factory()[:-200] + b"\xff\xd9",
-        "wrong_size": jpeg_factory(size=8),
+        "too_small": jpeg_factory(size=8),
+        "not_square": _non_square_jpeg(),
     }[kind]
     with pytest.raises(TileError, match=match):
         tile_store.save("scene_1", "f", data, _sha(data))
@@ -92,3 +102,11 @@ def test_verify_corrupt_file_on_disk_reported(
     assert [(s, f) for s, f, _ in report.corrupt] == [("scene_1", "u")], (
         f"Got {report.corrupt}"
     )
+
+
+def test_tile_store_save_larger_face_records_its_size(
+    tile_store: TileStore, jpeg_factory: Callable[..., bytes]
+) -> None:
+    data = jpeg_factory(size=32)
+    tile = tile_store.save("scene_1", "f", data, _sha(data))
+    assert tile.face_px == 32, f"Expected 32 px, got {tile.face_px}"

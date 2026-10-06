@@ -112,7 +112,7 @@ def jpeg_factory() -> Callable[..., bytes]:
 
 @pytest.fixture
 def tile_store(tmp_path: Path) -> TileStore:
-    return TileStore(tmp_path / "tiles", face_size=TEST_FACE_SIZE)
+    return TileStore(tmp_path / "tiles", min_face_size=TEST_FACE_SIZE)
 
 
 @pytest.fixture
