@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # Comma-separated list, e.g. "http://localhost:3000,https://x.vercel.app".
     cors_origins: str = "http://localhost:3000"
     asset_base_url: str = ""
+    # Development only: serve data/out (panoramas, buildings) at /assets.
+    # Production assets live on Cloudflare Pages (ADR-0004); leave empty there.
+    asset_dir: str = ""
     weather_ttl_s: int = 600
     groq_api_key: str = ""
     gemini_api_key: str = ""

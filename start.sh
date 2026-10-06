@@ -49,12 +49,13 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-uv run uvicorn amap_api.main:create_app --factory --reload \
+ASSET_DIR="$ROOT/data/out" uv run uvicorn amap_api.main:create_app --factory --reload \
   --reload-dir apps/api/src --reload-dir packages/contracts/src \
   --port "$API_PORT" &
 pids+=("$!")
 
 NEXT_PUBLIC_API_URL="http://localhost:$API_PORT" \
+  NEXT_PUBLIC_ASSET_BASE_URL="http://localhost:$API_PORT/assets" \
   pnpm --filter web dev --port "$WEB_PORT" &
 pids+=("$!")
 

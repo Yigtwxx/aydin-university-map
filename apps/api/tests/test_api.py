@@ -1,4 +1,10 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
+
+from amap_api.graph_store import GraphStore
+from amap_api.main import create_app
+from amap_api.settings import Settings
 
 
 def test_health_reports_loaded_graph(client: TestClient) -> None:
@@ -49,3 +55,15 @@ def test_cors_allows_configured_web_origin(client: TestClient) -> None:
 def test_places_search_short_word_matches_word_start_only(client: TestClient) -> None:
     body = client.get("/places", params={"q": "a blok"}).json()
     assert [p["name_tr"] for p in body] == ["A Blok Girişi"], body
+
+
+def test_assets_mounted_only_when_asset_dir_set(
+    tmp_path: Path, store: GraphStore
+) -> None:
+    (tmp_path / "buildings.json").write_text("{}", encoding="utf-8")
+    with_dir = Settings(_env_file=None, asset_dir=str(tmp_path))  # pyright: ignore[reportCallIssue]
+    without = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
+    with TestClient(create_app(settings=with_dir, store=store)) as client:
+        assert client.get("/assets/buildings.json").status_code == 200
+    with TestClient(create_app(settings=without, store=store)) as client:
+        assert client.get("/assets/buildings.json").status_code == 404

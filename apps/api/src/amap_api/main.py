@@ -9,11 +9,13 @@ import math
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
+from pathlib import Path
 from typing import Annotated, Any
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from amap_api import __version__
 from amap_api.directions import instruction
@@ -70,6 +72,8 @@ def create_app(
         await app.state.http.aclose()
 
     app = FastAPI(title="Aydın Campus Map API", version=__version__, lifespan=lifespan)
+    if cfg.asset_dir and Path(cfg.asset_dir).is_dir():
+        app.mount("/assets", StaticFiles(directory=cfg.asset_dir), name="assets")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cfg.cors_origin_list,
