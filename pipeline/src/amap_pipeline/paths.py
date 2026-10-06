@@ -15,3 +15,11 @@ def raw_dump() -> Path:
 
 def derived_dir() -> Path:
     return data_dir() / "derived"
+
+
+def sets_dir() -> Path:
+    return derived_dir() / "sets"
+
+
+def tiles_dir() -> Path:
+    return data_dir() / "tiles"

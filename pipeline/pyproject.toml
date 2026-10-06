@@ -6,6 +6,8 @@ license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "amap-contracts",
+    "numpy>=2.2",
+    "pillow>=11.3",
     "typer>=0.17",
 ]
 

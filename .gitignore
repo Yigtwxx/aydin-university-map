@@ -14,6 +14,9 @@
 *.bin
 !packages/contracts/fixtures/**
 
+# Tour-specific browser export snippets stay local (see docs/data-policy.md)
+tools/browser/local/
+
 # Reconstruction workspaces (COLMAP / OpenMVS)
 **/colmap_workspace/
 **/openmvs_workspace/

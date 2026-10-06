@@ -1,10 +1,14 @@
 """Synthetic krpano dump fixtures (no real tour data is ever used in tests)."""
 
+import io
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
+from amap_pipeline.acquire.store import TileStore
 from amap_pipeline.tour import Scene, parse_scene
 
 FLORYA = (40.991470, 28.797111)
@@ -80,4 +84,40 @@ def dump_path(tmp_path: Path) -> Path:
     path = tmp_path / "raw" / "tour_scenes.json"
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps(synthetic_rows(), ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+# --- tile fixtures -------------------------------------------------------------
+
+TEST_FACE_SIZE = 16
+
+
+def make_jpeg(
+    size: int = TEST_FACE_SIZE, color: tuple[int, int, int] = (90, 120, 200)
+) -> bytes:
+    buffer = io.BytesIO()
+    Image.new("RGB", (size, size), color).save(buffer, format="JPEG", quality=90)
+    return buffer.getvalue()
+
+
+@pytest.fixture
+def jpeg_bytes() -> bytes:
+    return make_jpeg()
+
+
+@pytest.fixture
+def jpeg_factory() -> Callable[..., bytes]:
+    return make_jpeg
+
+
+@pytest.fixture
+def tile_store(tmp_path: Path) -> TileStore:
+    return TileStore(tmp_path / "tiles", face_size=TEST_FACE_SIZE)
+
+
+@pytest.fixture
+def sets_dir(tmp_path: Path) -> Path:
+    path = tmp_path / "sets"
+    path.mkdir()
+    (path / "mini.txt").write_text("scene_1\nscene_2\n", encoding="utf-8")
     return path
