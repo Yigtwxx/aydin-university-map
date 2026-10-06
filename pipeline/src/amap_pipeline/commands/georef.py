@@ -19,6 +19,7 @@ from amap_pipeline.geo.align import (
     constrain,
     footprint_union,
     icp_refine,
+    interior_raster,
     level,
     outline_score_raster,
     search,
@@ -42,6 +43,7 @@ from amap_pipeline.recon.evaluate import (
 app = typer.Typer(help="Georeferencing commands.", no_args_is_help=True)
 
 SEARCH_RADIUS_M = 350.0
+SCALE_FACTORS = (0.35, 0.42, 0.5, 0.58, 0.67, 0.77, 0.88, 1.0, 1.15, 1.3)
 CELL_M = 1.0
 
 
@@ -184,6 +186,10 @@ def georef_run(
         centre_window_m=SEARCH_RADIUS_M,
         anchors=anchors,
         links=links,
+        interior=interior_raster(footprints, score_map),
+        # The tripod-height prior is biased high (low facade points pass as
+        # ground), so search well below it; ICP refines the final value.
+        scale_factors=SCALE_FACTORS,
     )
     shrunk = footprints.buffer(-0.75)
     refined: list[tuple[Candidate, IcpResult]] = []
@@ -214,9 +220,10 @@ def georef_run(
     ]
     scale_ratio = best.transform.scale / prior.metres_per_unit
 
+    # Ground level from the final (OSM) scale; the tripod prior is biased.
     ground_z = (
         float(np.median([c[2] for c in levelled.cameras.values()]))
-        - TRIPOD_HEIGHT_M / prior.metres_per_unit
+        - TRIPOD_HEIGHT_M / best.transform.scale
     )
     scenes: dict[str, Any] = {}
     for pose in poses:

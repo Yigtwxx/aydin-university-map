@@ -146,7 +146,7 @@ class Candidate:
 
     @property
     def rank_value(self) -> float:
-        value = self.score * (1.0 - self.cameras_inside) ** 2
+        value = max(self.score, 1e-6) * (1.0 - self.cameras_inside) ** 2
         value *= (1.0 - self.links_crossing) ** 2
         if self.anchor_rms_m is not None:
             value *= math.exp(-(self.anchor_rms_m**2) / (2 * ANCHOR_SIGMA_M**2))
@@ -205,6 +205,35 @@ def constrain(
     return Candidate(cand.transform, cand.score, inside, crossing, anchor_rms)
 
 
+def interior_raster(
+    footprints: BaseGeometry, like: Raster, erode_m: float = 1.0
+) -> Raster:
+    """1 inside buildings (eroded so facade points on the outline stay at 0)."""
+    rows, cols = like.data.shape
+    xs = like.origin[0] + np.arange(cols) * like.cell
+    ys = like.origin[1] + np.arange(rows) * like.cell
+    gx, gy = np.meshgrid(xs, ys)
+    eroded = footprints.buffer(-erode_m)
+    shapely.prepare(eroded)
+    inside = contains_xy(eroded, gx.ravel(), gy.ravel()).reshape(rows, cols)
+    return Raster(like.origin, like.cell, inside.astype(np.float64))
+
+
+def _rasters_on_common_grid(
+    a: FloatArray, b: FloatArray, cell: float
+) -> tuple[FloatArray, FloatArray, FloatArray]:
+    """Count rasters of point sets ``a`` and ``b`` sharing one origin and shape."""
+    lo = np.minimum(a.min(axis=0), b.min(axis=0))
+    ia = np.floor((a - lo) / cell + 0.5).astype(np.int64)
+    ib = np.floor((b - lo) / cell + 0.5).astype(np.int64)
+    shape = np.maximum(ia.max(axis=0), ib.max(axis=0)) + 1
+    ga = np.zeros((int(shape[1]), int(shape[0])))
+    gb = np.zeros_like(ga)
+    np.add.at(ga, (ia[:, 1], ia[:, 0]), 1.0)
+    np.add.at(gb, (ib[:, 1], ib[:, 0]), 1.0)
+    return ga, gb, lo
+
+
 def search(
     walls: FloatArray,
     cameras: FloatArray,
@@ -216,25 +245,47 @@ def search(
     centre_window_m: float | None = None,
     anchors: Sequence[Anchor] = (),
     links: Sequence[tuple[int, int]] = (),
+    interior: Raster | None = None,
+    wall_inside_weight: float = 1.0,
+    camera_inside_weight: float = 2.0,
     peaks_per_pose: int = 3,
     top_k: int = 8,
 ) -> list[Candidate]:
     """Exhaustive yaw/scale search with FFT shifts, ranked by plausibility.
 
+    Per yaw/scale the shift maximises: mean outline score of the wall points
+    - ``wall_inside_weight`` * fraction of wall points inside buildings
+    - ``camera_inside_weight`` * fraction of cameras inside buildings
+    (the last two only when ``interior`` is given). Free space is therefore part
+    of the shift selection instead of a post-filter, which matters next to dense
+    blocks of small buildings where outlines are everywhere.
+
     ``cameras`` are raw model xy; returned transforms map raw model xy to map xy.
     """
     centroid = walls.mean(axis=0)
     rel_walls = walls - centroid
+    rel_cams = cameras - centroid
     origin = np.asarray(score_map.origin)
     min_sep = 10.0 / score_map.cell
     pool: list[Candidate] = []
     for scale in (scale_prior * f for f in scale_factors):
         for yaw_deg in np.arange(0.0, 360.0, yaw_step_deg):
             probe = Similarity2D(math.radians(yaw_deg), scale, (0.0, 0.0))
-            grid, lo = _point_raster(probe.apply(rel_walls), score_map.cell)
-            corr = fftconvolve(score_map.data, grid[::-1, ::-1], mode="valid")
+            wall_grid, cam_grid, lo = _rasters_on_common_grid(
+                probe.apply(rel_walls), probe.apply(rel_cams), score_map.cell
+            )
+            kernel_w = wall_grid[::-1, ::-1]
+            corr = fftconvolve(score_map.data, kernel_w, mode="valid") / len(walls)
             if corr.size == 0:
                 continue
+            if interior is not None:
+                walls_in = fftconvolve(interior.data, kernel_w, mode="valid")
+                cams_in = fftconvolve(interior.data, cam_grid[::-1, ::-1], mode="valid")
+                corr = (
+                    corr
+                    - wall_inside_weight * walls_in / len(walls)
+                    - camera_inside_weight * cams_in / len(cameras)
+                )
             if centre_window_m is not None:
                 # keep the model centroid within the window around the map centre
                 yy, xx = np.mgrid[0 : corr.shape[0], 0 : corr.shape[1]]
@@ -249,7 +300,7 @@ def search(
                 transform = _with_centroid(
                     Similarity2D(probe.yaw, scale, shift), centroid
                 )
-                pool.append(Candidate(transform, float(corr[r, c]) / len(walls)))
+                pool.append(Candidate(transform, float(corr[r, c])))
     shrunk = footprints.buffer(-0.75)
     shapely.prepare(footprints)
     shapely.prepare(shrunk)
