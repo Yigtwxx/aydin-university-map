@@ -6,14 +6,18 @@ import { QueryProvider } from '@/app/providers/QueryProvider';
 import { MapApp } from '@/features/map/MapApp';
 import { routing } from '@/i18n/routing';
 
-/** The dive over İstanbul, flowing straight into the map. */
+/**
+ * The map itself. The scroll dive over İstanbul is off until it can be a
+ * pre-rendered Google Earth Studio video: the real-time version did not
+ * reach video quality.
+ */
 export default async function Home({ params }: PageProps<'/[locale]'>) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
   return (
     <QueryProvider>
-      <MapApp intro />
+      <MapApp />
     </QueryProvider>
   );
 }
