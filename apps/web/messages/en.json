@@ -154,7 +154,9 @@
     "panoSpot": "360° view: {label}",
     "block": "Block {code}",
     "loading": "Preparing the campus",
-    "campus": "Florya Campus"
+    "campus": "Florya Campus",
+    "photorealView": "Photorealistic view",
+    "drawnView": "Drawn view"
   },
   "Panel": {
     "label": "Panel",

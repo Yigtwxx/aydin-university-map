@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from 'cn';
-import { Minus, Plus, ScanSearch } from 'lucide-react';
+import { Earth, Minus, Plus, ScanSearch } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
@@ -15,13 +15,22 @@ import {
 import { POLAR_3D, POLAR_TOP_DOWN, useCameraStore } from './cameraStore';
 
 const ZOOM_IN = 0.38;
+/** Google's photorealistic tiles need the Cesium ion token at build time. */
+const PHOTOREAL_AVAILABLE = Boolean(process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN);
 const ZOOM_OUT = -0.6;
 
 /** Compass, zoom, 2D/3D and fit as one slim glass column. */
 export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {
   const t = useTranslations('Map');
-  const { controls, headingDeg, topDown, setTopDown, requestFit } =
-    useCameraStore();
+  const {
+    controls,
+    headingDeg,
+    topDown,
+    setTopDown,
+    requestFit,
+    photoreal,
+    setPhotoreal,
+  } = useCameraStore();
   const animate = !reducedMotion;
 
   return (
@@ -82,6 +91,19 @@ export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {
       <ControlButton label={t('fit')} onClick={requestFit}>
         <ScanSearch className="size-4.5" strokeWidth={1.75} />
       </ControlButton>
+      {PHOTOREAL_AVAILABLE && (
+        <>
+          <Divider />
+          <ControlButton
+            label={photoreal ? t('drawnView') : t('photorealView')}
+            pressed={photoreal}
+            onClick={() => setPhotoreal(!photoreal)}
+            className={photoreal ? 'text-route' : undefined}
+          >
+            <Earth className="size-4.5" strokeWidth={1.75} />
+          </ControlButton>
+        </>
+      )}
     </Glass>
   );
 }

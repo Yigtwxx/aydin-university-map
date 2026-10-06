@@ -154,7 +154,9 @@
     "panoSpot": "360° görünüm: {label}",
     "block": "{code} Blok",
     "loading": "Kampüs hazırlanıyor",
-    "campus": "Florya Kampüsü"
+    "campus": "Florya Kampüsü",
+    "photorealView": "Fotogerçekçi görünüm",
+    "drawnView": "Çizim görünümü"
   },
   "Panel": {
     "label": "Panel",

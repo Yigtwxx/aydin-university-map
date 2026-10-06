@@ -60,9 +60,11 @@ import { routeParamsOf, withRouteParams } from '@/features/route/urlState';
 import { Link, usePathname } from '@/i18n/navigation';
 import { formatDistance, type Locale } from '@/lib/format';
 
+import { useCameraStore } from './cameraStore';
 import { MapControls } from './MapControls';
 import { MapOverlays } from './MapOverlays';
 import { PanelShell } from './PanelShell';
+import { type Credit } from '@/features/landing/GoogleTiles';
 import { IntroDive } from '@/features/landing/IntroDive';
 import { coveredHeight, type SheetSnap, snapHeights } from './sheet';
 
@@ -85,6 +87,8 @@ const PANEL_EDGE_PX = 372 + 12;
  * much uncovered map they would collide with the sheet, so they step aside.
  */
 const MOBILE_CONTROLS_BOTTOM_PX = 56 + 3 * 36 + 9 + 12;
+
+const PHOTOREAL_TOKEN = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN || undefined;
 
 export function MapApp({ intro = false }: { intro?: boolean }) {
   const t = useTranslations();
@@ -205,6 +209,8 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
   const diving = introPhase === 'dive' && !reducedMotion;
   const introShown = introPhase !== 'done' && !reducedMotion;
   const reveal = useCallback(() => setIntroPhase('reveal'), []);
+  const photoreal = useCameraStore((s) => s.photoreal);
+  const [credits, setCredits] = useState<Credit[]>();
   const finishIntro = useCallback(() => setIntroPhase('done'), []);
   const dataReady = Boolean(graph.data && buildings.data);
   // The map's own chrome (panel, controls, labels) waits for the dive.
@@ -299,6 +305,11 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
                 reducedMotion={reducedMotion}
                 paused={diving}
                 holdIntro={diving}
+                photoreal={
+                  photoreal && PHOTOREAL_TOKEN
+                    ? { token: PHOTOREAL_TOKEN, onCredits: setCredits }
+                    : undefined
+                }
               />
             )}
           </div>
@@ -534,7 +545,11 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
             )}
           </AnimatePresence>
 
-          <Attribution hidden={attributionHidden} inert={panoModal} />
+          <Attribution
+            hidden={attributionHidden}
+            inert={panoModal}
+            google={photoreal ? credits : undefined}
+          />
         </div>
       </TooltipProvider>
     </MotionConfig>
@@ -558,9 +573,26 @@ function useViewport(): { width: number; height: number } {
  * the OpenStreetMap credit riding on top of the sheet, the rest one tap away;
  * it steps aside when the sheet is fully open.
  */
-function Attribution({ hidden, inert }: { hidden: boolean; inert: boolean }) {
+function Attribution({
+  hidden,
+  inert,
+  google,
+}: {
+  hidden: boolean;
+  inert: boolean;
+  /** Credits of Google's photorealistic tiles, when they are shown. */
+  google?: Credit[];
+}) {
   const t = useTranslations();
   const lines = [
+    ...(google
+      ? [
+          [
+            ...google.filter((c) => c.text).map((c) => c.text),
+            'Cesium ion',
+          ].join(' · '),
+        ]
+      : []),
     t('Attribution.map'),
     t('Attribution.imagery'),
     t('Attribution.weather'),
@@ -570,8 +602,16 @@ function Attribution({ hidden, inert }: { hidden: boolean; inert: boolean }) {
     <>
       <footer
         inert={inert}
-        className="map-halo pointer-events-auto absolute right-3 bottom-2 z-10 hidden gap-3.5 text-2xs text-ink-muted md:flex"
+        className="map-halo pointer-events-auto absolute right-3 bottom-2 z-10 hidden items-center gap-3.5 text-2xs text-ink-muted md:flex"
       >
+        {google && (
+          // eslint-disable-next-line @next/next/no-img-element -- Google's own logo asset
+          <img
+            src="https://maps.gstatic.com/mapfiles/api-3/images/google_gray.svg"
+            alt="Google"
+            className="h-3 w-auto"
+          />
+        )}
         {lines.map((line) => (
           <span key={line}>{line}</span>
         ))}

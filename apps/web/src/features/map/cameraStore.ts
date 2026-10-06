@@ -14,6 +14,9 @@ interface CameraState {
   fitRequest: number;
   /** Camera distance bucket; DOM overlays show more detail up close. */
   tier: ZoomTier;
+  /** Google's photorealistic campus instead of the drawn massing. */
+  photoreal: boolean;
+  setPhotoreal: (photoreal: boolean) => void;
   setControls: (controls?: CameraControls) => void;
   setHeading: (headingDeg: number) => void;
   setTopDown: (topDown: boolean) => void;
@@ -27,6 +30,8 @@ export const useCameraStore = create<CameraState>((set) => ({
   topDown: false,
   fitRequest: 0,
   tier: 'mid',
+  photoreal: false,
+  setPhotoreal: (photoreal) => set({ photoreal }),
   setControls: (controls) => set({ controls }),
   setHeading: (headingDeg) => set({ headingDeg }),
   setTopDown: (topDown) => set({ topDown }),
