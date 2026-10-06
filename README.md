@@ -11,38 +11,49 @@ cinsinden bir yürüyüş grafı kuruluyor ve en kısa yürüme rotaları hesapl
 photogrammetry from the panoramas of the university's 360° virtual tour, with a metric
 walking graph and shortest walking routes.
 
-> **Durum / Status:** Faz 1: SfM spike tamamlandı ([ADR-0003](docs/adr/0003-sfm-spike.md)). Phase 1: SfM spike done.
+> **Canlı / Live:** [aydin-campus-map.vercel.app](https://aydin-campus-map.vercel.app) ·
+> API: [aydin-campus-api.vercel.app/docs](https://aydin-campus-api.vercel.app/docs)
+>
+> **Durum / Status:** Faz 0–6 yayında; yoğun mesh (Faz 7a) sürüyor. Phases 0–6 are live;
+> the dense mesh (phase 7a) is in progress.
 
 ---
 
 ## Türkçe
 
-### Ne yapacak?
+### Neler var?
 
-- **Turdan 3D kampüs:** panoramalardan kamera konumları (SfM) ve dokulu 3D model.
-  Varsayılan görünüm stilize bina modeli, istenirse foto-gerçekçi görünüme geçilebilir.
-- **En kısa yürüyüş yolu:** turdaki gerçek yürünebilir bağlantılar, metre cinsinden
-  ağırlıklar, A\* ile rota. "Merdivensiz rota" seçeneği de var.
-- **Adım adım 360° tarif:** rotayı panoramalar üzerinde yürüyerek takip etme. Oklar
-  doğru yönü gösterir.
-- **Canlı ortam:** güneşin gerçek konumu ve o anki hava durumuna göre gündüz, gün batımı,
-  gece, yağmur ve sis.
-- **Yapay zekâ asistanı:** "Kütüphaneden T Blok'a nasıl giderim?" gibi sorulara rota ve
-  yer işaretleriyle cevap (RAG + tool calling, ücretsiz API'ler).
-- **Sinematik giriş:** scroll'la gökyüzünden kampüse, oradan bir panoramaya dalış.
+- **İstanbul'un üstünden dalış:** sayfayı kaydırdıkça kamera 30 km yükseklikten Boğaz'ın
+  üzerinden Florya'ya iner ve kesintisiz olarak haritanın kendisine dönüşür. Şehir
+  Google'ın fotogerçekçi 3D verisinden gelir; deniz, bulutlar ve gece ışıkları üstüne
+  çizilir. Token yoksa Sentinel-2 uydu görüntüsüyle çalışır.
+- **Kampüs ve çevresi 3D:** 3.000'i aşkın bina türüne göre çizilir: kiremit veya parapetli
+  çatı, çekme kat, dükkân vitrini, kubbe ve minare, hangar. İstenirse tek tuşla
+  fotogerçekçi görünüme geçilir.
+- **En kısa yürüyüş yolu:** 360° turdan çıkarılan metrik yürüyüş grafı ve A\* rotası.
+  Rotalar binaların içinden geçmez; "merdivensiz rota" seçeneği de var.
+- **Adım adım 360° tarif:** her adımın panoraması, doğru yöne bakan önizleme.
+- **Canlı ortam:** güneşin gerçek konumu ve anlık hava durumu (gündüz, gün batımı, gece,
+  yağmur, sis).
+- **Yapay zekâ asistanı:** "E Blok'a nasıl giderim?" gibi sorulara rota çizerek ve
+  kampüs bilgisinden alıntı yaparak cevap verir (RAG + tool calling, ücretsiz API'ler).
+- **Mobil ve paylaşım:** sürüklenebilir alt panel, paylaşılabilir rota bağlantıları.
 
 ### Nasıl çalışıyor?
 
 ```mermaid
 flowchart LR
-  T[360° tur panoramaları] --> S[SfM: pycolmap, küp yüz rig]
-  S --> G[Georeferans: yerçekimi + kamera yüksekliği + OSM]
-  G --> M[OpenMVS: yoğun nokta bulutu, mesh, doku]
-  G --> W[Metrik yürüyüş grafı + POI]
-  M --> CDN[(Cloudflare Pages: GLB / WebP)]
+  T[360° tur panoramaları] --> S[SfM: pycolmap + LightGlue, küp yüz rig]
+  S --> G[Georeferans: OSM ile hizalama]
+  G --> W[Metrik yürüyüş grafı + yerler]
+  OSM[OpenStreetMap] --> B[Bina stilleri, zemin, yeşil alan]
+  E[Sentinel-2, Black Marble, arazi] --> EA[Uydu katmanları]
   W --> DB[(Supabase: PostGIS + pgvector)]
-  DB --> API[FastAPI: A*, arama, hava, sohbet]
-  CDN --> WEB[Next.js: R3F 3D harita + 360° tur]
+  B --> CDN[(Cloudflare Pages)]
+  EA --> CDN
+  DB --> API[FastAPI: A*, arama, hava, asistan]
+  GT[Google 3D Tiles / Cesium ion] --> WEB
+  CDN --> WEB[Next.js: R3F 3D harita, dalış, 360° tur]
   API --> WEB
 ```
 
@@ -54,12 +65,12 @@ Tasarımın tamamı: [`docs/superpowers/specs/2026-10-06-campus-map-design.md`](
 |---|---|---|
 | 0 | Repo, araçlar, CI, tur metadata modülü | ✅ |
 | 1 | Spike: panoramaları dışa aktarma, rig testi, 35 panoramada SfM | ✅ |
-| 2 | Tüm Florya: georeferans, 3D modeller, yürüyüş grafı | 🚧 |
-| 3 | FastAPI: rota, arama, hava durumu | ⏳ |
-| 4 | Web: 3D harita, rota, 360° tur, canlı ortam | ⏳ |
-| 5 | Yapay zekâ asistanı (RAG) | ⏳ |
-| 6 | Giriş animasyonu, performans, yayına alma | ⏳ |
-| 7 | İç mekân navigasyonu, fotoğrafla konum bulma | ⏳ |
+| 2 | Tüm Florya: SfM (80/96 dış mekân), georeferans, yürüyüş grafı | ✅ |
+| 3 | FastAPI + Supabase: rota, arama, hava durumu | ✅ |
+| 4 | Web: 3D harita, rota, 360° tur, canlı ortam, mobil | ✅ |
+| 5 | Yapay zekâ asistanı (RAG) | ✅ |
+| 6 | İstanbul dalışı, yayına alma, E2E | ✅ |
+| 7 | Yoğun dokulu mesh, iç mekân navigasyonu | 🚧 |
 
 ### Geliştirme
 
@@ -82,26 +93,29 @@ Bkz. [docs/data-policy.md](docs/data-policy.md).
 
 ## English
 
-### Features (planned)
+### Features
 
-- **3D campus from the tour:** camera poses via SfM and textured meshes from the
-  panoramas. A stylized massing view is the default, with a photoreal toggle.
-- **Shortest walking routes:** the tour's real walkable links, metric edge weights,
-  A\* routing, and an avoid-stairs option.
-- **Step-by-step 360° directions:** walk the route through the panoramas, with arrows
-  that point the right way.
-- **Live environment:** real sun position and current weather (day, sunset, night,
-  rain, fog).
-- **AI assistant:** answers questions like "How do I get from the library to T Blok?"
-  with routes and landmarks (RAG + tool calling, free API tiers).
-- **Cinematic landing:** a scroll-driven dive from the sky onto the campus and into a
-  panorama.
+- **A dive over İstanbul:** scrolling flies the camera from 30 km over the Bosphorus down
+  to Florya and dissolves straight into the live map. The city is Google's
+  photorealistic 3D data, with our own sea, clouds and night lights; without a token it
+  runs on Sentinel-2 satellite imagery.
+- **The campus and its neighbourhood in 3D:** 3,000+ buildings drawn by type (tiled or
+  parapet roofs, set-back floors, shop fronts, domes and minarets, hangars), with a
+  one-tap photorealistic view.
+- **Shortest walking routes:** a metric walking graph built from the 360° tour, A\*
+  routing that never cuts through buildings, and an avoid-stairs option.
+- **Step-by-step 360° directions:** each step's panorama, facing the way you walk.
+- **Live environment:** the real sun position and current weather.
+- **AI assistant:** answers "How do I get to E Blok?" by drawing the route and quoting
+  campus knowledge (RAG + tool calling on free API tiers).
+- **Mobile and sharing:** a draggable bottom sheet and shareable route links.
 
 ### Stack
 
-Python 3.12 (uv, pycolmap, OpenMVS as an external tool, Open3D, osmnx, FastAPI,
-NetworkX, pydantic-ai) · Next.js 16 + TypeScript (React Three Fiber, Photo Sphere
-Viewer, GSAP, Tailwind, next-intl) · Supabase (PostGIS, pgvector) · Cloudflare Pages.
+Python 3.12 (uv, pycolmap, kornia LightGlue, OpenMVS as an external tool, shapely,
+FastAPI, NetworkX, pydantic-ai) · Next.js 16 + TypeScript (React Three Fiber,
+3d-tiles-renderer, Photo Sphere Viewer, Lenis, motion, Tailwind, next-intl, Playwright) ·
+Supabase (PostGIS, pgvector) · Cloudflare Pages (assets) · Vercel (web + API).
 
 ### Development
 
@@ -124,5 +138,9 @@ and never committed. See [docs/data-policy.md](docs/data-policy.md).
 
 - Code: [MIT](LICENSE) © 2026 Yiğit Erdoğan. Independent project, not an official university product.
 - 360° görüntüler / 360° imagery: İstanbul Aydın Üniversitesi sanal turu, used with permission
+- Photorealistic 3D city: Google Photorealistic 3D Tiles, streamed through [Cesium ion](https://cesium.com/platform/cesium-ion/) (credits shown on screen)
+- Satellite imagery: [EOxCloudless](https://cloudless.eox.at) by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2024; CC BY-NC-SA 4.0)
+- Night lights: NASA Earth Observatory / GIBS, VIIRS Black Marble
+- Terrain: [Terrain Tiles](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) by Mapzen/Tilezen (SRTM, GMTED2010, 3DEP, ETOPO1, EU-DEM and others)
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - Weather data by [Open-Meteo](https://open-meteo.com/) (CC BY 4.0)
