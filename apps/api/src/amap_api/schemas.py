@@ -1,5 +1,7 @@
 """Request/response models of the public API (exported to OpenAPI -> TypeScript)."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from amap_api.routing import Turn
@@ -11,7 +13,19 @@ class Health(BaseModel):
     graph_loaded: bool
     nodes: int
     edges: int
+    database: Literal["ok", "unavailable", "off"]
     version: str
+
+
+class BuildingOut(BaseModel):
+    id: str = Field(description="OSM way id")
+    code: str | None = Field(description="Campus block letter, e.g. A")
+    name: str | None
+    campus: bool
+    height_m: float
+    height_source: str = Field(description="osm_levels | default | sfm")
+    lng: float
+    lat: float
 
 
 class PlaceOut(BaseModel):

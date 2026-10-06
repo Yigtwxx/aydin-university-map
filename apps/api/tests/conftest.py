@@ -2,10 +2,12 @@
 
 from collections.abc import Iterator
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 
+from amap_api.db import Database
 from amap_api.graph_store import GraphStore
 from amap_api.main import create_app
 from amap_api.settings import Settings
@@ -96,4 +98,51 @@ def client(store: GraphStore) -> Iterator[TestClient]:
         cors_origins="http://localhost:3000",
     )
     with TestClient(create_app(settings=settings, store=store)) as test_client:
+        yield test_client
+
+
+class FakeDatabase(Database):
+    """In-memory stand-in for the Postgres layer (no network)."""
+
+    def __init__(self, healthy: bool = True) -> None:
+        self.healthy = healthy
+        self.similar_calls: list[str] = []
+
+    async def open(self) -> None:
+        return None
+
+    async def close(self) -> None:
+        return None
+
+    async def ping(self) -> bool:
+        return self.healthy
+
+    async def buildings(self, campus_only: bool) -> list[dict[str, Any]]:
+        rows = [
+            {"id": "w1", "code": "A", "name": "İstanbul Aydın Üniversitesi A Binası",
+             "campus": True, "height_m": 9.6, "height_source": "default",
+             "lng": 28.7972, "lat": 40.9917},
+            {"id": "w2", "code": None, "name": None, "campus": False,
+             "height_m": 6.4, "height_source": "default", "lng": 28.79, "lat": 40.99},
+        ]  # fmt: skip
+        return [r for r in rows if r["campus"] or not campus_only]
+
+    async def similar_place_ids(self, key: str, limit: int) -> list[str]:
+        self.similar_calls.append(key)
+        return ["d"] if key.startswith("kut") else []
+
+
+@pytest.fixture
+def fake_db() -> FakeDatabase:
+    return FakeDatabase()
+
+
+@pytest.fixture
+def db_client(store: GraphStore, fake_db: FakeDatabase) -> Iterator[TestClient]:
+    settings = Settings(
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        graph_source="unused",
+    )
+    app = create_app(settings=settings, store=store, database=fake_db)
+    with TestClient(app) as test_client:
         yield test_client

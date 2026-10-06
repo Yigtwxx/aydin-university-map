@@ -11,7 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health */
+        /**
+         * Health
+         * @description Liveness; with a database it also runs `select 1` (keeps Supabase awake).
+         */
         get: operations["health_health_get"];
         put?: never;
         post?: never;
@@ -48,8 +51,31 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Places */
+        /**
+         * Places
+         * @description Word-prefix search; with a database, typos fall back to trigrams.
+         */
         get: operations["places_places_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/buildings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Buildings
+         * @description Building massing summary (campus blocks by default).
+         */
+        get: operations["buildings_buildings_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -116,6 +142,34 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** BuildingOut */
+        BuildingOut: {
+            /**
+             * Id
+             * @description OSM way id
+             */
+            id: string;
+            /**
+             * Code
+             * @description Campus block letter, e.g. A
+             */
+            code: string | null;
+            /** Name */
+            name: string | null;
+            /** Campus */
+            campus: boolean;
+            /** Height M */
+            height_m: number;
+            /**
+             * Height Source
+             * @description osm_levels | default | sfm
+             */
+            height_source: string;
+            /** Lng */
+            lng: number;
+            /** Lat */
+            lat: number;
+        };
         /** ErrorOut */
         ErrorOut: {
             /** Detail */
@@ -136,6 +190,11 @@ export interface components {
             nodes: number;
             /** Edges */
             edges: number;
+            /**
+             * Database
+             * @enum {string}
+             */
+            database: "ok" | "unavailable" | "off";
             /** Version */
             version: string;
         };
@@ -344,6 +403,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    buildings_buildings_get: {
+        parameters: {
+            query?: {
+                campus?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildingOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };

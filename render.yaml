@@ -20,5 +20,5 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
-      - key: DATABASE_URL
+      - key: AMAP_API_DATABASE_URL
         sync: false

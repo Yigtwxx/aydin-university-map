@@ -8,6 +8,7 @@
     "/health": {
       "get": {
         "summary": "Health",
+        "description": "Liveness; with a database it also runs `select 1` (keeps Supabase awake).",
         "operationId": "health_health_get",
         "responses": {
           "200": {
@@ -47,6 +48,7 @@
     "/places": {
       "get": {
         "summary": "Places",
+        "description": "Word-prefix search; with a database, typos fall back to trigrams.",
         "operationId": "places_places_get",
         "parameters": [
           {
@@ -93,6 +95,61 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/buildings": {
+      "get": {
+        "summary": "Buildings",
+        "description": "Building massing summary (campus blocks by default).",
+        "operationId": "buildings_buildings_get",
+        "parameters": [
+          {
+            "name": "campus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Campus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BuildingOut"
+                  },
+                  "title": "Response Buildings Buildings Get"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           },
           "422": {
             "description": "Validation Error",
@@ -239,6 +296,71 @@
   },
   "components": {
     "schemas": {
+      "BuildingOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "OSM way id"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "Campus block letter, e.g. A"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "campus": {
+            "type": "boolean",
+            "title": "Campus"
+          },
+          "height_m": {
+            "type": "number",
+            "title": "Height M"
+          },
+          "height_source": {
+            "type": "string",
+            "title": "Height Source",
+            "description": "osm_levels | default | sfm"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "campus",
+          "height_m",
+          "height_source",
+          "lng",
+          "lat"
+        ],
+        "title": "BuildingOut"
+      },
       "ErrorOut": {
         "properties": {
           "detail": {
@@ -283,6 +405,15 @@
             "type": "integer",
             "title": "Edges"
           },
+          "database": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unavailable",
+              "off"
+            ],
+            "title": "Database"
+          },
           "version": {
             "type": "string",
             "title": "Version"
@@ -294,6 +425,7 @@
           "graph_loaded",
           "nodes",
           "edges",
+          "database",
           "version"
         ],
         "title": "Health"

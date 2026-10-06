@@ -18,11 +18,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from amap_api import __version__
+from amap_api.db import Database
 from amap_api.directions import instruction
 from amap_api.graph_store import GraphStore, load_graph
 from amap_api.places import Place, build_places, search_places
 from amap_api.routing import NoRouteError, shortest_route
 from amap_api.schemas import (
+    BuildingOut,
     ErrorOut,
     Health,
     NearestNode,
@@ -34,6 +36,7 @@ from amap_api.schemas import (
 )
 from amap_api.settings import Settings, get_settings
 from amap_api.weather import WeatherService, WeatherUnavailableError
+from amap_contracts import search_key
 from amap_contracts.graph import NodeKind
 
 log = logging.getLogger("amap_api")
@@ -49,8 +52,20 @@ def require_store(request: Request) -> GraphStore:
 StoreDep = Annotated[GraphStore, Depends(require_store)]
 
 
+def require_database(request: Request) -> Database:
+    database: Database | None = request.app.state.database
+    if database is None:
+        raise HTTPException(503, "database is not configured")
+    return database
+
+
+DatabaseDep = Annotated[Database, Depends(require_database)]
+
+
 def create_app(
-    settings: Settings | None = None, store: GraphStore | None = None
+    settings: Settings | None = None,
+    store: GraphStore | None = None,
+    database: Database | None = None,
 ) -> FastAPI:
     cfg = settings or get_settings()
 
@@ -68,8 +83,15 @@ def create_app(
         app.state.places = build_places(loaded) if loaded else []
         app.state.http = httpx.AsyncClient()
         app.state.weather = WeatherService(app.state.http, ttl_s=cfg.weather_ttl_s)
+        db = database
+        if db is None and cfg.amap_api_database_url:
+            db = Database(cfg.amap_api_database_url)
+            await db.open()
+        app.state.database = db
         yield
         await app.state.http.aclose()
+        if db is not None and database is None:
+            await db.close()
 
     app = FastAPI(title="Aydın Campus Map API", version=__version__, lifespan=lifespan)
     if cfg.asset_dir and Path(cfg.asset_dir).is_dir():
@@ -92,13 +114,20 @@ def create_app(
         )
 
     @app.get("/health", response_model=Health)
-    def health(request: Request) -> Health:
+    async def health(request: Request) -> Health:
+        """Liveness; with a database it also runs `select 1` (keeps Supabase awake)."""
         loaded: GraphStore | None = request.app.state.store
+        db: Database | None = request.app.state.database
+        if db is None:
+            database_state = "off"
+        else:
+            database_state = "ok" if await db.ping() else "unavailable"
         return Health(
             status="ok",
             graph_loaded=loaded is not None,
             nodes=len(loaded.graph.nodes) if loaded else 0,
             edges=len(loaded.graph.edges) if loaded else 0,
+            database=database_state,
             version=__version__,
         )
 
@@ -108,14 +137,38 @@ def create_app(
         return store.graph.to_geojson()
 
     @app.get("/places", response_model=list[PlaceOut])
-    def places(
+    async def places(
         request: Request,
         q: Annotated[str | None, Query(max_length=100)] = None,
         limit: Annotated[int, Query(ge=1, le=50)] = 10,
     ) -> list[PlaceOut]:
+        """Word-prefix search; with a database, typos fall back to trigrams."""
         all_places: list[Place] = request.app.state.places
-        found = search_places(all_places, q, limit) if q else all_places[:limit]
+        if not q:
+            return [place_out(p) for p in all_places[:limit]]
+        found = search_places(all_places, q, limit)
+        db: Database | None = request.app.state.database
+        key = search_key(q)
+        if not found and db is not None and len(key) >= 3:
+            by_id = {p.id: p for p in all_places}
+            try:
+                ids = await db.similar_place_ids(key, limit)
+            except Exception as exc:
+                log.warning("trigram search failed: %s", type(exc).__name__)
+                ids = []
+            found = [by_id[i] for i in ids if i in by_id]
         return [place_out(p) for p in found]
+
+    @app.get(
+        "/buildings",
+        response_model=list[BuildingOut],
+        responses={503: {"model": ErrorOut}},
+    )
+    async def buildings(
+        database: DatabaseDep, campus: Annotated[bool, Query()] = True
+    ) -> list[BuildingOut]:
+        """Building massing summary (campus blocks by default)."""
+        return [BuildingOut(**row) for row in await database.buildings(campus)]
 
     @app.get("/nodes/nearest", response_model=NearestNode)
     def nearest(

@@ -20,7 +20,9 @@ class Settings(BaseSettings):
     weather_ttl_s: int = 600
     groq_api_key: str = ""
     gemini_api_key: str = ""
-    database_url: str = ""
+    # Transaction-pooler URL of the least-privilege `amap_api` role
+    # (`amap db api-role`); empty = run without a database.
+    amap_api_database_url: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
