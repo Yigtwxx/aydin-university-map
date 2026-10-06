@@ -1,0 +1,24 @@
+# Render Blueprint for the API (free plan). Secrets are set in the Render
+# dashboard, never here. The walking graph is fetched from the asset host.
+services:
+  - type: web
+    name: aydin-campus-api
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install uv && uv sync --package amap-api --frozen --no-dev
+    startCommand: uv run --package amap-api uvicorn amap_api.main:create_app --factory --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.13"
+      - key: GRAPH_SOURCE
+        sync: false # https://<project>.pages.dev/graph.geojson
+      - key: CORS_ORIGINS
+        sync: false # https://<web>.vercel.app
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false

@@ -1,0 +1,613 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Aydın Campus Map API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph": {
+      "get": {
+        "summary": "Graph",
+        "description": "The walking graph as GeoJSON (nodes and edges).",
+        "operationId": "graph_graph_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Graph Graph Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/places": {
+      "get": {
+        "summary": "Places",
+        "operationId": "places_places_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlaceOut"
+                  },
+                  "title": "Response Places Places Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nodes/nearest": {
+      "get": {
+        "summary": "Nearest",
+        "description": "Nearest outdoor/entrance panorama to a map click (equirectangular metres).",
+        "operationId": "nearest_nodes_nearest_get",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Lat"
+            }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Lng"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NearestNode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/route": {
+      "post": {
+        "summary": "Route",
+        "operationId": "route_route_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/weather": {
+      "get": {
+        "summary": "Weather",
+        "operationId": "weather_weather_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherOut"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorOut"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "graph_loaded": {
+            "type": "boolean",
+            "title": "Graph Loaded"
+          },
+          "nodes": {
+            "type": "integer",
+            "title": "Nodes"
+          },
+          "edges": {
+            "type": "integer",
+            "title": "Edges"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "graph_loaded",
+          "nodes",
+          "edges",
+          "version"
+        ],
+        "title": "Health"
+      },
+      "NearestNode": {
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "title": "Node Id"
+          },
+          "distance_m": {
+            "type": "number",
+            "title": "Distance M"
+          }
+        },
+        "type": "object",
+        "required": [
+          "node_id",
+          "distance_m"
+        ],
+        "title": "NearestNode"
+      },
+      "NodeKind": {
+        "type": "string",
+        "enum": [
+          "outdoor",
+          "entrance",
+          "indoor"
+        ],
+        "title": "NodeKind"
+      },
+      "PlaceOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Node id of the representative panorama"
+          },
+          "name_tr": {
+            "type": "string",
+            "title": "Name Tr"
+          },
+          "name_en": {
+            "type": "string",
+            "title": "Name En"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NodeKind"
+          },
+          "building": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Building"
+          },
+          "node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Node Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name_tr",
+          "name_en",
+          "kind",
+          "building",
+          "node_ids"
+        ],
+        "title": "PlaceOut"
+      },
+      "RouteRequest": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Start node id (a place id is a node id)"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target",
+            "description": "Destination node id"
+          },
+          "avoid_stairs": {
+            "type": "boolean",
+            "title": "Avoid Stairs",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "target"
+        ],
+        "title": "RouteRequest"
+      },
+      "RouteResponse": {
+        "properties": {
+          "node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Node Ids"
+          },
+          "length_m": {
+            "type": "number",
+            "title": "Length M"
+          },
+          "duration_s": {
+            "type": "number",
+            "title": "Duration S"
+          },
+          "coordinates": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Coordinates",
+            "description": "[lng, lat] per node"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepOut"
+            },
+            "type": "array",
+            "title": "Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "node_ids",
+          "length_m",
+          "duration_s",
+          "coordinates",
+          "steps"
+        ],
+        "title": "RouteResponse"
+      },
+      "StepOut": {
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "title": "Node Id"
+          },
+          "turn": {
+            "$ref": "#/components/schemas/Turn"
+          },
+          "distance_m": {
+            "type": "number",
+            "title": "Distance M"
+          },
+          "bearing_deg": {
+            "type": "number",
+            "title": "Bearing Deg"
+          },
+          "text_tr": {
+            "type": "string",
+            "title": "Text Tr"
+          },
+          "text_en": {
+            "type": "string",
+            "title": "Text En"
+          }
+        },
+        "type": "object",
+        "required": [
+          "node_id",
+          "turn",
+          "distance_m",
+          "bearing_deg",
+          "text_tr",
+          "text_en"
+        ],
+        "title": "StepOut"
+      },
+      "Turn": {
+        "type": "string",
+        "enum": [
+          "start",
+          "straight",
+          "slight_left",
+          "left",
+          "sharp_left",
+          "slight_right",
+          "right",
+          "sharp_right",
+          "u_turn",
+          "arrive"
+        ],
+        "title": "Turn"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WeatherOut": {
+        "properties": {
+          "observed_at": {
+            "type": "string",
+            "title": "Observed At"
+          },
+          "temperature_c": {
+            "type": "number",
+            "title": "Temperature C"
+          },
+          "weather_code": {
+            "type": "integer",
+            "title": "Weather Code",
+            "description": "WMO weather interpretation code"
+          },
+          "cloud_cover_pct": {
+            "type": "number",
+            "title": "Cloud Cover Pct"
+          },
+          "precipitation_mm": {
+            "type": "number",
+            "title": "Precipitation Mm"
+          },
+          "wind_speed_kmh": {
+            "type": "number",
+            "title": "Wind Speed Kmh"
+          },
+          "wind_direction_deg": {
+            "type": "number",
+            "title": "Wind Direction Deg"
+          },
+          "visibility_m": {
+            "type": "number",
+            "title": "Visibility M"
+          },
+          "is_day": {
+            "type": "boolean",
+            "title": "Is Day"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale"
+          },
+          "attribution": {
+            "type": "string",
+            "title": "Attribution"
+          }
+        },
+        "type": "object",
+        "required": [
+          "observed_at",
+          "temperature_c",
+          "weather_code",
+          "cloud_cover_pct",
+          "precipitation_mm",
+          "wind_speed_kmh",
+          "wind_direction_deg",
+          "visibility_m",
+          "is_day",
+          "stale",
+          "attribution"
+        ],
+        "title": "WeatherOut"
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+[project]
+name = "amap-api"
+version = "0.1.0"
+description = "Aydın Campus Map API: walking routes, places, weather and the AI assistant."
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "amap-contracts",
+    "fastapi[standard]>=0.142",
+    "httpx>=0.28",
+    "networkx>=3.7",
+    "pydantic-settings>=2.15",
+]
+
+[tool.uv.sources]
+amap-contracts = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amap_api"]

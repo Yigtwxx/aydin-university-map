@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 package = false
 
 [tool.uv.workspace]
-members = ["packages/contracts", "pipeline"]
+members = ["packages/contracts", "pipeline", "apps/api"]
 
 [dependency-groups]
 dev = [
@@ -31,7 +31,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 allowed-confusables = ["ı", "İ"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["amap_contracts", "amap_pipeline", "tools"]
+known-first-party = ["amap_api", "amap_contracts", "amap_pipeline", "tools"]
 
 # --- pyright ----------------------------------------------------------------
 [tool.pyright]
@@ -41,6 +41,8 @@ include = [
     "packages/contracts/tests",
     "pipeline/src",
     "pipeline/tests",
+    "apps/api/src",
+    "apps/api/tests",
     "tools",
 ]
 exclude = ["data", "**/node_modules", "**/.venv"]
@@ -51,7 +53,7 @@ venv = ".venv"
 
 # --- pytest -----------------------------------------------------------------
 [tool.pytest.ini_options]
-testpaths = ["packages/contracts/tests", "pipeline/tests", "tools/tests"]
+testpaths = ["packages/contracts/tests", "pipeline/tests", "apps/api/tests", "tools/tests"]
 pythonpath = ["."]
 addopts = ["--strict-markers", "-ra", "--import-mode=importlib"]
 markers = [
