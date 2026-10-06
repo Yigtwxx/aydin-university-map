@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "uv sync --active --no-dev --frozen --no-editable --package amap-api",
+  "regions": ["fra1"]
+}
