@@ -11,7 +11,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
-        value: "3.12.13"
+        value: '3.12.13'
       - key: GRAPH_SOURCE
         sync: false # https://<project>.pages.dev/graph.geojson
       - key: CORS_ORIGINS

@@ -1,6 +1,6 @@
 name: Bug report
 description: Something is broken or behaves unexpectedly.
-labels: ["bug"]
+labels: ['bug']
 body:
   - type: markdown
     attributes:
@@ -44,4 +44,4 @@ body:
     id: environment
     attributes:
       label: Environment
-      placeholder: "macOS 27 / Apple M4, Python 3.12, Chrome 140"
+      placeholder: 'macOS 27 / Apple M4, Python 3.12, Chrome 140'

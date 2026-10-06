@@ -6,7 +6,7 @@ updates:
       interval: weekly
     groups:
       actions:
-        patterns: ["*"]
+        patterns: ['*']
 
   - package-ecosystem: uv
     directory: /
@@ -14,7 +14,7 @@ updates:
       interval: weekly
     groups:
       python-dev-tools:
-        patterns: ["ruff", "pyright", "pytest*"]
+        patterns: ['ruff', 'pyright', 'pytest*']
 
   - package-ecosystem: npm
     directory: /
@@ -25,14 +25,14 @@ updates:
         # three is pinned to match Photo Sphere Viewer; update these together.
         patterns:
           [
-            "three",
-            "@types/three",
-            "@react-three/*",
-            "postprocessing",
-            "@photo-sphere-viewer/*",
+            'three',
+            '@types/three',
+            '@react-three/*',
+            'postprocessing',
+            '@photo-sphere-viewer/*',
           ]
       next-react:
         patterns:
-          ["next", "eslint-config-next", "react", "react-dom", "@types/react*"]
+          ['next', 'eslint-config-next', 'react', 'react-dom', '@types/react*']
       test-tools:
-        patterns: ["vitest", "vite", "@vitejs/*", "@testing-library/*", "jsdom"]
+        patterns: ['vitest', 'vite', '@vitejs/*', '@testing-library/*', 'jsdom']

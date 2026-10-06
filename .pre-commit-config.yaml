@@ -4,7 +4,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-added-large-files
-        args: ["--maxkb=1000"]
+        args: ['--maxkb=1000']
         exclude: ^(uv\.lock|pnpm-lock\.yaml)$
       - id: check-merge-conflict
       - id: check-toml
@@ -17,7 +17,7 @@ repos:
     rev: v0.16.10
     hooks:
       - id: ruff-check
-        args: ["--fix"]
+        args: ['--fix']
       - id: ruff-format
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
