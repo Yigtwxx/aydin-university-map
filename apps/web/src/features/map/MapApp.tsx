@@ -294,6 +294,18 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
     setActiveStep(undefined);
     setExploreNode(undefined);
   }, [setActiveStep, setExploreNode]);
+  // Closing the 360° view gives focus back to whatever opened it.
+  const panoOpener = useRef<HTMLElement | null>(null);
+  const panoOpen = Boolean(panoNode);
+  useEffect(() => {
+    if (panoOpen) {
+      panoOpener.current ??= document.activeElement as HTMLElement | null;
+      return;
+    }
+    const opener = panoOpener.current;
+    panoOpener.current = null;
+    if (opener?.isConnected) opener.focus();
+  }, [panoOpen]);
 
   // Keyboard: Escape closes the 360° view, arrows walk through the steps.
   useEffect(() => {
@@ -431,6 +443,19 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
           ref={root}
           className="relative h-dvh w-full overflow-hidden bg-stone"
         >
+          {ready && (
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .querySelector<HTMLElement>('aside [role="combobox"]')
+                  ?.focus()
+              }
+              className="sr-only z-50 rounded-full bg-stone-raised px-4 py-2 text-sm font-semibold text-ink shadow-elevation-2 focus-visible:not-sr-only focus-visible:absolute focus-visible:top-3 focus-visible:left-3"
+            >
+              {t('Map.skipToSearch')}
+            </button>
+          )}
           <Suspense fallback={null}>
             <RouteUrlSync />
           </Suspense>
@@ -466,21 +491,6 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
           </div>
           {introShown && intro === 'dive' && (
             <IntroDive onReveal={reveal} onDone={finishIntro} />
-          )}
-          {graph.data && ready && (
-            <div inert={panoModal} className="contents">
-              <MapOverlays
-                nodes={mapNodes}
-                buildings={buildings.data ?? []}
-                route={drawn}
-                doors={doors}
-                focusNodeId={panoMapId}
-                destinationNodeId={destinationMapId}
-                destinationLabel={destinationLabel}
-                labelOf={nodeLabel}
-                onOpenPano={(node) => setExploreNode(node.id)}
-              />
-            </div>
           )}
 
           <AnimatePresence>
@@ -619,8 +629,12 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
 
           <motion.div
             inert={panoModal || !ready}
-            className="pointer-events-none absolute top-2 right-2 z-10 flex items-center gap-2 md:top-3 md:right-3"
-            initial={reducedMotion ? false : { opacity: 0, y: -8 }}
+            // Map labels give way to the chrome over the map (OverlayProjector).
+            data-map-obstacle
+            className="pointer-events-none absolute top-[max(0.5rem,env(safe-area-inset-top))] right-[max(0.5rem,env(safe-area-inset-right))] z-10 flex items-center gap-2 md:top-[max(0.75rem,env(safe-area-inset-top))] md:right-[max(0.75rem,env(safe-area-inset-right))]"
+            // Same on server and client: MotionConfig drops the movement
+            // for reduced motion, and the fade still lands on opacity 1.
+            initial={{ opacity: 0, y: -8 }}
             animate={ready ? { opacity: 1, y: 0 } : undefined}
             transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
           >
@@ -638,8 +652,9 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
           </motion.div>
 
           <motion.div
-            className="pointer-events-none absolute top-14 right-2 z-10 md:top-[4.25rem] md:right-3"
-            initial={reducedMotion ? false : { opacity: 0, x: 8 }}
+            data-map-obstacle
+            className="pointer-events-none absolute top-[calc(3.5rem_+_env(safe-area-inset-top))] right-[max(0.5rem,env(safe-area-inset-right))] z-10 md:top-[calc(4.25rem_+_env(safe-area-inset-top))] md:right-[max(0.75rem,env(safe-area-inset-right))]"
+            initial={{ opacity: 0, x: 8 }}
             animate={ready ? { opacity: 1, x: 0 } : undefined}
             transition={{ duration: 0.4, ease: EASE, delay: 0.25 }}
           >
@@ -708,6 +723,22 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
             inert={panoModal}
             google={photoreal ? credits : undefined}
           />
+          {/* Last in the tab order: the panel and controls come first. */}
+          {graph.data && ready && (
+            <div inert={panoModal} className="contents">
+              <MapOverlays
+                nodes={mapNodes}
+                buildings={buildings.data ?? []}
+                route={drawn}
+                doors={doors}
+                focusNodeId={panoMapId}
+                destinationNodeId={destinationMapId}
+                destinationLabel={destinationLabel}
+                labelOf={nodeLabel}
+                onOpenPano={(node) => setExploreNode(node.id)}
+              />
+            </div>
+          )}
         </div>
       </TooltipProvider>
     </MotionConfig>

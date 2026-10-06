@@ -9,10 +9,10 @@ import { type ZoomTier, useCameraStore } from '@/features/map/cameraStore';
 import { anchors, isOccluded, projectToScreen } from './anchors';
 
 const NEAR_M = 260;
-const FAR_M = 720;
+const FAR_M = 950;
 /** Route pins stay findable behind buildings, just dimmed. */
 const DIMMED_PREFIX = 'pin-';
-const DIMMED_OPACITY = '0.38';
+const DIMMED_OPACITY = '0.6';
 /** Gap kept between map labels, CSS px. */
 const LABEL_GAP = 4;
 
@@ -32,29 +32,63 @@ function overlaps(a: Placed, b: Placed): boolean {
   );
 }
 
+function boxOf(element: Element): Placed | undefined {
+  const r = element.getBoundingClientRect();
+  if (r.width === 0) return undefined;
+  return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+}
+
 /**
  * Hide labels that would overlap a more important one: higher layer first
- * (pins, blocks, entrances), then nearer to the camera. Only the text hides;
- * the marker itself stays.
+ * (pins, blocks, entrances), then nearer to the camera. A label also gives
+ * way to the markers (pins, block chips, dots) of its own layer and above,
+ * and to the map's own chrome (`data-map-obstacle`). Only the text hides;
+ * the markers stay.
  */
 function declutter(visible: { element: HTMLElement; depth: number }[]): void {
   const ranked = visible
     .map((v) => ({ ...v, layer: Number(v.element.style.zIndex || 0) }))
     .sort((a, b) => b.layer - a.layer || a.depth - b.depth);
+  const chrome: Placed[] = [];
+  for (const element of document.querySelectorAll('[data-map-obstacle]')) {
+    const box = boxOf(element);
+    if (box) chrome.push(box);
+  }
+  const markers = ranked.map(({ element, layer }) => ({
+    element,
+    layer,
+    boxes: [...element.querySelectorAll('[data-marker]')]
+      .map(boxOf)
+      .filter((b): b is Placed => !!b),
+  }));
   const placed: Placed[] = [];
-  for (const { element } of ranked) {
+  for (const { element, layer } of ranked) {
     for (const label of element.querySelectorAll<HTMLElement>('[data-label]')) {
-      const r = label.getBoundingClientRect();
-      if (r.width === 0) continue;
-      const box = {
-        left: r.left,
-        top: r.top,
-        right: r.right,
-        bottom: r.bottom,
-      };
-      const hidden = placed.some((p) => overlaps(p, box));
+      const box = boxOf(label);
+      if (!box) continue;
+      const hidden =
+        placed.some((p) => overlaps(p, box)) ||
+        chrome.some((p) => overlaps(p, box)) ||
+        markers.some(
+          (m) =>
+            m.element !== element &&
+            m.layer >= layer &&
+            m.boxes.some((p) => overlaps(p, box)),
+        );
       label.style.opacity = hidden ? '0' : '';
       if (!hidden) placed.push(box);
+    }
+  }
+  // Block chips (`data-yield`) that would sit on each other: the nearer one
+  // stays; zooming in brings the others back.
+  const chips: Placed[] = [];
+  for (const { element } of ranked) {
+    for (const chip of element.querySelectorAll<HTMLElement>('[data-yield]')) {
+      const box = boxOf(chip);
+      if (!box) continue;
+      const hidden = chips.some((p) => overlaps(p, box));
+      chip.style.opacity = hidden ? '0' : '';
+      if (!hidden) chips.push(box);
     }
   }
 }
@@ -99,14 +133,15 @@ export function OverlayProjector() {
       style.transform = `translate3d(${screen[0].toFixed(1)}px, ${screen[1].toFixed(1)}px, 0)`;
       if (!moved) continue;
       const occluded = isOccluded(anchor.position, camera.position);
-      if (!occluded)
+      const dimmed = id.startsWith(DIMMED_PREFIX);
+      // Pins stay (dimmed) behind buildings, so their labels still claim space.
+      if (!occluded || dimmed)
         labelled.push({
           element,
           depth: anchor.position.distanceToSquared(camera.position),
         });
       if (occluded === (element.dataset.occluded === 'true')) continue;
       element.dataset.occluded = occluded ? 'true' : 'false';
-      const dimmed = id.startsWith(DIMMED_PREFIX);
       style.opacity = occluded ? (dimmed ? DIMMED_OPACITY : '0') : '';
       style.pointerEvents = occluded && !dimmed ? 'none' : '';
     }

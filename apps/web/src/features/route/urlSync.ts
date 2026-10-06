@@ -34,9 +34,10 @@ export function createRouteUrlSync(
   return {
     /**
      * URL → store, on load and on back/forward. A query naming places waits
-     * for `resolve` (the graph), so the fields never show bare ids. Returns
-     * a replace when the URL needs cleaning up (unknown places, missing
-     * `stairs`), `undefined` otherwise.
+     * for `resolve` (the graph), so the fields never show bare ids. Unknown
+     * places are dropped and flagged (`linkNotice`). Returns a replace when
+     * the URL needs cleaning up (unknown places, missing `stairs`),
+     * `undefined` otherwise.
      */
     applyUrl(query: string, resolve?: ResolveName): UrlWrite | undefined {
       if (query === agreed) return undefined;
@@ -52,14 +53,19 @@ export function createRouteUrlSync(
         const name = id ? resolve?.(id) : undefined;
         return id && name !== undefined ? { id, name } : undefined;
       };
+      const from = end(parsed.from);
+      const to = end(parsed.to);
+      // Never silently: the visitor followed a link to somewhere specific.
+      const missing = (parsed.from && !from) || (parsed.to && !to);
       applying = true;
       try {
         state.restore({
-          from: end(parsed.from),
-          to: end(parsed.to),
+          from,
+          to,
           avoidStairs: parsed.stairs,
           activeStep: parsed.step,
           panel: parsed.panel ?? 'directions',
+          linkNotice: missing ? 'missingPlace' : undefined,
         });
       } finally {
         applying = false;

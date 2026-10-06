@@ -8,20 +8,24 @@ import {
   DoorOpen,
   Info,
   Play,
+  RotateCw,
+  Square,
   TriangleAlert,
+  WifiOff,
+  X,
 } from 'lucide-react';
 import { AnimatePresence, motion, type Transition } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type RefObject, useEffect, useMemo, useRef } from 'react';
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Switch } from '@/components/ui/switch';
 import { bearingDeg } from '@/features/campus/coords';
 import {
   type Place,
-  RouteError,
   type RouteResponse,
   type RouteStep,
   useCampusGraph,
+  useRoute,
 } from '@/features/campus/queries';
 import {
   formatDistance,
@@ -33,6 +37,12 @@ import {
 
 import { CopyLinkButton, useCopyLink } from './CopyLinkButton';
 import { isIndoorSpot, shownFloor, viewYaw } from './indoor';
+import {
+  canRetry,
+  panelState,
+  type RouteProblem,
+  routeProblem,
+} from './panelState';
 import { type CubeFace, faceForYaw, faceTowards, PanoThumb } from './PanoThumb';
 import { PlaceBrowser } from './PlaceBrowser';
 import { PlaceSearch } from './PlaceSearch';
@@ -70,29 +80,43 @@ export function DirectionsPanel({
     from,
     to,
     avoidStairs,
+    activeStep,
+    linkNotice,
     setFrom,
     setTo,
     setAvoidStairs,
     setActiveStep,
+    dismissLinkNotice,
   } = useRouteStore();
+  // The same query MapApp draws from (react-query shares it): its pause
+  // while offline and its refetch for "Try again".
+  const query = useRoute(from?.id, to?.id, avoidStairs);
   const fromInput = useRef<HTMLInputElement>(null);
   const focusStart = useRef(false);
-
   // Search first: one "Where to?" field until a place is chosen, then the
   // full from/to card.
   const planning = Boolean(from || to);
-  const state: 'browse' | 'pickStart' | 'loading' | 'error' | 'route' =
-    !from && !to
-      ? 'browse'
-      : !from || !to
-        ? 'pickStart'
-        : loading
-          ? 'loading'
-          : error
-            ? 'error'
-            : route
-              ? 'route'
-              : 'loading';
+  // While a place list is open the content under it steps back, so nothing
+  // peeks out beside the list. Picking in the main field swaps it for the
+  // from/to card, which may unmount it before its list reports closing.
+  const [listOpen, setListOpen] = useState(false);
+  const [fieldsShown, setFieldsShown] = useState(planning);
+  if (fieldsShown !== planning) {
+    setFieldsShown(planning);
+    setListOpen(false);
+  }
+  const state = panelState({
+    from,
+    to,
+    loading,
+    paused: query.isPaused,
+    error,
+    hasRoute: Boolean(route),
+  });
+  const problem =
+    state === 'error' || state === 'offline'
+      ? routeProblem(state, error, avoidStairs)
+      : undefined;
 
   // Typing a destination continues straight into the start field. Only for
   // keyboard and mouse: on touch screens it would pop the keyboard up.
@@ -102,14 +126,15 @@ export function DirectionsPanel({
     fromInput.current?.focus();
   }, [planning, from]);
 
-  const enter = reducedMotion
-    ? { initial: false as const }
-    : {
-        initial: { opacity: 0, y: 6 },
-        animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: -4 },
-        transition: { duration: 0.2, ease: EASE },
-      };
+  // Rendered on the server too, so never `initial: false` for reduced motion
+  // (the client would not patch the server's styles); MapApp's MotionConfig
+  // drops the movement and keeps a short fade.
+  const enter = {
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -4 },
+    transition: { duration: 0.2, ease: EASE },
+  };
 
   const pick = (place: Place, name: string) => {
     const ref = { id: place.id, name };
@@ -125,12 +150,21 @@ export function DirectionsPanel({
       locale={locale}
       stepFree={avoidStairs}
       compact={sheet}
+      walking={activeStep !== undefined}
       onStart={() => setActiveStep(0)}
+      onStop={() => setActiveStep(undefined)}
     />
   );
+  const picking =
+    state === 'browse' || state === 'pickStart' || state === 'pickDestination';
 
   return (
-    <section aria-labelledby="route-heading" className="flex flex-col gap-3">
+    // `data-search-bounds`: the place lists span the panel's content.
+    <section
+      aria-labelledby="route-heading"
+      data-search-bounds
+      className="flex flex-col gap-3"
+    >
       <h2 id="route-heading" className="sr-only">
         {t('title')}
       </h2>
@@ -144,18 +178,39 @@ export function DirectionsPanel({
         )}
       </AnimatePresence>
 
+      {linkNotice && (
+        <p
+          role="status"
+          className="-mb-1 flex items-center gap-2 rounded-control bg-ochre/15 py-1.5 pr-1 pl-2.5 text-xs leading-snug"
+        >
+          <Info className="size-3.5 shrink-0 text-ink-muted" aria-hidden />
+          <span className="min-w-0 flex-1">{t('linkMissing')}</span>
+          <button
+            type="button"
+            onClick={dismissLinkNotice}
+            aria-label={t('dismiss')}
+            title={t('dismiss')}
+            className="flex size-7 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 ease-out-soft hover:bg-fill-strong hover:text-ink"
+          >
+            <X className="size-3.5" aria-hidden />
+          </button>
+        </p>
+      )}
+
       {planning ? (
-        <RouteFields fromInput={fromInput} />
+        <RouteFields fromInput={fromInput} onListOpen={setListOpen} />
       ) : (
         <PlaceSearch
           variant="hero"
           label={t('searchLabel')}
+          clearLabel={t('clearSearch')}
           placeholder={t('search')}
           value={to}
           onChange={(place) => {
             focusStart.current = window.matchMedia('(pointer: fine)').matches;
             setTo(place);
           }}
+          onOpenChange={setListOpen}
         />
       )}
 
@@ -171,17 +226,23 @@ export function DirectionsPanel({
         </label>
       )}
 
-      <div aria-live="polite" className="flex flex-col">
+      <div
+        aria-live="polite"
+        className={cn(
+          'flex flex-col transition-opacity duration-150 ease-out-soft',
+          listOpen && 'pointer-events-none opacity-0',
+        )}
+      >
         <AnimatePresence mode="wait" initial={false}>
           {state === 'browse' && (
             <motion.div key="browse" {...enter} className="pt-1">
               <PlaceBrowser exclude={NONE} onPick={pick} />
             </motion.div>
           )}
-          {state === 'pickStart' && (
-            <motion.div key="pickStart" {...enter} className="pt-1">
+          {(state === 'pickStart' || state === 'pickDestination') && (
+            <motion.div key={state} {...enter} className="pt-1">
               <p className="px-0.5 text-md font-medium tracking-heading">
-                {t('pickStart')}
+                {t(state === 'pickStart' ? 'pickStart' : 'pickDestination')}
               </p>
               <p className="mb-3 px-0.5 text-xs text-ink-muted">
                 {t('pickStartHint')}
@@ -194,22 +255,22 @@ export function DirectionsPanel({
               <RouteSkeleton />
             </motion.div>
           )}
-          {state === 'error' && (
-            <motion.div
-              key="error"
+          {state === 'samePlace' && (
+            <motion.p
+              key="samePlace"
               {...enter}
-              className="flex gap-3 rounded-card bg-brick/10 p-3.5 text-sm leading-relaxed"
+              className="rounded-card bg-fill p-3.5 text-sm leading-relaxed"
             >
-              <TriangleAlert
-                className="mt-0.5 size-4 shrink-0 text-brick"
-                aria-hidden
+              {t('samePlace')}
+            </motion.p>
+          )}
+          {problem && (
+            <motion.div key={`problem-${problem}`} {...enter}>
+              <RouteProblemCard
+                problem={problem}
+                onRetry={() => void query.refetch()}
+                onAllowStairs={() => setAvoidStairs(false)}
               />
-              <p>
-                {error instanceof RouteError && error.kind === 'no_route'
-                  ? // Indoors there is no lift data: say why, not "no way".
-                    t(avoidStairs ? 'noStepFree' : 'noRoute')
-                  : t('apiDown')}
-              </p>
             </motion.div>
           )}
           {state === 'route' && route && (
@@ -230,8 +291,13 @@ export function DirectionsPanel({
         </AnimatePresence>
       </div>
 
-      {(state === 'browse' || state === 'pickStart') && (
-        <p className="px-0.5 text-xs leading-relaxed text-ink-muted">
+      {picking && (
+        <p
+          className={cn(
+            'px-0.5 text-xs leading-relaxed text-ink-muted transition-opacity duration-150 ease-out-soft',
+            listOpen && 'opacity-0',
+          )}
+        >
           {t('coverage')}
         </p>
       )}
@@ -242,8 +308,10 @@ export function DirectionsPanel({
 /** Start and destination as one card, joined by the route's dotted spine. */
 function RouteFields({
   fromInput,
+  onListOpen,
 }: {
   fromInput: RefObject<HTMLInputElement | null>;
+  onListOpen: (open: boolean) => void;
 }) {
   const t = useTranslations('Route');
   const { from, to, setFrom, setTo, swap } = useRouteStore();
@@ -255,10 +323,12 @@ function RouteFields({
       <PlaceSearch
         variant="row"
         label={t('fromLabel')}
+        clearLabel={t('clearFrom')}
         placeholder={t('from')}
         value={from}
         onChange={setFrom}
         inputRef={fromInput}
+        onOpenChange={onListOpen}
       />
       <button
         type="button"
@@ -290,9 +360,11 @@ function RouteFields({
       <PlaceSearch
         variant="row"
         label={t('toLabel')}
+        clearLabel={t('clearTo')}
         placeholder={t('to')}
         value={to}
         onChange={setTo}
+        onOpenChange={onListOpen}
       />
     </div>
   );
@@ -304,7 +376,9 @@ function RouteSummary({
   locale,
   stepFree,
   compact,
+  walking,
   onStart,
+  onStop,
 }: {
   route: RouteResponse;
   now: Date;
@@ -312,7 +386,10 @@ function RouteSummary({
   stepFree: boolean;
   /** One row (duration, copy link, start) for the bottom sheet's peek. */
   compact: boolean;
+  /** A step is open in 360°: the start button turns into a stop. */
+  walking: boolean;
   onStart: () => void;
+  onStop: () => void;
 }) {
   const t = useTranslations('Route');
   const link = useCopyLink();
@@ -371,12 +448,21 @@ function RouteSummary({
         <CopyLinkButton link={link} expand={false} />
         <button
           type="button"
-          onClick={onStart}
-          aria-label={t('startWalk')}
-          className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-route pr-4 pl-3.5 text-md font-medium text-on-route shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_6px_16px_-8px_var(--route)] transition-[filter,transform] duration-150 ease-out-soft hover:brightness-110 active:scale-[0.97]"
+          onClick={walking ? onStop : onStart}
+          aria-label={walking ? t('walkingStop') : t('startWalk')}
+          className={cn(
+            'flex h-10 shrink-0 items-center gap-1.5 rounded-full pr-4 pl-3.5 text-md font-medium transition-[filter,transform,background-color] duration-150 ease-out-soft active:scale-[0.97]',
+            walking
+              ? 'bg-route-soft text-route shadow-[inset_0_0_0_1.5px_var(--route)]'
+              : 'bg-route text-on-route shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_6px_16px_-8px_var(--route)] hover:brightness-110',
+          )}
         >
-          <Play className="size-3.5 fill-current" aria-hidden />
-          {t('startShort')}
+          {walking ? (
+            <Square className="size-3 fill-current" aria-hidden />
+          ) : (
+            <Play className="size-3.5 fill-current" aria-hidden />
+          )}
+          {walking ? t('stopShort') : t('startShort')}
         </button>
       </div>
     );
@@ -412,13 +498,35 @@ function RouteSummary({
         </p>
       )}
       <div className="flex gap-2">
+        {/* While the walk runs it reads as running, and stops it. */}
         <button
           type="button"
-          onClick={onStart}
-          className="flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-control bg-route text-md font-medium text-on-route shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_6px_16px_-8px_var(--route)] transition-[filter,transform] duration-150 ease-out-soft hover:brightness-110 active:scale-[0.985]"
+          onClick={walking ? onStop : onStart}
+          className={cn(
+            'flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-control text-md font-medium transition-[filter,transform,background-color] duration-150 ease-out-soft active:scale-[0.985]',
+            walking
+              ? 'bg-route-soft text-route shadow-[inset_0_0_0_1.5px_var(--route)]'
+              : 'bg-route text-on-route shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_6px_16px_-8px_var(--route)] hover:brightness-110',
+          )}
         >
-          <Play className="size-3.5 fill-current" aria-hidden />
-          {t('startWalk')}
+          {walking ? (
+            <>
+              <span aria-hidden className="relative flex size-2.5">
+                <span className="absolute inset-0 animate-ping-soft rounded-full bg-route" />
+                <span className="relative size-2.5 rounded-full bg-route" />
+              </span>
+              <span className="truncate">{t('walking')}</span>
+              <span aria-hidden className="text-route/60">
+                ·
+              </span>
+              <span className="shrink-0 font-semibold">{t('stopShort')}</span>
+            </>
+          ) : (
+            <>
+              <Play className="size-3.5 fill-current" aria-hidden />
+              {t('startWalk')}
+            </>
+          )}
         </button>
         <CopyLinkButton link={link} />
       </div>
@@ -601,6 +709,50 @@ function Steps({
         );
       })}
     </ol>
+  );
+}
+
+/** A route that did not come, in the panel's voice, with the way forward. */
+function RouteProblemCard({
+  problem,
+  onRetry,
+  onAllowStairs,
+}: {
+  problem: RouteProblem;
+  onRetry: () => void;
+  onAllowStairs: () => void;
+}) {
+  const t = useTranslations('Route');
+  const Icon = problem === 'offline' ? WifiOff : TriangleAlert;
+  const text = {
+    noStepFree: t('noStepFree'),
+    noRoute: t('noRoute'),
+    unknownPlace: t('unknownPlace'),
+    offline: t('offline'),
+    unavailable: t('routeUnavailable'),
+  }[problem];
+  const action = canRetry(problem)
+    ? { label: t('retry'), icon: RotateCw, run: onRetry }
+    : problem === 'noStepFree'
+      ? { label: t('showWithStairs'), icon: undefined, run: onAllowStairs }
+      : undefined;
+  return (
+    <div className="flex flex-col gap-3 rounded-card bg-brick/10 p-3.5 text-sm leading-relaxed">
+      <p className="flex gap-3">
+        <Icon className="mt-0.5 size-4 shrink-0 text-brick" aria-hidden />
+        <span>{text}</span>
+      </p>
+      {action && (
+        <button
+          type="button"
+          onClick={action.run}
+          className="ml-7 flex h-8 w-fit items-center gap-1.5 rounded-full bg-stone-raised px-3.5 text-sm font-medium shadow-thumb transition-[background-color,transform] duration-150 ease-out-soft hover:bg-white active:scale-[0.97] dark:bg-white/12 dark:hover:bg-white/18"
+        >
+          {action.icon && <action.icon className="size-3.5" aria-hidden />}
+          {action.label}
+        </button>
+      )}
+    </div>
   );
 }
 

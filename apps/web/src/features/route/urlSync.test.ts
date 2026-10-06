@@ -81,6 +81,19 @@ describe('URL to store', () => {
     ]);
   });
 
+  it('says so when a shared place is gone, until a place is picked', () => {
+    h.navigate('from=gone&to=missing&stairs=0');
+    expect(useRouteStore.getState().linkNotice).toBe('missingPlace');
+    expect(useRouteStore.getState().to).toBeUndefined();
+    useRouteStore.getState().setTo({ id: 'scene_e', name: 'E Blok Giriş' });
+    expect(useRouteStore.getState().linkNotice).toBeUndefined();
+  });
+
+  it('raises no notice for a link whose places all exist', () => {
+    h.navigate('from=scene_a&to=scene_e&stairs=0');
+    expect(useRouteStore.getState().linkNotice).toBeUndefined();
+  });
+
   it('opens the assistant tab from ?panel=assistant, and back', () => {
     h.navigate('panel=assistant');
     expect(useRouteStore.getState().panel).toBe('assistant');

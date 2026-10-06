@@ -119,6 +119,9 @@ export function usePlaceDirectory() {
   });
 }
 
+/** Longest wait for a route before the panel offers to try again. */
+const ROUTE_TIMEOUT_MS = 15_000;
+
 export function useRoute(
   source: string | undefined,
   target: string | undefined,
@@ -126,10 +129,26 @@ export function useRoute(
 ) {
   return useQuery<RouteResponse>({
     queryKey: ['route', source, target, avoidStairs],
-    queryFn: async () => {
-      const { data, error, response } = await api.POST('/route', {
-        body: { source: source!, target: target!, avoid_stairs: avoidStairs },
-      });
+    queryFn: async ({ signal }) => {
+      // A server that never answers must not keep the panel loading forever.
+      const timeout = AbortSignal.timeout(ROUTE_TIMEOUT_MS);
+      const result = await api
+        .POST('/route', {
+          body: {
+            source: source!,
+            target: target!,
+            avoid_stairs: avoidStairs,
+          },
+          signal:
+            typeof AbortSignal.any === 'function'
+              ? AbortSignal.any([signal, timeout])
+              : timeout,
+        })
+        .catch((cause: unknown) => {
+          if (signal.aborted) throw cause;
+          throw new RouteError('unavailable', `route: ${String(cause)}`);
+        });
+      const { data, error, response } = result;
       // openapi-fetch widens the [lng, lat] tuples to number[][]; same payload.
       if (data) return data as RouteResponse;
       if (response.status === 422)

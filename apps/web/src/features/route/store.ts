@@ -17,6 +17,11 @@ export interface RouteState {
   /** A 360° spot opened from the map without following a route. */
   exploreNodeId?: string;
   panel: PanelTab;
+  /**
+   * A shared link named a place the map no longer has; it was dropped and
+   * the panel says so until the visitor picks or dismisses.
+   */
+  linkNotice?: 'missingPlace';
   setFrom: (place?: PlaceRef) => void;
   setTo: (place?: PlaceRef) => void;
   swap: () => void;
@@ -24,6 +29,7 @@ export interface RouteState {
   setActiveStep: (index?: number) => void;
   setExploreNode: (nodeId?: string) => void;
   setPanel: (panel: PanelTab) => void;
+  dismissLinkNotice: () => void;
   /** Replaces the whole route at once (a shared link, back/forward). */
   restore: (route: {
     from?: PlaceRef;
@@ -31,6 +37,7 @@ export interface RouteState {
     avoidStairs: boolean;
     activeStep?: number;
     panel?: PanelTab;
+    linkNotice?: 'missingPlace';
   }) => void;
   /** Renames the route ends (e.g. after a language switch), keeping the step. */
   relabel: (names: { from?: string; to?: string }) => void;
@@ -43,8 +50,16 @@ export const useRouteStore = create<RouteState>((set) => ({
   activeStep: undefined,
   exploreNodeId: undefined,
   panel: 'directions',
-  setFrom: (from) => set({ from, activeStep: undefined }),
-  setTo: (to) => set({ to, activeStep: undefined, exploreNodeId: undefined }),
+  linkNotice: undefined,
+  setFrom: (from) =>
+    set({ from, activeStep: undefined, linkNotice: undefined }),
+  setTo: (to) =>
+    set({
+      to,
+      activeStep: undefined,
+      exploreNodeId: undefined,
+      linkNotice: undefined,
+    }),
   swap: () => set((s) => ({ from: s.to, to: s.from, activeStep: undefined })),
   setAvoidStairs: (avoidStairs) => set({ avoidStairs, activeStep: undefined }),
   setActiveStep: (activeStep) =>
@@ -60,7 +75,15 @@ export const useRouteStore = create<RouteState>((set) => ({
         : { exploreNodeId, activeStep: undefined },
     ),
   setPanel: (panel) => set({ panel }),
-  restore: ({ from, to, avoidStairs, activeStep, panel = 'directions' }) =>
+  dismissLinkNotice: () => set({ linkNotice: undefined }),
+  restore: ({
+    from,
+    to,
+    avoidStairs,
+    activeStep,
+    panel = 'directions',
+    linkNotice,
+  }) =>
     set({
       from,
       to,
@@ -68,6 +91,7 @@ export const useRouteStore = create<RouteState>((set) => ({
       activeStep: from && to ? activeStep : undefined,
       exploreNodeId: undefined,
       panel,
+      linkNotice,
     }),
   relabel: (names) =>
     set((s) => ({

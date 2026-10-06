@@ -14,10 +14,10 @@ import {
 
 import { POLAR_3D, POLAR_TOP_DOWN, useCameraStore } from './cameraStore';
 
-const ZOOM_IN = 0.38;
+const ZOOM_IN = 0.25;
 /** Google's photorealistic tiles need the Cesium ion token at build time. */
 const PHOTOREAL_AVAILABLE = Boolean(process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN);
-const ZOOM_OUT = -0.6;
+const ZOOM_OUT = -0.33;
 
 /** Compass, zoom, 2D/3D and fit as one slim glass column. */
 export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {

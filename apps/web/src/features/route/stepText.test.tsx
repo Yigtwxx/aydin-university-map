@@ -31,14 +31,14 @@ describe('useStepText', () => {
   it('says a passage walks through the building', () => {
     const { result } = renderHook(() => useStepText(), { wrapper });
     expect(result.current(step({ turn: 'through', building: 'T' }), '')).toBe(
-      "T Blok'un içinden geçin",
+      'T Blok’un içinden geçin',
     );
     expect(
       result.current(
         step({ turn: 'exit', building: 'T', bearing_deg: 180 }),
         '',
       ),
-    ).toBe("T Blok'tan çıkın, güney yönünde yürüyün");
+    ).toBe('T Blok’tan çıkın, güney yönünde yürüyün');
   });
 
   it('falls back to the API text for a turn it does not know', () => {

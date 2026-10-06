@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
@@ -25,11 +25,33 @@ export async function generateMetadata({
 }: LayoutProps<'/[locale]'>): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({
-    locale: hasLocale(routing.locales, locale) ? locale : 'tr',
+    locale: hasLocale(routing.locales, locale) ? locale : routing.defaultLocale,
     namespace: 'Meta',
   });
-  return { title: t('title'), description: t('description') };
+  const title = t('title');
+  return {
+    // Pages under it (the 404) read "Sayfa bulunamadı · Aydın Kampüs Haritası".
+    title: { default: title, template: `%s · ${title}` },
+    description: t('description'),
+    applicationName: title,
+    openGraph: { title, description: t('description'), siteName: title },
+  };
 }
+
+/**
+ * Edge to edge on notched phones (the sheet pads its content above the home
+ * indicator), and browser chrome in the stone of the day and night themes
+ * (`--stone` in globals.css).
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#e6e8eb' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b1018' },
+  ],
+};
 
 export default async function LocaleLayout({
   children,

@@ -141,6 +141,28 @@ function SceneContents({
   const [playsOpening] = useState(() => Boolean(assemble));
   useLayoutEffect(() => resetIntroClock(playsOpening), [playsOpening]);
   const waiting = holdIntro || (assembling && !glided);
+  // The free view's shape, read when framing (not a dependency: dragging the
+  // sheet must not refit the camera).
+  const size = useThree((s) => s.size);
+  const fov = useThree((s) => (s.camera as PerspectiveCamera).fov);
+  const view = useRef({ aspect: 1, fov: 34 });
+  // Framing waits for the canvas to be measured, or it fits the wrong shape.
+  const measured = size.width > 0 && size.height > 0;
+  // The campus buildings stay in the overview, not only the walkable spots.
+  const campusCorners = useMemo(
+    () =>
+      buildings
+        .filter((b) => b.campus)
+        .flatMap((b) => b.outline.map((p): [number, number] => [p[0], p[1]])),
+    [buildings],
+  );
+  useLayoutEffect(() => {
+    // Phones: the map controls' column covers the right edge.
+    const controls = size.width < 768 ? 56 : 0;
+    const width = Math.max(1, size.width - insets.left - controls);
+    const height = Math.max(1, size.height - insets.bottom);
+    view.current = { aspect: width / height, fov };
+  }, [size, insets, fov]);
   // Selectors, not the whole store: the heading changes every frame while
   // the camera turns, and the scene must not re-render for it.
   const setControls = useCameraStore((s) => s.setControls);
@@ -191,11 +213,17 @@ function SceneContents({
   useEffect(() => {
     const ctl = controls.current;
     // Before the tilt only: a later graph (a refetch) must not pull it back.
-    if (!ctl || !playsOpening || glided) return;
-    const pose = overview(graph.nodes, false);
+    if (!ctl || !playsOpening || glided || !measured) return;
+    const pose = overview(
+      graph.nodes,
+      false,
+      view.current.aspect,
+      view.current.fov,
+      campusCorners,
+    );
     // High enough to see the neighbourhood rise, within maxDistance.
     const radius = Math.min(1380, Math.max(1200, pose.distance * 1.55));
-    const azimuth = Math.atan2(0.32, 0.62) - 0.6;
+    const azimuth = Math.atan2(OVERVIEW[0], OVERVIEW[2]) - 0.6;
     const polar = 0.2;
     void ctl.setLookAt(
       pose.centre.x + radius * Math.sin(polar) * Math.sin(azimuth),
@@ -206,13 +234,13 @@ function SceneContents({
       pose.centre.z,
       false,
     );
-  }, [graph, playsOpening, glided]);
+  }, [graph, playsOpening, glided, measured, campusCorners]);
 
   // Glide in on first load, then frame the route, the step being previewed
   // (from behind the walker, facing the next node) or the whole network.
   useEffect(() => {
     const ctl = controls.current;
-    if (!ctl || waiting) return;
+    if (!ctl || waiting || !measured) return;
     const animate = !reducedMotion;
     if (!introduced.current) {
       introduced.current = true;
@@ -243,9 +271,9 @@ function SceneContents({
         dz = ((az - z) / len) * sign;
       }
       void ctl.setLookAt(
-        x - dx * 70,
-        62,
-        z - dz * 70,
+        x - dx * 95,
+        82,
+        z - dz * 95,
         x + dx * 18,
         0,
         z + dz * 18,
@@ -256,11 +284,14 @@ function SceneContents({
     const { centre, distance } = overview(
       hasRoute ? route : graph.nodes,
       hasRoute,
+      view.current.aspect,
+      view.current.fov,
+      hasRoute ? [] : campusCorners,
     );
     void ctl.setLookAt(
-      centre.x + distance * 0.32,
-      distance * 0.92,
-      centre.z + distance * 0.62,
+      centre.x + distance * OVERVIEW[0],
+      distance * OVERVIEW[1],
+      centre.z + distance * OVERVIEW[2],
       centre.x,
       0,
       centre.z,
@@ -276,6 +307,8 @@ function SceneContents({
     fitRequest,
     waiting,
     playsOpening,
+    measured,
+    campusCorners,
   ]);
 
   // The opening's grade; a pass-through afterwards, so it stays mounted
@@ -400,28 +433,67 @@ function ViewOffset({
 }
 
 /** Three-quarter overview of `nodes`: the centre and the camera distance. */
+/** Camera offset of the overview (from the south-east), per unit distance. */
+const OVERVIEW: [number, number, number] = [0.32, 0.92, 0.62];
+/** Share of the free view the framed nodes may fill. */
+const FILL = 0.78;
+
+/**
+ * Three-quarter overview of `nodes`: the centre and the camera distance that
+ * fits them in the free part of the screen (`aspect`, width / height right of
+ * the panel and above the sheet), high enough to read the plaza.
+ */
 function overview(
   nodes: GraphNode[],
   route: boolean,
+  aspect: number,
+  fovDeg: number,
+  /** More ENU points to keep in view (the campus buildings' corners). */
+  extra: [number, number][] = [],
 ): { centre: Vector3; distance: number } {
-  const box = boundsOf(nodes);
-  const centre = box.getCenter(new Vector3());
-  const size = box.getSize(new Vector3());
-  // Three-quarter view from the south-east, high enough to read the plaza.
-  const distance = Math.max(route ? 170 : 260, Math.max(size.x, size.z) * 2.2);
-  return { centre, distance };
-}
-
-function boundsOf(nodes: GraphNode[]): Box3 {
+  const points: [number, number][] = [
+    ...nodes.map((n): [number, number] => [n.enu[0], n.enu[1]]),
+    ...extra,
+  ];
   const box = new Box3(
     new Vector3(Infinity, 0, Infinity),
     new Vector3(-Infinity, 12, -Infinity),
   );
-  for (const n of nodes) {
-    const [x, , z] = enuToWorld(n.enu[0], n.enu[1]);
+  for (const [e, n] of points) {
+    const [x, , z] = enuToWorld(e, n);
     box.expandByPoint(new Vector3(x, 0, z));
   }
-  return box;
+  const centre = box.getCenter(new Vector3());
+  // Extent across and along the view, seen from the overview direction.
+  const [ox, oy, oz] = OVERVIEW;
+  const flat = Math.hypot(ox, oz);
+  const fx = -ox / flat;
+  const fz = -oz / flat;
+  let minR = Infinity;
+  let maxR = -Infinity;
+  let minF = Infinity;
+  let maxF = -Infinity;
+  for (const [e, n] of points) {
+    const [x, , z] = enuToWorld(e, n);
+    const r = x * -fz + z * fx;
+    const f = x * fx + z * fz;
+    minR = Math.min(minR, r);
+    maxR = Math.max(maxR, r);
+    minF = Math.min(minF, f);
+    maxF = Math.max(maxF, f);
+  }
+  const tanV = Math.tan((fovDeg * Math.PI) / 360);
+  const tanH = tanV * Math.max(0.3, aspect);
+  // Depth shows foreshortened by the camera's elevation.
+  const elevation = Math.sin(Math.atan2(oy, flat));
+  const across = Math.max(0, maxR - minR) / 2 / (tanH * FILL);
+  const along = (Math.max(0, maxF - minF) * elevation) / 2 / (tanV * FILL);
+  const length = Math.hypot(ox, oy, oz);
+  const distance = Math.max(
+    route ? 170 : 260,
+    Math.max(across, along) / length,
+  );
+  return { centre, distance };
 }
 
 function BaseGround() {
@@ -527,13 +599,24 @@ function Buildings({
       uniforms.uNight.value += ((night ? 1 : 0) - uniforms.uNight.value) * k;
   });
   const geometry = useMemo(() => buildMassing(buildings), [buildings]);
-  // Buildings hide the DOM markers behind them (OverlayProjector).
+  // Buildings hide the DOM markers behind them (OverlayProjector). The BVH
+  // takes a few hundred ms for the neighbourhood: build it when the main
+  // thread is idle, not in the frames the opening plays in.
   useEffect(() => {
     if (!geometry) return;
-    const bvh = new MeshBVH(geometry);
-    occluders.add(bvh);
+    let bvh: MeshBVH | undefined;
+    const build = () => {
+      bvh = new MeshBVH(geometry);
+      occluders.add(bvh);
+    };
+    const idle =
+      typeof requestIdleCallback === 'function'
+        ? requestIdleCallback(build, { timeout: 4000 })
+        : window.setTimeout(build, 1500);
     return () => {
-      occluders.delete(bvh);
+      if (typeof cancelIdleCallback === 'function') cancelIdleCallback(idle);
+      else window.clearTimeout(idle);
+      if (bvh) occluders.delete(bvh);
       geometry.dispose();
     };
   }, [geometry]);

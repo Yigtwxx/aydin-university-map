@@ -114,6 +114,16 @@ export function PanelShell({
   useEffect(() => () => animation.current?.stop(), []);
 
   const element = useRef<HTMLElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  // The peek shows the top of the content (the route summary and Start, the
+  // search): back down there, a list scrolled earlier scrolls back up.
+  useEffect(() => {
+    if (!sheet || snap !== 'peek' || !body.current) return;
+    for (const child of body.current.children)
+      if (child.scrollTop > 0)
+        child.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
+  }, [sheet, snap, reducedMotion]);
+
   useMotionValueEvent(height, 'change', (value) => {
     if (!sheet) return;
     onCoveredHeight?.(coveredHeight(value));
@@ -210,7 +220,10 @@ export function PanelShell({
           : 'top-3 bottom-3 left-3 z-10 w-[23.25rem]',
       )}
       style={sheet ? { height } : undefined}
-      initial={reducedMotion ? false : { opacity: 0, y: sheet ? 24 : 8 }}
+      // The same on the server and the client: with `false` here the client
+      // never patched the server's `opacity: 0`, and the panel stayed
+      // invisible under reduced motion. MotionConfig drops the movement.
+      initial={{ opacity: 0, y: sheet ? 24 : 8 }}
       animate={ready ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.4, ease: EASE, delay: 0.1 }}
       onKeyDown={onKeyDown}
@@ -222,7 +235,9 @@ export function PanelShell({
         refract={false}
         className={cn(
           'pointer-events-auto flex min-h-0 flex-col',
-          sheet ? 'h-full' : 'max-h-full',
+          // viewport-fit=cover: the glass runs under the home indicator, its
+          // content (the assistant's input) stays above it.
+          sheet ? 'h-full pb-[env(safe-area-inset-bottom)]' : 'max-h-full',
         )}
       >
         <motion.div
@@ -250,6 +265,7 @@ export function PanelShell({
           {header}
         </motion.div>
         <motion.div
+          ref={body}
           id={bodyId}
           {...bodyPan}
           onPointerDownCapture={() => (dragged.current = false)}

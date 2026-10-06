@@ -1,21 +1,26 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { getToolName, isToolUIPart, type UIMessage } from 'ai';
 import {
-  DefaultChatTransport,
-  getToolName,
-  isToolUIPart,
-  type UIMessage,
-} from 'ai';
-import { ArrowUp, Footprints, MessageCircle, Square } from 'lucide-react';
+  ArrowUp,
+  BookOpen,
+  Footprints,
+  MessageCircle,
+  Square,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 import { FanMark } from '@/components/brand/FanMark';
+import { useCampusGraph } from '@/features/campus/queries';
 import { RichText } from '@/features/chat/RichText';
 import { useRouteStore } from '@/features/route/store';
-import { apiBaseUrl } from '@/lib/api/client';
+
+import { isThinking } from './progress';
+import { campusChat, claimRoute, saveChat, setChatLocale } from './session';
+import { sourcesOf } from './sources';
 
 const MAX_CHARS = 1000;
 const EASE = [0.2, 0.7, 0.2, 1] as const;
@@ -46,19 +51,19 @@ export function AssistantPanel({
   const t = useTranslations('Chat');
   const locale = useLocale();
   const { setFrom, setTo } = useRouteStore();
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        api: `${apiBaseUrl}/chat`,
-        headers: { 'X-Amap-Locale': locale },
-      }),
-    [locale],
-  );
-  const { messages, sendMessage, status, error, stop } = useChat({ transport });
+  // One conversation per tab, kept outside the panel (see ./session): it
+  // survives the remount a language switch causes.
+  const [chat] = useState(campusChat);
+  const { messages, sendMessage, status, error, stop } = useChat({ chat });
   const [input, setInput] = useState('');
-  const applied = useRef(new Set<string>());
   const scroller = useRef<HTMLDivElement>(null);
   const busy = status === 'submitted' || status === 'streaming';
+
+  useEffect(() => setChatLocale(locale), [locale]);
+  // Saved between turns, not on every streamed token.
+  useEffect(() => {
+    if (status === 'ready' || status === 'error') saveChat(messages);
+  }, [messages, status]);
 
   // A finished get_route call fills the directions, so the map draws it.
   useEffect(() => {
@@ -68,10 +73,9 @@ export function AssistantPanel({
           isToolUIPart(part) &&
           getToolName(part) === 'get_route' &&
           part.state === 'output-available' &&
-          !applied.current.has(part.toolCallId) &&
-          isRouteOutput(part.output)
+          isRouteOutput(part.output) &&
+          claimRoute(part.toolCallId)
         ) {
-          applied.current.add(part.toolCallId);
           const { from, to } = part.output;
           setFrom({
             id: from.id,
@@ -83,11 +87,14 @@ export function AssistantPanel({
     }
   }, [messages, locale, setFrom, setTo]);
 
+  // Follows the answer as it streams; a restored chat opens at its end.
+  const scrolled = useRef(false);
   useEffect(() => {
     scroller.current?.scrollTo({
       top: scroller.current.scrollHeight,
-      behavior: 'smooth',
+      behavior: scrolled.current ? 'smooth' : 'auto',
     });
+    scrolled.current = true;
   }, [messages]);
 
   const ask = (text: string) => {
@@ -152,7 +159,9 @@ export function AssistantPanel({
             </motion.div>
           ))}
         </AnimatePresence>
-        {status === 'submitted' && (
+        {/* Also while it reasons and after a tool, until the words come:
+            Groq then writes the whole answer in a fraction of a second. */}
+        {isThinking(messages, status) && (
           <div className="flex items-center gap-2 px-0.5 text-xs text-ink-muted">
             <FanMark className="size-4 animate-fan" />
             {t('thinking')}
@@ -223,6 +232,7 @@ function Message({
   const t = useTranslations('Chat');
   const locale = useLocale();
   const user = message.role === 'user';
+  const sources = user ? [] : sourcesOf(message);
   return (
     <div className={user ? 'flex justify-end' : 'flex flex-col gap-2'}>
       {message.parts.map((part, i) => {
@@ -239,7 +249,7 @@ function Message({
               key={i}
               className="flex flex-col gap-2 px-0.5 text-sm leading-relaxed [&_strong]:font-semibold"
             >
-              <RichText text={part.text} />
+              <RichText text={part.text} newTab={t('newTab')} />
             </div>
           );
         }
@@ -289,6 +299,60 @@ function Message({
         }
         return null;
       })}
+      {sources.length > 0 && <Sources sources={sources} />}
+    </div>
+  );
+}
+
+/**
+ * What the answer was grounded on, one quiet row. A passage about a 360°
+ * spot opens that spot, so the visitor can check it with their own eyes.
+ */
+function Sources({ sources }: { sources: ReturnType<typeof sourcesOf> }) {
+  const t = useTranslations('Chat');
+  const graph = useCampusGraph();
+  const setExploreNode = useRouteStore((s) => s.setExploreNode);
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 px-0.5 pt-0.5">
+      <span className="flex items-center gap-1 text-2xs font-medium text-ink-muted">
+        <BookOpen className="size-3" aria-hidden />
+        {t('sources')}
+      </span>
+      <ul className="contents">
+        {sources.map((source) => {
+          const spot =
+            source.nodeId && graph.data?.byId.has(source.nodeId)
+              ? source.nodeId
+              : undefined;
+          const chip =
+            'flex h-6 max-w-[12rem] items-center gap-1 rounded-full bg-fill px-2 text-2xs font-medium text-ink';
+          return (
+            <li key={source.title} className="min-w-0">
+              {spot ? (
+                <button
+                  type="button"
+                  onClick={() => setExploreNode(spot)}
+                  title={t('openSource', { title: source.title })}
+                  aria-label={t('openSource', { title: source.title })}
+                  className={`${chip} transition-colors duration-150 ease-out-soft hover:bg-fill-strong`}
+                >
+                  <span className="truncate">{source.title}</span>
+                  <span
+                    aria-hidden
+                    className="shrink-0 text-[9px] font-semibold text-ink-muted"
+                  >
+                    360°
+                  </span>
+                </button>
+              ) : (
+                <span className={chip}>
+                  <span className="truncate">{source.title}</span>
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

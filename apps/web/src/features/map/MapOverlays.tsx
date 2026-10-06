@@ -16,6 +16,7 @@ import { enuToWorld } from '@/features/campus/coords';
 import { openRing } from '@/features/campus/geometry';
 import type { Building, GraphNode } from '@/features/campus/types';
 
+import { blockChips } from './blockChips';
 import { useCameraStore, type ZoomTier } from './cameraStore';
 
 /** A DOM element that the scene's projector keeps over a 3D point. */
@@ -56,6 +57,9 @@ function MapAnchor({
   );
 }
 
+/** Outdoor spots further than this from any entrance keep their bare name. */
+const NEAR_DOOR_M = 90;
+
 const atNode = (node: GraphNode, up = 0.6) =>
   enuToWorld(node.enu[0], node.enu[1], up);
 
@@ -68,6 +72,7 @@ function DoorPin({ node }: { node: GraphNode }) {
     <MapAnchor id={`pin-door-${node.id}`} position={atNode(node)} layer={3}>
       <span
         aria-hidden
+        data-marker
         className="flex size-5 -translate-1/2 items-center justify-center rounded-full bg-white text-route shadow-[0_0_0_2.5px_var(--route),0_2px_6px_rgb(15_23_36/0.35)]"
       >
         <DoorOpen className="size-3" strokeWidth={2.5} />
@@ -81,6 +86,7 @@ function StartPin({ node }: { node: GraphNode }) {
     <MapAnchor id="pin-start" position={atNode(node)} layer={3}>
       <span
         aria-hidden
+        data-marker
         className="block size-4.5 -translate-1/2 rounded-full border-[4.5px] border-route bg-white shadow-[0_0_0_1.5px_#fff,0_2px_8px_rgb(15_23_36/0.35)]"
       />
     </MapAnchor>
@@ -96,6 +102,7 @@ function DestinationPin({ node, label }: { node: GraphNode; label: string }) {
         className="flex -translate-x-[13px] -translate-y-full items-end gap-1.5"
       >
         <svg
+          data-marker
           viewBox="0 0 26 34"
           className="h-[34px] w-[26px] drop-shadow-[0_3px_5px_rgb(15_23_36/0.35)]"
         >
@@ -149,7 +156,7 @@ function PanoSpots({
   nodes: GraphNode[];
   tier: ZoomTier;
   hidden: Set<string>;
-  /** While a route is shown, entrance names give way to its pins. */
+  /** While a route is shown: entrance names and path spots give way to it. */
   quiet: boolean;
   labelOf: (node: GraphNode) => string;
   onOpen: (node: GraphNode) => void;
@@ -170,12 +177,41 @@ function PanoSpots({
     }
     return ids;
   }, [nodes, labelOf]);
+  // Many outdoor spots share one tour name ("Kampüs"): name them after the
+  // nearest entrance too, so a screen reader can tell them apart.
+  const nearName = useMemo(() => {
+    const doors = nodes.filter((n) => n.kind === 'entrance');
+    const names = new Map<string, string>();
+    for (const node of nodes) {
+      if (node.kind === 'entrance') continue;
+      let best: GraphNode | undefined;
+      let bestD = NEAR_DOOR_M;
+      for (const door of doors) {
+        const d = Math.hypot(
+          door.enu[0] - node.enu[0],
+          door.enu[1] - node.enu[1],
+        );
+        if (d < bestD) {
+          bestD = d;
+          best = door;
+        }
+      }
+      if (best) names.set(node.id, labelOf(best));
+    }
+    return names;
+  }, [nodes, labelOf]);
   return (
     <>
       {nodes.map((node) => {
         const entrance = node.kind === 'entrance';
-        if (hidden.has(node.id) || (!entrance && !near)) return null;
+        // Plain path spots only up close, and not around a route, where they
+        // would crowd its line.
+        if (hidden.has(node.id) || (!entrance && (!near || quiet))) return null;
         const label = labelOf(node);
+        const door = nearName.get(node.id);
+        const name = door
+          ? t('panoSpotNear', { label, near: door })
+          : t('panoSpot', { label });
         // Names only up close: on the overview they would collide.
         // Overlapping names are hidden by the projector (declutter).
         const named =
@@ -193,7 +229,7 @@ function PanoSpots({
                   <button
                     type="button"
                     onClick={() => onOpen(node)}
-                    aria-label={t('panoSpot', { label })}
+                    aria-label={name}
                     // A 24 px hit target around a small dot.
                     className="group pointer-events-auto flex size-6 -translate-1/2 items-center justify-center rounded-full"
                   />
@@ -201,6 +237,7 @@ function PanoSpots({
               >
                 <span
                   aria-hidden
+                  data-marker
                   className={[
                     'block rounded-full bg-white transition-transform duration-150 ease-out-soft group-hover:scale-140 group-focus-visible:scale-140',
                     !entrance
@@ -223,7 +260,7 @@ function PanoSpots({
                 )}
               </TooltipTrigger>
               <TooltipContent side="top" sideOffset={6}>
-                {t('panoSpot', { label })}
+                {name}
               </TooltipContent>
             </Tooltip>
           </MapAnchor>
@@ -233,44 +270,20 @@ function PanoSpots({
   );
 }
 
-/** "İstanbul Aydın Üniversitesi A Binası" -> "A". */
-export function buildingCode(name: string | null): string | undefined {
-  const match = name?.match(
-    /(?:^|\s)([A-ZÇĞİÖŞÜ](?:-[A-ZÇĞİÖŞÜ])?)\s+(?:Binası|Blok)/u,
-  );
-  return match?.[1];
-}
-
 function BuildingLabels({
   buildings,
+  nodes,
   tier,
 }: {
   buildings: Building[];
+  nodes: GraphNode[];
   tier: ZoomTier;
 }) {
   const t = useTranslations('Map');
-  const labels = useMemo(() => {
-    const out: {
-      id: string;
-      code: string;
-      position: [number, number, number];
-    }[] = [];
-    for (const b of buildings) {
-      const code = b.campus ? buildingCode(b.name) : undefined;
-      if (!code) continue;
-      const ring = openRing(b.outline);
-      const [e, n] = ring.reduce(
-        ([se, sn], [pe, pn]) => [se + pe, sn + pn],
-        [0, 0],
-      );
-      out.push({
-        id: b.id,
-        code,
-        position: enuToWorld(e / ring.length, n / ring.length, b.height_m + 2),
-      });
-    }
-    return out;
-  }, [buildings]);
+  const labels = useMemo(
+    () => blockChips(buildings, nodes),
+    [buildings, nodes],
+  );
 
   const near = tier === 'near';
   return (
@@ -284,12 +297,16 @@ function BuildingLabels({
         >
           <span
             aria-hidden
+            data-yield
             className={[
               'flex -translate-1/2 items-center gap-1.5 whitespace-nowrap transition-opacity duration-250 ease-out-soft',
               tier === 'far' ? 'opacity-0' : 'opacity-100',
             ].join(' ')}
           >
-            <span className="flex h-5.5 min-w-5.5 items-center justify-center rounded-[7px] bg-ochre px-1 text-xs font-semibold text-ochre-ink shadow-[0_0_0_1.5px_#fff,0_2px_6px_rgb(15_23_36/0.3)]">
+            <span
+              data-marker
+              className="flex h-5.5 min-w-5.5 items-center justify-center rounded-[7px] bg-ochre px-1 text-xs font-semibold text-ochre-ink shadow-[0_0_0_1.5px_#fff,0_2px_6px_rgb(15_23_36/0.3)]"
+            >
               {label.code}
             </span>
             {near && (
@@ -397,7 +414,7 @@ export function MapOverlays({
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       <CampusLabel buildings={buildings} tier={tier} />
-      <BuildingLabels buildings={buildings} tier={tier} />
+      <BuildingLabels buildings={buildings} nodes={nodes} tier={tier} />
       <PanoSpots
         nodes={nodes}
         tier={tier}

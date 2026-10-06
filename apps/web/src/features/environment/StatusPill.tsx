@@ -31,6 +31,7 @@ import { Slider } from '@/components/ui/slider';
 
 import type { Sky } from './hooks';
 import { campusHour, useEnvironmentStore } from './store';
+import { nextSunEvent } from './sun';
 import {
   type Condition,
   conditionOf,
@@ -152,9 +153,10 @@ export function StatusPill({
 
   const isDay = sky.phase === 'day' || sky.phase === 'golden';
   const liveCondition = weather ? conditionOf(weather.weather_code) : undefined;
-  // Show the next sun event: sunset during the day, sunrise at night.
-  const nextIsSunset = sky.sunset !== undefined && now < sky.sunset;
-  const sunEvent = nextIsSunset ? sky.sunset : sky.sunrise;
+  // The details are live readings, so the sun event is the real next one:
+  // the sunrise while the sun is down, the sunset while it is up.
+  const sunEvent = nextSunEvent(live);
+  const nextIsSunset = sunEvent?.kind === 'sunset';
 
   return (
     <Popover>
@@ -224,7 +226,10 @@ export function StatusPill({
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs text-ink-muted">{t('now')}</p>
+            {/* A previewed hour is not "now": the readings stay live. */}
+            <p className="text-xs text-ink-muted">
+              {hour === undefined ? t('now') : t('liveReading')}
+            </p>
             <p className="tabular mt-1.5 text-3xl leading-none font-semibold tracking-display">
               {weather ? `${number.format(weather.temperature_c)}°` : '—'}
             </p>
@@ -264,7 +269,7 @@ export function StatusPill({
                 icon={nextIsSunset ? Sunset : Sunrise}
                 label={nextIsSunset ? t('sunset') : t('sunrise')}
               >
-                {time(sunEvent)}
+                {time(sunEvent.at)}
               </Detail>
             )}
           </dl>

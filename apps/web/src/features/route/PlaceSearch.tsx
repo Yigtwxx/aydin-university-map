@@ -12,7 +12,7 @@ import {
   Trees,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type Ref, useId, useMemo, useRef, useState } from 'react';
+import { type Ref, useCallback, useId, useMemo, useRef, useState } from 'react';
 
 import {
   Combobox,
@@ -32,8 +32,13 @@ import { PanoThumb } from './PanoThumb';
 import { categoryOf, type PlaceCategory, sceneOf } from './places';
 import type { PlaceRef } from './store';
 
+/** The API rejects longer queries (422). */
+const MAX_QUERY_CHARS = 100;
+
 interface Props {
   label: string;
+  /** Name of the clear button, e.g. "Clear start". */
+  clearLabel: string;
   placeholder: string;
   value?: PlaceRef;
   onChange: (place?: PlaceRef) => void;
@@ -43,16 +48,20 @@ interface Props {
    */
   variant: 'hero' | 'row';
   inputRef?: Ref<HTMLInputElement>;
+  /** The suggestions opened or closed. */
+  onOpenChange?: (open: boolean) => void;
 }
 
 /** Server-side, Turkish-aware place search (the API folds ı/İ/ş/ğ…). */
 export function PlaceSearch({
   label,
+  clearLabel,
   placeholder,
   value,
   onChange,
   variant,
   inputRef,
+  onOpenChange,
 }: Props) {
   const id = useId();
   const locale = useLocale() as Locale;
@@ -95,8 +104,28 @@ export function PlaceSearch({
   };
 
   const hero = variant === 'hero';
-  // The list lines up with the whole field (icon included), not the bare input.
   const field = useRef<HTMLDivElement>(null);
+  // The list hangs below the field and spans the panel's content (the
+  // closest `data-search-bounds`), so a from/to row gets the same wide list
+  // as the main field. Read on every update: the field rides on the sheet.
+  const anchor = useCallback(() => {
+    const element = field.current;
+    if (!element) return null;
+    const bounds = element.closest('[data-search-bounds]') ?? element;
+    return {
+      contextElement: element,
+      getBoundingClientRect: () => {
+        const own = element.getBoundingClientRect();
+        const wide = bounds.getBoundingClientRect();
+        return DOMRect.fromRect({
+          x: wide.left,
+          y: own.top,
+          width: wide.width,
+          height: own.height,
+        });
+      },
+    };
+  }, []);
 
   return (
     <Combobox
@@ -109,6 +138,7 @@ export function PlaceSearch({
         onChange(place ? { id: place.id, name: nameOf(place) } : undefined)
       }
       onInputValueChange={(next: string) => setInput(next)}
+      onOpenChange={(open: boolean) => onOpenChange?.(open)}
     >
       <label htmlFor={id} className="sr-only">
         {label}
@@ -118,8 +148,9 @@ export function PlaceSearch({
           id={id}
           ref={inputRef}
           placeholder={placeholder}
+          maxLength={MAX_QUERY_CHARS}
           showClear={Boolean(value)}
-          clearLabel={t('clear', { field: label })}
+          clearLabel={clearLabel}
           showTrigger={false}
           className={cn(
             'w-full border-0 bg-transparent transition-[background-color,box-shadow] duration-150 ease-out-soft',
@@ -144,15 +175,27 @@ export function PlaceSearch({
           )}
         </ComboboxInput>
       </div>
+      {/* Always below, never flipped: on the sheet the field starts near the
+          bottom edge and rises with it, and a list flipped above it at peek
+          stayed squeezed under the status pill. Its height is what is left
+          below the field. */}
       <ComboboxContent
-        anchor={field}
+        anchor={anchor}
+        side="bottom"
         sideOffset={hero ? 8 : 6}
-        className="glass glass-solid min-w-72 rounded-card bg-(--glass-bg) p-1 ring-0"
+        collisionAvoidance={{
+          side: 'none',
+          align: 'shift',
+          fallbackAxisSide: 'none',
+        }}
+        collisionPadding={8}
+        className="glass glass-solid rounded-card bg-(--glass-bg) p-1 ring-0"
       >
         <ComboboxEmpty className="py-3 text-sm text-ink-muted">
           {emptyText}
         </ComboboxEmpty>
-        <ComboboxList className="p-0">
+        {/* Seven rows and a bit on desktop, so it reads as a list. */}
+        <ComboboxList className="max-h-[min(23.5rem,calc(var(--available-height)-0.5rem))] p-0">
           {(place: Place) => (
             <ComboboxItem
               key={place.id}
