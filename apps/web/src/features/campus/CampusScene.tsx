@@ -27,7 +27,7 @@ import {
 } from '@/features/map/cameraStore';
 
 import { occluders } from './anchors';
-import { OpeningPoints } from './OpeningPoints';
+import { OpeningClock } from './OpeningClock';
 import { resetIntroClock } from './opening';
 import { palette } from './constants';
 import { enuToWorld } from './coords';
@@ -51,7 +51,7 @@ import type {
 /** Where the camera starts before gliding in: high above the Marmara side. */
 const INTRO_POSITION: [number, number, number] = [420, 1150, 1500];
 const INTRO_SMOOTH_S = 1.5;
-/** The opening's tilt from the dot map down into the 3D view. */
+/** The opening's tilt from straight above down into the 3D view. */
 const ASSEMBLE_SMOOTH_S = 1.1;
 const SMOOTH_S = 0.6;
 
@@ -168,13 +168,13 @@ function SceneContents({
     };
   }, [setControls, setHeading, setTopDown]);
 
-  // The opening starts over the dot map, looking almost straight down.
+  // The opening starts high over the campus, looking almost straight down.
   useEffect(() => {
     const ctl = controls.current;
     // Before the tilt only: a later graph (a refetch) must not pull it back.
     if (!ctl || !playsOpening || glided) return;
     const pose = overview(graph.nodes, false);
-    // High enough to see the dot map of the neighbourhood, within maxDistance.
+    // High enough to see the neighbourhood rise, within maxDistance.
     const radius = Math.min(1380, Math.max(1200, pose.distance * 1.55));
     const azimuth = Math.atan2(0.32, 0.62) - 0.6;
     const polar = 0.2;
@@ -292,10 +292,7 @@ function SceneContents({
         </>
       )}
       {assembling && buildings.length > 0 && (
-        <OpeningPoints
-          buildings={buildings}
-          ground={ground}
-          graph={graph}
+        <OpeningClock
           onGlide={() => setGlided(true)}
           onReveal={() => onAssembleRef.current?.onReveal()}
           onDone={() => {

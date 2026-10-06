@@ -23,11 +23,10 @@ walking graph and shortest walking routes.
 
 ### Neler var?
 
-- **Noktalardan doğan kampüs:** açılışta mahalle düz bir nokta haritası olarak belirir,
-  noktalar binaların şekline yükselir, binalar zeminden çıkar ve yürüme ağında bir ışık
-  dalgası dolaşır; ardından canlı harita gelir. Oturum başına bir kez oynar, bir
-  dokunuşla hızlanır. (Earth Studio ile önceden render edilmiş İstanbul dalışı için kod
-  hazır bekliyor.)
+- **Yükselen kampüs:** açılışta kamera düz haritanın tam üstünden eğilirken binalar
+  kampüsten dışa doğru bir dalgayla zeminden yükselir; ardından canlı harita gelir.
+  Oturum başına bir kez oynar, bir dokunuşla hızlanır. (İstanbul üstünden kaydırmalı
+  dalışın kodu, önceden render edilmiş bir sürüm için saklanıyor.)
 - **Kampüs ve çevresi 3D:** 3.000'i aşkın bina türüne göre çizilir: kiremit veya parapetli
   çatı, çekme kat, dükkân vitrini, kubbe ve minare, hangar. İstenirse tek tuşla
   fotogerçekçi görünüme geçilir.
@@ -96,11 +95,10 @@ Bkz. [docs/data-policy.md](docs/data-policy.md).
 
 ### Features
 
-- **A campus built from dots:** the map opens on a flat dot map of the neighbourhood;
-  the dots lift into the shape of every building, the buildings rise out of the ground
-  and a pulse runs through the walking network before the live map takes over. It plays
-  once per session and speeds up on any touch. (The scroll dive over İstanbul waits in
-  the code for a pre-rendered Earth Studio version.)
+- **A rising campus:** the map opens looking straight down on the flat map; as the
+  camera tilts, the buildings rise out of the ground in a wave from the campus outwards,
+  then the live map takes over. It plays once per session and speeds up on any touch.
+  (The scroll dive over İstanbul stays in the code for a pre-rendered version.)
 - **The campus and its neighbourhood in 3D:** 3,000+ buildings drawn by type (tiled or
   parapet roofs, set-back floors, shop fronts, domes and minarets, hangars), with a
   one-tap photorealistic view.

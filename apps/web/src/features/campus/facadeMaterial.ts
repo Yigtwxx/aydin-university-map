@@ -381,7 +381,7 @@ export function patchFacade(
           float seam = (1.0 - smoothstep(0.0, 1.1, vFacadePos.y)) * step(abs(n.y), 0.5);
           // The intro grade dims the scene; the seam stays bright through it.
           float graded = mix(${INTRO.lightFrom.toFixed(2)}, 1.0, smoothstep(${INTRO.lightRiseFromS.toFixed(2)}, ${INTRO.lightRiseToS.toFixed(2)}, uIntroTime));
-          totalEmissiveRadiance += vec3(1.0, 0.74, 0.4) * seam * rising * 0.9 / graded;
+          totalEmissiveRadiance += vec3(1.0, 0.8, 0.55) * seam * rising * 0.55 / graded;
         }`,
     );
 }
