@@ -1,0 +1,23 @@
+[project]
+name = "amap-pipeline"
+version = "0.1.0"
+description = "Offline pipeline: tour metadata, tile acquisition, SfM/MVS reconstruction, georeferencing and walking-graph export."
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "amap-contracts",
+    "typer>=0.17",
+]
+
+[project.scripts]
+amap = "amap_pipeline.cli:app"
+
+[tool.uv.sources]
+amap-contracts = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amap_pipeline"]

@@ -1,0 +1,14 @@
+[project]
+name = "amap-contracts"
+version = "0.1.0"
+description = "Shared data contracts and helpers for the Aydın University Map pipeline, API and web app."
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amap_contracts"]

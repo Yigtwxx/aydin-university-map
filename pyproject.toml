@@ -1,0 +1,60 @@
+[project]
+name = "aydin-university-map"
+version = "0.1.0"
+description = "3D campus map of İstanbul Aydın University (Florya) reconstructed from its 360° tour, with shortest walking paths."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/contracts", "pipeline"]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.400",
+    "pytest>=8.4",
+    "ruff>=0.13",
+]
+
+# --- ruff -------------------------------------------------------------------
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# Turkish text is first-class in this project.
+allowed-confusables = ["ı", "İ"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["amap_contracts", "amap_pipeline", "tools"]
+
+# --- pyright ----------------------------------------------------------------
+[tool.pyright]
+pythonVersion = "3.12"
+include = [
+    "packages/contracts/src",
+    "packages/contracts/tests",
+    "pipeline/src",
+    "pipeline/tests",
+    "tools",
+]
+exclude = ["data", "**/node_modules", "**/.venv"]
+typeCheckingMode = "standard"
+strict = ["packages/contracts/src"]
+venvPath = "."
+venv = ".venv"
+
+# --- pytest -----------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["packages/contracts/tests", "pipeline/tests", "tools/tests"]
+pythonpath = ["."]
+addopts = ["--strict-markers", "-ra", "--import-mode=importlib"]
+markers = [
+    "db: needs a running local Supabase/Postgres",
+    "recon: needs heavy reconstruction deps (pycolmap, open3d) and real tiles",
+]

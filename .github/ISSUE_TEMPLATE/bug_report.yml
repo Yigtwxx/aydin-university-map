@@ -1,0 +1,47 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please **do not attach tour panoramas, tiles or other
+        raw tour data** — they are copyrighted (see `docs/data-policy.md`).
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Pipeline (tiles, SfM, georeference, graph)
+        - API (FastAPI, routing, AI assistant)
+        - Web app (map, 360 walkthrough, landing)
+        - Docs / repo tooling
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include the exact error message or a screenshot of the UI.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `uv run amap tour build`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "macOS 27 / Apple M4, Python 3.12, Chrome 140"

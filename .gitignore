@@ -1,0 +1,67 @@
+# ---------------------------------------------------------------------------
+# DATA POLICY: tour panoramas, metadata dumps and every derived artifact are
+# copyrighted (university / tour vendor) and must never be committed.
+# See docs/data-policy.md.
+# ---------------------------------------------------------------------------
+/data/
+*.glb
+*.gltf
+*.ply
+*.obj
+*.mvs
+*.dmap
+*.ktx2
+*.bin
+!packages/contracts/fixtures/**
+
+# Reconstruction workspaces (COLMAP / OpenMVS)
+**/colmap_workspace/
+**/openmvs_workspace/
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.pyright/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
