@@ -1,9 +1,11 @@
 """``amap export``: produce web assets under data/out/."""
 
 import json
+import logging
 from typing import Annotated, Any
 
 import typer
+from shapely.ops import unary_union
 
 from amap_pipeline import paths
 from amap_pipeline.export.assets import (
@@ -15,8 +17,10 @@ from amap_pipeline.export.assets import (
     region_json,
     write_massing,
 )
+from amap_pipeline.geo.context import fetch_context_raw, parse_context
+from amap_pipeline.geo.earth import MAX_WORKERS, EarthPaths, build_earth
 from amap_pipeline.geo.osm import (
-    CAMPUS_OSM_BBOX,
+    WIDE_OSM_BBOX,
     LocalProjector,
     fetch_buildings_raw,
     fetch_greenery_raw,
@@ -41,23 +45,46 @@ from amap_pipeline.geo.region import (
 
 app = typer.Typer(help="Web asset export commands.", no_args_is_help=True)
 
+# Streets whose blocks usually have shops at street level.
+SHOP_STREETS = frozenset(
+    {"trunk", "primary", "secondary", "tertiary", "primary_link", "secondary_link"}
+)
+
 
 @app.command("buildings")
 def export_buildings(
-    radius_m: Annotated[float, typer.Option(help="Keep buildings within.")] = 450.0,
+    radius_m: Annotated[float, typer.Option(help="Keep buildings within.")] = 1200.0,
 ) -> None:
-    """Write data/out/buildings.json (OSM massing in local metres)."""
+    """Write data/out/buildings.json (styled OSM massing in local metres)."""
+    projector = LocalProjector()
+    osm_dir = paths.data_dir() / "osm"
     buildings = parse_buildings(
-        fetch_buildings_raw(
-            CAMPUS_OSM_BBOX, paths.data_dir() / "osm" / "buildings.json"
-        ),
-        LocalProjector(),
+        fetch_buildings_raw(WIDE_OSM_BBOX, osm_dir / "buildings_wide.json"),
+        projector,
     )
-    data = massing(buildings, MassingParams(radius_m=radius_m))
+    context = parse_context(
+        fetch_context_raw(WIDE_OSM_BBOX, osm_dir / "context_wide.json"), projector
+    )
+    ground = parse_ground(
+        fetch_ground_raw(WIDE_OSM_BBOX, osm_dir / "ground_wide.json"), projector
+    )
+    streets = unary_union([w.line for w in ground.ways if w.kind in SHOP_STREETS])
+    data = massing(buildings, MassingParams(radius_m=radius_m), context, streets)
+    sfm_heights = paths.derived_dir() / "sfm_heights.json"
+    if sfm_heights.is_file():
+        # Measured heights from the dense point cloud (``amap dense heights``).
+        from amap_pipeline.geo.sfm_heights import apply_sfm_heights
+
+        heights = json.loads(sfm_heights.read_text("utf-8"))
+        applied = apply_sfm_heights(data["buildings"], heights)
+        typer.echo(f"applied {applied} SfM heights from {sfm_heights}")
     out = paths.data_dir() / "out" / "buildings.json"
     write_massing(out, data)
-    campus = sum(1 for b in data["buildings"] if b["campus"])
-    typer.echo(f"wrote {len(data['buildings'])} buildings ({campus} campus) -> {out}")
+    styles: dict[str, int] = {}
+    for b in data["buildings"]:
+        styles[b["style"]] = styles.get(b["style"], 0) + 1
+    summary = ", ".join(f"{k} {v}" for k, v in sorted(styles.items()))
+    typer.echo(f"wrote {len(data['buildings'])} buildings ({summary}) -> {out}")
 
 
 @app.command("panos")
@@ -81,11 +108,13 @@ def export_panos_cmd(
 
 @app.command("greenery")
 def export_greenery(
-    radius_m: Annotated[float, typer.Option(help="Keep features within.")] = 450.0,
+    radius_m: Annotated[float, typer.Option(help="Keep features within.")] = 1200.0,
 ) -> None:
     """Write data/out/greenery.json (OSM parks, grass and trees)."""
     greenery = parse_greenery(
-        fetch_greenery_raw(CAMPUS_OSM_BBOX, paths.data_dir() / "osm" / "greenery.json"),
+        fetch_greenery_raw(
+            WIDE_OSM_BBOX, paths.data_dir() / "osm" / "greenery_wide.json"
+        ),
         LocalProjector(),
     )
     data = greenery_json(greenery, radius_m)
@@ -98,11 +127,11 @@ def export_greenery(
 
 @app.command("ground")
 def export_ground(
-    radius_m: Annotated[float, typer.Option(help="Keep features within.")] = 600.0,
+    radius_m: Annotated[float, typer.Option(help="Keep features within.")] = 1250.0,
 ) -> None:
     """Write data/out/ground.json (OSM streets, footpaths and ground areas)."""
     ground = parse_ground(
-        fetch_ground_raw(CAMPUS_OSM_BBOX, paths.data_dir() / "osm" / "ground.json"),
+        fetch_ground_raw(WIDE_OSM_BBOX, paths.data_dir() / "osm" / "ground_wide.json"),
         LocalProjector(),
     )
     data = ground_json(ground, radius_m)
@@ -161,3 +190,25 @@ def export_region(
         f"{len(data['aerodromes'])} aerodromes, {len(campus)} campus "
         f"({out.stat().st_size / 1024:.0f} KB) -> {out}"
     )
+
+
+@app.command("earth")
+def export_earth(
+    workers: Annotated[
+        int,
+        typer.Option(min=1, max=MAX_WORKERS, help="Concurrent tile downloads."),
+    ] = MAX_WORKERS,
+) -> None:
+    """Write data/out/earth/ (day, night, height, water textures + earth.json)."""
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+        )
+    earth_paths = EarthPaths.under(paths.data_dir())
+    files = build_earth(earth_paths, workers=workers)
+    total = 0
+    for file in files:
+        size = file.stat().st_size
+        total += size
+        typer.echo(f"{file.name:<16} {size / 1024:>8.0f} KB")
+    typer.echo(f"{'total':<16} {total / 1024**2:>8.2f} MB -> {earth_paths.out_dir}")

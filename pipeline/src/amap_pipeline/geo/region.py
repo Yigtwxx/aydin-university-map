@@ -11,9 +11,12 @@ import urllib.parse
 import urllib.request
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import shapely
 from shapely.geometry import (
     LineString,
     MultiLineString,
@@ -26,6 +29,7 @@ from shapely.geometry import (
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import orient
 from shapely.ops import linemerge, polygonize, unary_union
+from shapely.validation import make_valid
 
 from amap_contracts import BBox
 from amap_pipeline.geo.osm import USER_AGENT, LocalProjector, _post_overpass
@@ -55,28 +59,41 @@ def _bbox_str(bbox: BBox) -> str:
     return f"{bbox.south},{bbox.west},{bbox.north},{bbox.east}"
 
 
-def _cached_overpass(query: str, cache: Path) -> dict[str, Any]:
+def _cached_overpass(
+    query: str, cache: Path, timeout_s: float = 90.0
+) -> dict[str, Any]:
     if cache.is_file():
         return json.loads(cache.read_text(encoding="utf-8"))
-    payload = _post_overpass(urllib.parse.urlencode({"data": query}).encode())
+    payload = _post_overpass(
+        urllib.parse.urlencode({"data": query}).encode(),
+        timeout_s=timeout_s + 30.0,  # client waits a bit longer than the server
+    )
+    remark = str(payload.get("remark", ""))
+    if "error" in remark.lower():
+        # A server-side timeout still answers 200 with partial data: never cache it.
+        raise RuntimeError(f"Overpass query failed: {remark}")
     cache.parent.mkdir(parents=True, exist_ok=True)
-    cache.write_text(json.dumps(payload), encoding="utf-8")
+    tmp = cache.with_suffix(cache.suffix + ".part")
+    tmp.write_text(json.dumps(payload), encoding="utf-8")
+    tmp.replace(cache)  # atomic: an interrupted run never leaves a torn cache
     return payload
 
 
-def coastline_query(bbox: BBox) -> str:
+def coastline_query(bbox: BBox, timeout_s: int = 90) -> str:
     return (
-        "[out:json][timeout:90];"
+        f"[out:json][timeout:{timeout_s}];"
         f'way["natural"="coastline"]({_bbox_str(bbox)});'
         "out geom;"
     )
 
 
-def roads_query(bbox: BBox) -> str:
-    kinds = "|".join(sorted(ROAD_KINDS))
+def roads_query(
+    bbox: BBox, kinds: Iterable[str] = ROAD_KINDS, timeout_s: int = 90
+) -> str:
+    pattern = "|".join(sorted(kinds))
     return (
-        "[out:json][timeout:90];"
-        f'way["highway"~"^({kinds})$"]({_bbox_str(bbox)});'
+        f"[out:json][timeout:{timeout_s}];"
+        f'way["highway"~"^({pattern})$"]({_bbox_str(bbox)});'
         "out geom tags;"
     )
 
@@ -92,14 +109,19 @@ def aeroway_query(bbox: BBox) -> str:
     )
 
 
-def fetch_coastline_raw(bbox: BBox, cache: Path) -> dict[str, Any]:
+def fetch_coastline_raw(bbox: BBox, cache: Path, timeout_s: int = 90) -> dict[str, Any]:
     """Overpass JSON for ``natural=coastline`` ways (cached on disk)."""
-    return _cached_overpass(coastline_query(bbox), cache)
+    return _cached_overpass(coastline_query(bbox, timeout_s), cache, timeout_s)
 
 
-def fetch_roads_raw(bbox: BBox, cache: Path) -> dict[str, Any]:
-    """Overpass JSON for trunk-level highways (cached on disk)."""
-    return _cached_overpass(roads_query(bbox), cache)
+def fetch_roads_raw(
+    bbox: BBox,
+    cache: Path,
+    kinds: Iterable[str] = ROAD_KINDS,
+    timeout_s: int = 90,
+) -> dict[str, Any]:
+    """Overpass JSON for highways of ``kinds`` (trunk level by default; cached)."""
+    return _cached_overpass(roads_query(bbox, kinds, timeout_s), cache, timeout_s)
 
 
 def fetch_aeroway_raw(bbox: BBox, cache: Path) -> dict[str, Any]:
@@ -378,3 +400,238 @@ def parse_aeroways(
                     if part.area >= MIN_POLYGON_AREA_M2:
                         aerodromes.append(Aerodrome(name, part))
     return runways, aerodromes
+
+
+# --- land/sea split of a large frame (coastline orientation) ---------------------
+
+
+def coastline_lines(
+    payload: dict[str, Any], projector: LocalProjector
+) -> list[LineString]:
+    """``natural=coastline`` ways as local-metre lines (one vectorised projection).
+
+    OSM coastlines keep their way direction (land on the left), which
+    :func:`coastline_faces` relies on.
+    """
+    ways = [
+        el["geometry"]
+        for el in payload.get("elements", [])
+        if el.get("type") == "way" and len(el.get("geometry", [])) >= 2
+    ]
+    if not ways:
+        return []
+    lng = np.array([p["lon"] for way in ways for p in way], dtype=np.float64)
+    lat = np.array([p["lat"] for way in ways for p in way], dtype=np.float64)
+    x, y = projector.to_local_arrays(lng, lat)
+    xy = np.column_stack([x, y])
+    bounds = np.cumsum([0] + [len(way) for way in ways])
+    lines = [LineString(xy[a:b]) for a, b in pairwise(bounds.tolist())]
+    return [line for line in lines if line.length > 0]
+
+
+@dataclass(frozen=True, slots=True)
+class CoastFace:
+    """One piece of a frame cut by the coastline.
+
+    ``vote`` is the length (m) of coastline along the boundary that has the
+    face on its left minus the length that has it on its right: > 0 is land,
+    < 0 is water, 0 means no coastline touches the face.
+    """
+
+    polygon: Polygon
+    vote: float
+
+
+def _segments(lines: Sequence[LineString]) -> tuple[np.ndarray, np.ndarray]:
+    """Start points and direction vectors of every coastline segment."""
+    starts: list[np.ndarray] = []
+    vectors: list[np.ndarray] = []
+    for line in lines:
+        coords = np.asarray(line.coords, dtype=np.float64)[:, :2]
+        starts.append(coords[:-1])
+        vectors.append(np.diff(coords, axis=0))
+    return np.vstack(starts), np.vstack(vectors)
+
+
+def coastline_faces(
+    lines: Sequence[LineString], frame: Polygon, tolerance_m: float = 0.05
+) -> list[CoastFace]:
+    """Cut ``frame`` with the coastline and vote each face land or water.
+
+    Every face is oriented counter-clockwise (interior on the left of each
+    ring). A ring edge that lies on a coastline segment running the same way
+    has land on the face side, so it votes land by its length; the opposite
+    direction votes water. Frame edges touch no coastline and do not vote.
+    Robust to a few reversed ways, which a single probe point is not.
+    """
+    crossing = [line for line in lines if line.intersects(frame)]
+    if not crossing:
+        return [CoastFace(frame, 0.0)]
+    # Lines run past the frame, so the union nodes them exactly on its edges;
+    # polygonize drops the dangling parts outside.
+    noded = unary_union([frame.exterior, *crossing])
+    faces = [
+        orient(p, 1.0)
+        for p in polygonize(noded)
+        if frame.contains(p.representative_point())
+    ]
+    starts, vectors = _segments(crossing)
+    segments = np.asarray(shapely.linestrings(np.stack([starts, starts + vectors], 1)))
+    tree = shapely.STRtree(segments)
+    mids: list[np.ndarray] = []
+    edges: list[np.ndarray] = []
+    owner: list[np.ndarray] = []
+    for index, face in enumerate(faces):
+        for ring in (face.exterior, *face.interiors):
+            coords = np.asarray(ring.coords, dtype=np.float64)[:, :2]
+            mids.append((coords[:-1] + coords[1:]) / 2)
+            edges.append(np.diff(coords, axis=0))
+            owner.append(np.full(len(coords) - 1, index))
+    mid = np.vstack(mids)
+    edge = np.vstack(edges)
+    face_of = np.concatenate(owner)
+    hit_edge, hit_seg = tree.query_nearest(
+        shapely.points(mid), max_distance=tolerance_m, all_matches=False
+    )
+    agree = np.einsum("ij,ij->i", edge[hit_edge], vectors[hit_seg])
+    length = np.hypot(edge[hit_edge, 0], edge[hit_edge, 1])
+    votes = np.bincount(
+        face_of[hit_edge], weights=np.sign(agree) * length, minlength=len(faces)
+    )
+    return [CoastFace(f, float(v)) for f, v in zip(faces, votes, strict=True)]
+
+
+def classify_faces(
+    faces: Sequence[CoastFace], fallback_land: BaseGeometry | None = None
+) -> tuple[list[Polygon], list[Polygon]]:
+    """``(land, water)`` from voted faces.
+
+    Faces the coastline does not touch (vote 0) are land when at least half of
+    them lies in ``fallback_land`` (e.g. Natural Earth); with no fallback they
+    count as land.
+    """
+    land: list[Polygon] = []
+    water: list[Polygon] = []
+    undecided = 0
+    for face in faces:
+        is_land = face.vote > 0
+        if face.vote == 0:
+            undecided += 1
+            if fallback_land is None:
+                is_land = True
+            else:
+                overlap = face.polygon.intersection(fallback_land).area
+                is_land = overlap >= 0.5 * face.polygon.area
+        (land if is_land else water).append(face.polygon)
+    if undecided:
+        log.warning(
+            "%d face(s) not touched by the coastline; classified by %s",
+            undecided,
+            "the fallback land" if fallback_land is not None else "default (land)",
+        )
+    return land, water
+
+
+def split_land_sea(
+    lines: Sequence[LineString],
+    frame: Polygon,
+    fallback_land: BaseGeometry | None = None,
+) -> tuple[list[Polygon], list[Polygon]]:
+    """``(land, water)`` polygons covering ``frame``, cut by the coastline."""
+    return classify_faces(coastline_faces(lines, frame), fallback_land)
+
+
+# --- inland water bodies -------------------------------------------------------------
+
+# ``water=*`` values too small or artificial to matter at regional scale.
+MINOR_WATER_KINDS = (
+    "pond",
+    "basin",
+    "wastewater",
+    "reflecting_pool",
+    "fountain",
+    "pool",
+    "fishpond",
+    "moat",
+    "ditch",
+    "drain",
+)
+
+
+def water_bodies_query(
+    bbox: BBox, skip_kinds: Sequence[str] = (), timeout_s: int = 180
+) -> str:
+    """``natural=water`` (and legacy ``landuse=reservoir``) ways and relations."""
+    box_ = _bbox_str(bbox)
+    skip = f'["water"!~"^({"|".join(skip_kinds)})$"]' if skip_kinds else ""
+    return (
+        f"[out:json][timeout:{timeout_s}];("
+        f'way["natural"="water"]{skip}({box_});'
+        f'relation["natural"="water"]{skip}({box_});'
+        f'way["landuse"="reservoir"]({box_});'
+        f'relation["landuse"="reservoir"]({box_});'
+        ");out geom;"
+    )
+
+
+def fetch_water_bodies_raw(
+    bbox: BBox, cache: Path, skip_kinds: Sequence[str] = (), timeout_s: int = 180
+) -> dict[str, Any]:
+    """Overpass JSON for lakes, reservoirs and other water areas (cached on disk)."""
+    return _cached_overpass(
+        water_bodies_query(bbox, skip_kinds, timeout_s), cache, timeout_s
+    )
+
+
+def _project_points(
+    points: Sequence[dict[str, float]], projector: LocalProjector
+) -> np.ndarray:
+    lng = np.array([p["lon"] for p in points], dtype=np.float64)
+    lat = np.array([p["lat"] for p in points], dtype=np.float64)
+    x, y = projector.to_local_arrays(lng, lat)
+    return np.column_stack([x, y])
+
+
+def _valid_parts(geometry: BaseGeometry) -> list[Polygon]:
+    if not geometry.is_valid:
+        geometry = make_valid(geometry)
+    return [p for p in _polygons(geometry) if p.area >= MIN_POLYGON_AREA_M2]
+
+
+def _relation_water(
+    element: dict[str, Any], projector: LocalProjector
+) -> list[Polygon]:
+    """Multipolygon relation: polygonized outer rings minus inner rings."""
+    rings: dict[str, list[LineString]] = {"outer": [], "inner": []}
+    for member in element.get("members", []):
+        geometry = [p for p in member.get("geometry", []) if p]
+        if member.get("type") != "way" or len(geometry) < 2:
+            continue
+        role = "inner" if member.get("role") == "inner" else "outer"
+        rings[role].append(LineString(_project_points(geometry, projector)))
+    if not rings["outer"]:
+        return []
+    shell = unary_union(list(polygonize(unary_union(rings["outer"]))))
+    if rings["inner"]:
+        shell = shell.difference(
+            unary_union(list(polygonize(unary_union(rings["inner"]))))
+        )
+    return _valid_parts(shell)
+
+
+def parse_water_bodies(
+    payload: dict[str, Any], projector: LocalProjector
+) -> list[Polygon]:
+    """Closed water ways and multipolygon relations as local-metre polygons."""
+    out: list[Polygon] = []
+    for element in payload.get("elements", []):
+        if element.get("type") == "relation":
+            out.extend(_relation_water(element, projector))
+            continue
+        geometry = element.get("geometry", [])
+        if element.get("type") != "way" or len(geometry) < 4:
+            continue
+        if geometry[0] != geometry[-1]:
+            continue  # an unclosed way is only a piece of a relation
+        out.extend(_valid_parts(Polygon(_project_points(geometry, projector))))
+    return out
