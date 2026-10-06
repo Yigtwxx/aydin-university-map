@@ -6,6 +6,7 @@ from typing import Annotated, Any
 
 import typer
 
+from amap_contracts.graph import Graph
 from amap_pipeline import paths
 from amap_pipeline.geo.align import footprint_union
 from amap_pipeline.geo.osm import (
@@ -14,7 +15,7 @@ from amap_pipeline.geo.osm import (
     fetch_buildings_raw,
     parse_buildings,
 )
-from amap_pipeline.graph.build import GraphParams, build_graph, summarise
+from amap_pipeline.graph.build import GraphParams, build_graph, components, summarise
 
 app = typer.Typer(help="Walking graph commands.", no_args_is_help=True)
 
@@ -49,6 +50,21 @@ def merge_poses(georefs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {scene: record for scene, (_, record) in best.items()}
 
 
+def largest_component(graph: Graph) -> tuple[Graph, list[list[str]]]:
+    """Only the main walking network: a place on an island could never be reached."""
+    comps = components(graph)
+    if len(comps) <= 1:
+        return graph, []
+    keep = set(comps[0])
+    kept = graph.model_copy(
+        update={
+            "nodes": [n for n in graph.nodes if n.id in keep],
+            "edges": [e for e in graph.edges if e.source in keep and e.target in keep],
+        }
+    )
+    return kept, comps[1:]
+
+
 @app.command("export")
 def graph_export(
     runs: Annotated[
@@ -56,6 +72,9 @@ def graph_export(
     ],
     max_link_m: Annotated[float, typer.Option(help="Longer links are teleports.")] = 60,
     infer_radius_m: Annotated[float, typer.Option(help="Line-of-sight radius.")] = 12,
+    keep_islands: Annotated[
+        bool, typer.Option(help="Keep components cut off from the main network.")
+    ] = False,
 ) -> None:
     """Merge georeferenced runs and write data/out/graph.geojson + report."""
     georefs: list[dict[str, Any]] = []
@@ -86,6 +105,9 @@ def graph_export(
         run_id="+".join(runs),
         params=GraphParams(max_link_m=max_link_m, infer_radius_m=infer_radius_m),
     )
+    islands: list[list[str]] = []
+    if not keep_islands:
+        graph, islands = largest_component(graph)
     out_dir = paths.data_dir() / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "graph.geojson").write_text(
@@ -93,7 +115,11 @@ def graph_export(
     )
     summary = summarise(graph, report)
     (out_dir / "graph_report.json").write_text(
-        json.dumps({"summary": summary, "dropped": report.dropped}, indent=2) + "\n",
+        json.dumps(
+            {"summary": summary, "dropped": report.dropped, "islands": islands},
+            indent=2,
+        )
+        + "\n",
         "utf-8",
     )
     typer.echo(json.dumps(summary, ensure_ascii=False))

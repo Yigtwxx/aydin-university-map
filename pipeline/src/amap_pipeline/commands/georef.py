@@ -23,6 +23,7 @@ from amap_pipeline.geo.align import (
     level,
     outline_score_raster,
     search,
+    umeyama_2d,
     wall_points,
 )
 from amap_pipeline.geo.osm import (
@@ -44,7 +45,11 @@ app = typer.Typer(help="Georeferencing commands.", no_args_is_help=True)
 
 SEARCH_RADIUS_M = 350.0
 SCALE_FACTORS = (0.35, 0.42, 0.5, 0.58, 0.67, 0.77, 0.88, 1.0, 1.15, 1.3)
+# Around a scale prior from tour spacing, which is far tighter than the
+# tripod-height prior.
+LINK_SCALE_FACTORS = (0.8, 0.88, 0.95, 1.0, 1.06, 1.13, 1.25)
 CELL_M = 1.0
+MIN_SHARED_SCENES = 3
 
 
 _ENTRANCE_RE = re.compile(r"^([A-Z]) Blok Giri")
@@ -141,6 +146,26 @@ def georef_run(
     min_frames: Annotated[
         int, typer.Option(help="Skip models with fewer panoramas.")
     ] = 3,
+    align_to: Annotated[
+        str | None,
+        typer.Option(
+            help="Georeferenced run whose poses fix models that share >= 3 scenes."
+        ),
+    ] = None,
+    link_scale_m: Annotated[
+        float | None,
+        typer.Option(
+            help="Median tour-link length in metres; sets the scale prior "
+            "(the verified campus model has 6.2 m)."
+        ),
+    ] = None,
+    tour_window_m: Annotated[
+        float | None,
+        typer.Option(
+            help="Search within this radius of the scenes' tour coordinates "
+            "(only when they are specific, not the campus-wide point)."
+        ),
+    ] = None,
 ) -> None:
     """Level each model, search yaw/scale/shift against OSM, refine with ICP.
 
@@ -157,33 +182,91 @@ def georef_run(
     if not models:
         typer.echo("no model to georeference")
         raise typer.Exit(code=1)
+    reference: dict[str, dict[str, Any]] = {}
+    if align_to:
+        from amap_pipeline.commands.graph import georef_files, merge_poses
+
+        reference = merge_poses(
+            [
+                json.loads(p.read_text("utf-8"))
+                for p in georef_files(paths.recon_dir() / align_to)
+            ]
+        )
     for index in models:
         typer.echo(f"--- model {index}")
         try:
-            georef_model(run, workspace, index)
+            georef_model(
+                run,
+                workspace,
+                index,
+                reference=reference,
+                reference_run=align_to,
+                link_scale_m=link_scale_m,
+                tour_window_m=tour_window_m,
+            )
         except typer.Exit:
             typer.echo(f"model {index}: skipped")
 
 
-def georef_model(run: str, workspace: Path, model_index: int) -> None:
+def median_link_units(cams: np.ndarray, links: list[tuple[int, int]]) -> float | None:
+    lengths = [float(np.linalg.norm(cams[a] - cams[b])) for a, b in links]
+    return float(np.median(lengths)) if lengths else None
+
+
+def tour_centre(
+    order: list[str], scenes: dict[str, Any], projector: LocalProjector
+) -> tuple[float, float] | None:
+    """Mean tour coordinate of the model's scenes, if they are specific.
+
+    The tour gives one coordinate per building or area; scenes labelled with
+    the campus-wide point (the map origin) carry no position information.
+    """
+    xy = [
+        projector.to_local(scenes[s]["lng"], scenes[s]["lat"])
+        for s in order
+        if scenes[s].get("lat") is not None
+    ]
+    if not xy:
+        return None
+    centre = np.mean(np.array(xy), axis=0)
+    if float(np.hypot(*centre)) < 25.0:
+        return None
+    return float(centre[0]), float(centre[1])
+
+
+def georef_model(
+    run: str,
+    workspace: Path,
+    model_index: int,
+    reference: dict[str, dict[str, Any]] | None = None,
+    reference_run: str | None = None,
+    link_scale_m: float | None = None,
+    tour_window_m: float | None = None,
+) -> None:
     import pycolmap
 
     rec = pycolmap.Reconstruction(workspace / "sparse" / str(model_index))
     poses = extract_poses(rec)
     down, level_dev = gravity(poses)
     prior = metric_scale(poses, down)
-    if prior is None:
-        typer.echo("no metric scale prior (not enough ground points)")
-        raise typer.Exit(code=1)
     points = np.array([p.xyz for p in rec.points3D.values()])
     levelled = level(poses, points, down)
-    walls = wall_points(levelled, prior.metres_per_unit)
     cams = levelled.camera_xy()
     order = list(levelled.cameras)
     scenes_meta = {
         s["name"]: s
         for s in json.loads((paths.derived_dir() / "scenes.json").read_text("utf-8"))
     }
+    link_units = median_link_units(cams, walking_links(order, scenes_meta))
+    if link_scale_m is not None and link_units:
+        # Tour spacing is a steadier scale cue than the tripod height.
+        prior_mpu = link_scale_m / link_units
+    elif prior is not None:
+        prior_mpu = prior.metres_per_unit
+    else:
+        typer.echo("no metric scale prior (not enough ground points)")
+        raise typer.Exit(code=1)
+    walls = wall_points(levelled, prior_mpu)
 
     projector = LocalProjector()
     buildings = parse_buildings(
@@ -200,38 +283,70 @@ def georef_model(run: str, workspace: Path, model_index: int) -> None:
     links = walking_links(order, scenes_meta)
     typer.echo(f"anchors: {anchor_names}")
     typer.echo(
-        f"{len(poses)} panos, {len(walls)} wall points, "
-        f"scale prior {prior.metres_per_unit:.3f} m/u"
+        f"{len(poses)} panos, {len(walls)} wall points, scale prior {prior_mpu:.3f} m/u"
     )
 
-    candidates = search(
-        walls,
-        cams,
-        score_map,
-        footprints,
-        prior.metres_per_unit,
-        centre_window_m=SEARCH_RADIUS_M,
-        anchors=anchors,
-        links=links,
-        interior=interior_raster(footprints, score_map),
-        # The tripod-height prior is biased high (low facade points pass as
-        # ground), so search well below it; ICP refines the final value.
-        scale_factors=SCALE_FACTORS,
-    )
     shrunk = footprints.buffer(-0.75)
-    refined: list[tuple[Candidate, IcpResult]] = []
-    for cand in candidates[:4]:
-        icp = icp_refine(walls, outline, cand.transform)
-        checked = constrain(
-            Candidate(icp.transform, cand.score),
-            cams,
-            footprints,
-            shrunk,
-            anchors,
-            links,
+    shared = [i for i, sc in enumerate(order) if reference and sc in reference]
+    method = "osm_search"
+    scale_prior = prior_mpu
+    scale_factors: tuple[float, ...] = SCALE_FACTORS
+    if link_scale_m is not None and link_units:
+        scale_factors = LINK_SCALE_FACTORS
+        method = "osm_search_link_scale"
+    centre = (0.0, 0.0)
+    window = SEARCH_RADIUS_M
+    if tour_window_m is not None and (
+        found := tour_centre(order, scenes_meta, projector)
+    ):
+        centre, window = found, tour_window_m
+        typer.echo(f"search window {window:.0f} m around tour point {centre}")
+
+    candidates: list[Candidate] = []
+    if reference and len(shared) >= MIN_SHARED_SCENES:
+        # Sim(2) from shared scenes to their trusted map positions.
+        target = np.array(
+            [[reference[order[i]]["x"], reference[order[i]]["y"]] for i in shared]
         )
-        refined.append((checked, icp))
-    refined.sort(key=lambda cr: -cr[0].rank_value * cr[1].inlier_ratio)
+        init = umeyama_2d(cams[shared], target)
+        residual = np.linalg.norm(init.apply(cams[shared]) - target, axis=1)
+        typer.echo(
+            f"aligned to {reference_run} on {len(shared)} shared scenes, "
+            f"residual median {float(np.median(residual)):.2f} m"
+        )
+        method = f"aligned:{reference_run}"
+        icp = icp_refine(walls, outline, init, iterations=0)
+        checked = constrain(
+            Candidate(init, 1.0), cams, footprints, shrunk, anchors, links
+        )
+        refined: list[tuple[Candidate, IcpResult]] = [(checked, icp)]
+    else:
+        candidates = search(
+            walls,
+            cams,
+            score_map,
+            footprints,
+            scale_prior,
+            centre_window_m=window,
+            centre_xy=centre,
+            anchors=anchors,
+            links=links,
+            interior=interior_raster(footprints, score_map),
+            scale_factors=scale_factors,
+        )
+        refined = []
+        for cand in candidates[:4]:
+            icp = icp_refine(walls, outline, cand.transform)
+            checked = constrain(
+                Candidate(icp.transform, cand.score),
+                cams,
+                footprints,
+                shrunk,
+                anchors,
+                links,
+            )
+            refined.append((checked, icp))
+        refined.sort(key=lambda cr: -cr[0].rank_value * cr[1].inlier_ratio)
     best_cand, best = refined[0]
     rivals = [c for c in candidates if _yaw_gap_deg(c, best_cand) > 15]
     margin = best_cand.rank_value / rivals[0].rank_value if rivals else math.inf
@@ -245,7 +360,7 @@ def georef_model(run: str, workspace: Path, model_index: int) -> None:
         for s, xy in cams_map.items()
         if footprints.contains(Point(float(xy[0]), float(xy[1])))
     ]
-    scale_ratio = best.transform.scale / prior.metres_per_unit
+    scale_ratio = best.transform.scale / prior_mpu
 
     # Ground level from the final (OSM) scale; the tripod prior is biased.
     ground_z = (
@@ -275,6 +390,7 @@ def georef_model(run: str, workspace: Path, model_index: int) -> None:
     result = {
         "run": run,
         "model": model_index,
+        "method": method,
         "levelling_deg": round(level_dev, 2),
         "basis_levelled_from_model": levelled.basis.tolist(),
         "similarity": {

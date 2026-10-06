@@ -243,6 +243,7 @@ def search(
     yaw_step_deg: float = 2.0,
     scale_factors: Sequence[float] = (0.75, 0.85, 0.95, 1.05, 1.15, 1.3),
     centre_window_m: float | None = None,
+    centre_xy: tuple[float, float] = (0.0, 0.0),
     anchors: Sequence[Anchor] = (),
     links: Sequence[tuple[int, int]] = (),
     interior: Raster | None = None,
@@ -287,10 +288,10 @@ def search(
                     - camera_inside_weight * cams_in / len(cameras)
                 )
             if centre_window_m is not None:
-                # keep the model centroid within the window around the map centre
+                # keep the model centroid within the window around ``centre_xy``
                 yy, xx = np.mgrid[0 : corr.shape[0], 0 : corr.shape[1]]
-                cx = origin[0] + xx * score_map.cell - lo[0]
-                cy = origin[1] + yy * score_map.cell - lo[1]
+                cx = origin[0] + xx * score_map.cell - lo[0] - centre_xy[0]
+                cy = origin[1] + yy * score_map.cell - lo[1] - centre_xy[1]
                 corr = np.where(np.hypot(cx, cy) <= centre_window_m, corr, -np.inf)
             for r, c in _top_peaks(corr, peaks_per_pose, min_sep):
                 shift = (
