@@ -32,6 +32,8 @@ export interface GraphEdge {
   length_m: number;
   /** Walking line source -> target [east, north] when it bends round buildings. */
   path_enu?: [number, number][] | null;
+  /** 'tour': walked between two panoramas; 'inferred': added by line of sight. */
+  origin?: 'tour' | 'inferred';
 }
 
 export interface CampusGraph {

@@ -102,7 +102,34 @@ const MOBILE_CONTROLS_BOTTOM_PX = 56 + 3 * 36 + 9 + 12;
 
 const PHOTOREAL_TOKEN = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN || undefined;
 
-export function MapApp({ intro = false }: { intro?: boolean }) {
+/** The opening plays once per browser session (and never over a shared route). */
+const OPENING_SEEN_KEY = 'amap.opening.seen';
+
+function openingSkipped(): boolean {
+  if (typeof window === 'undefined') return false;
+  const search = new URLSearchParams(window.location.search);
+  if (search.has('from') || search.has('to')) return true;
+  try {
+    return window.sessionStorage.getItem(OPENING_SEEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markOpeningSeen() {
+  try {
+    window.sessionStorage.setItem(OPENING_SEEN_KEY, '1');
+  } catch {
+    // Storage may be blocked; the opening then plays on every visit.
+  }
+}
+
+/**
+ * `intro`: what plays before the map. 'assemble' builds the campus out of a
+ * dot map (CampusScene); 'dive' is the scroll dive over İstanbul, kept for
+ * the pre-rendered Earth Studio version.
+ */
+export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const reducedMotion = useReducedMotion() ?? false;
@@ -213,14 +240,20 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
       setActiveStep(undefined);
   }, [routeData, activeStep, setActiveStep]);
 
-  // The landing dive plays over the map first (/), unless motion is reduced:
-  // 'dive' -> 'reveal' (fading into the map) -> 'done' (dive unmounted).
+  // The intro plays over the map first (/), unless motion is reduced:
+  // 'dive' -> 'reveal' (the chrome comes in) -> 'done' (intro unmounted).
+  // The client decides alone: before the data loads both look the same.
   const [introPhase, setIntroPhase] = useState<'dive' | 'reveal' | 'done'>(
-    intro ? 'dive' : 'done',
+    () =>
+      intro && !(intro === 'assemble' && openingSkipped()) ? 'dive' : 'done',
   );
   const diving = introPhase === 'dive' && !reducedMotion;
   const introShown = introPhase !== 'done' && !reducedMotion;
-  const reveal = useCallback(() => setIntroPhase('reveal'), []);
+  const reveal = useCallback(() => {
+    setIntroPhase('reveal');
+    if (intro === 'assemble') markOpeningSeen();
+  }, [intro]);
+  const assembling = intro === 'assemble' && introShown;
   const photoreal = useCameraStore((s) => s.photoreal);
   const [credits, setCredits] = useState<Credit[]>();
   const finishIntro = useCallback(() => setIntroPhase('done'), []);
@@ -336,8 +369,13 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
                 condition={condition}
                 insets={insets}
                 reducedMotion={reducedMotion}
-                paused={diving}
-                holdIntro={diving}
+                paused={diving && intro === 'dive'}
+                holdIntro={diving && intro === 'dive'}
+                assemble={
+                  assembling
+                    ? { onReveal: reveal, onDone: finishIntro }
+                    : undefined
+                }
                 photoreal={
                   photoreal && PHOTOREAL_TOKEN
                     ? { token: PHOTOREAL_TOKEN, onCredits: setCredits }
@@ -346,7 +384,9 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
               />
             )}
           </div>
-          {introShown && <IntroDive onReveal={reveal} onDone={finishIntro} />}
+          {introShown && intro === 'dive' && (
+            <IntroDive onReveal={reveal} onDone={finishIntro} />
+          )}
           {graph.data && ready && (
             <div inert={panoModal} className="contents">
               <MapOverlays
@@ -363,7 +403,7 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
           )}
 
           <AnimatePresence>
-            {!dataReady && !graph.isError && !diving && (
+            {!dataReady && !graph.isError && !(diving && intro === 'dive') && (
               <motion.div
                 key="splash"
                 className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-stone"
@@ -386,7 +426,8 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
             onCoveredHeight={setCovered}
             ready={ready}
             reducedMotion={reducedMotion}
-            inert={panoModal}
+            // Invisible until ready (loading, the opening): out of the tab order.
+            inert={panoModal || !ready}
             header={
               <>
                 {/* On the sheet every pixel of the peek goes to the search;
@@ -496,7 +537,7 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
           </PanelShell>
 
           <motion.div
-            inert={panoModal}
+            inert={panoModal || !ready}
             className="pointer-events-none absolute top-2 right-2 z-10 flex items-center gap-2 md:top-3 md:right-3"
             initial={reducedMotion ? false : { opacity: 0, y: -8 }}
             animate={ready ? { opacity: 1, y: 0 } : undefined}
@@ -524,7 +565,7 @@ export function MapApp({ intro = false }: { intro?: boolean }) {
             {/* Phones: a compact column under the status pill that steps
                 aside when the sheet rises into it. */}
             <div
-              inert={panoModal || controlsHidden}
+              inert={panoModal || controlsHidden || !ready}
               className={cn(
                 'transition-opacity duration-200 ease-out-soft',
                 controlsHidden && 'opacity-0',

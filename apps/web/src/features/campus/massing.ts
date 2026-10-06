@@ -6,6 +6,7 @@ import {
   Vector2,
 } from 'three';
 
+import { centroid, introOrigin, riseStart } from './opening';
 import { openRing } from './geometry';
 import type { Building, BuildingStyle, Roof } from './types';
 
@@ -18,6 +19,7 @@ import type { Building, BuildingStyle, Roof } from './types';
  *   aWall = (u along the wall in m, wall length, v above ground in m, storey m)
  *   aMeta = (style index, per-building seed 0..1, storeys, ground floor m)
  *   aFlags = 1 when the building has shops at street level
+ *   aRise = (intro time s the building starts to emerge, depth m it rises from)
  * Positions are three.js world space: x east, y up, z south.
  */
 
@@ -160,6 +162,9 @@ interface BuildingMeta {
   storey: number;
   ground: number;
   shops: number;
+  /** Opening (opening.ts): when it starts to emerge, and from how deep. */
+  rise: number;
+  sink: number;
 }
 
 /** Growable vertex buffers for one merged geometry. */
@@ -170,6 +175,7 @@ class Builder {
   private wall: number[] = [];
   private meta: number[] = [];
   private flags: number[] = [];
+  private rise: number[] = [];
 
   /** One vertex in ENU (east, north, up). */
   private vertex(
@@ -187,6 +193,7 @@ class Builder {
     this.wall.push(...wall);
     this.meta.push(meta.style, meta.seed, meta.storeys, meta.ground);
     this.flags.push(meta.shops);
+    this.rise.push(meta.rise, meta.sink);
   }
 
   /** Vertical wall quad from a to b (ENU), outward normal to the right of a->b. */
@@ -384,14 +391,21 @@ class Builder {
     g.setAttribute('aWall', new Float32BufferAttribute(this.wall, 4));
     g.setAttribute('aMeta', new Float32BufferAttribute(this.meta, 4));
     g.setAttribute('aFlags', new Float32BufferAttribute(this.flags, 1));
+    g.setAttribute('aRise', new Float32BufferAttribute(this.rise, 2));
     g.computeBoundingSphere();
     g.computeBoundingBox();
     return g;
   }
 }
 
-function metaOf(b: Building, style: BuildingStyle, seed: number): BuildingMeta {
+function metaOf(
+  b: Building,
+  style: BuildingStyle,
+  seed: number,
+  origin: [number, number],
+): BuildingMeta {
   const ground = GROUND_EXTRA_M[style] ?? 0;
+  const [ce, cn] = centroid(b.outline);
   const storeys = Math.max(1, b.levels ?? Math.round(b.height_m / 3.2));
   const fixedVolume =
     style === 'industrial' ||
@@ -409,7 +423,24 @@ function metaOf(b: Building, style: BuildingStyle, seed: number): BuildingMeta {
     storey,
     ground: storey + ground,
     shops: b.shops || style === 'retail' ? 1 : 0,
+    rise: riseStart(Math.hypot(ce - origin[0], cn - origin[1]), seed),
+    sink: tallest(b) + 1,
   };
+}
+
+/** Highest point of the building: roof, penthouse, dome or minaret. */
+function tallest(b: Building): number {
+  const roof = b.roof;
+  if (!roof) return b.height_m + PARAPET_M;
+  switch (roof.shape) {
+    case 'hipped':
+    case 'barrel':
+      return b.height_m + roof.rise + 1;
+    case 'dome':
+      return Math.max(b.height_m + 2 + roof.radius * 2, roof.minaret_m + 2);
+    case 'flat':
+      return b.height_m + PARAPET_M + (roof.penthouse_m ?? 0) + 2.5;
+  }
 }
 
 function walls(
@@ -650,12 +681,13 @@ export function buildMassing(
   buildings: Building[],
 ): BufferGeometry | undefined {
   const builder = new Builder();
+  const origin = introOrigin(buildings);
   for (const b of buildings) {
     const ring = ccw(b.outline);
     if (ring.length < 3) continue;
     const style: BuildingStyle = b.style ?? (b.campus ? 'campus' : 'apartment');
     const seed = seedOf(b.id);
-    const meta = metaOf(b, style, seed);
+    const meta = metaOf(b, style, seed, origin);
     const palette = palettes[style];
     const wall = varied(new Color(pick(palette.walls, seed)), seed);
     const roof = b.roof ?? { shape: 'flat' };

@@ -33,6 +33,7 @@ describe('buildMassing', () => {
       'aWall',
       'aMeta',
       'aFlags',
+      'aRise',
     ])
       expect(g!.getAttribute(name)).toBeDefined();
     const meta = g!.getAttribute('aMeta');

@@ -23,10 +23,11 @@ walking graph and shortest walking routes.
 
 ### Neler var?
 
-- **İstanbul'un üstünden dalış:** sayfayı kaydırdıkça kamera 30 km yükseklikten Boğaz'ın
-  üzerinden Florya'ya iner ve kesintisiz olarak haritanın kendisine dönüşür. Şehir
-  Google'ın fotogerçekçi 3D verisinden gelir; deniz, bulutlar ve gece ışıkları üstüne
-  çizilir. Token yoksa Sentinel-2 uydu görüntüsüyle çalışır.
+- **Noktalardan doğan kampüs:** açılışta mahalle düz bir nokta haritası olarak belirir,
+  noktalar binaların şekline yükselir, binalar zeminden çıkar ve yürüme ağında bir ışık
+  dalgası dolaşır; ardından canlı harita gelir. Oturum başına bir kez oynar, bir
+  dokunuşla hızlanır. (Earth Studio ile önceden render edilmiş İstanbul dalışı için kod
+  hazır bekliyor.)
 - **Kampüs ve çevresi 3D:** 3.000'i aşkın bina türüne göre çizilir: kiremit veya parapetli
   çatı, çekme kat, dükkân vitrini, kubbe ve minare, hangar. İstenirse tek tuşla
   fotogerçekçi görünüme geçilir.
@@ -53,7 +54,7 @@ flowchart LR
   EA --> CDN
   DB --> API[FastAPI: A*, arama, hava, asistan]
   GT[Google 3D Tiles / Cesium ion] --> WEB
-  CDN --> WEB[Next.js: R3F 3D harita, dalış, 360° tur]
+  CDN --> WEB[Next.js: R3F 3D harita, açılış, 360° tur]
   API --> WEB
 ```
 
@@ -69,7 +70,7 @@ Tasarımın tamamı: [`docs/superpowers/specs/2026-10-06-campus-map-design.md`](
 | 3 | FastAPI + Supabase: rota, arama, hava durumu | ✅ |
 | 4 | Web: 3D harita, rota, 360° tur, canlı ortam, mobil | ✅ |
 | 5 | Yapay zekâ asistanı (RAG) | ✅ |
-| 6 | İstanbul dalışı, yayına alma, E2E | ✅ |
+| 6 | Açılış animasyonu, yayına alma, E2E | ✅ |
 | 7 | Yoğun dokulu mesh, iç mekân navigasyonu | 🚧 |
 
 ### Geliştirme
@@ -95,10 +96,11 @@ Bkz. [docs/data-policy.md](docs/data-policy.md).
 
 ### Features
 
-- **A dive over İstanbul:** scrolling flies the camera from 30 km over the Bosphorus down
-  to Florya and dissolves straight into the live map. The city is Google's
-  photorealistic 3D data, with our own sea, clouds and night lights; without a token it
-  runs on Sentinel-2 satellite imagery.
+- **A campus built from dots:** the map opens on a flat dot map of the neighbourhood;
+  the dots lift into the shape of every building, the buildings rise out of the ground
+  and a pulse runs through the walking network before the live map takes over. It plays
+  once per session and speeds up on any touch. (The scroll dive over İstanbul waits in
+  the code for a pre-rendered Earth Studio version.)
 - **The campus and its neighbourhood in 3D:** 3,000+ buildings drawn by type (tiled or
   parapet roofs, set-back floors, shop fronts, domes and minarets, hangars), with a
   one-tap photorealistic view.

@@ -3,7 +3,7 @@
 import { CameraControls, Environment } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, N8AO, Vignette } from '@react-three/postprocessing';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   BackSide,
   Box3,
@@ -27,11 +27,14 @@ import {
 } from '@/features/map/cameraStore';
 
 import { occluders } from './anchors';
+import { OpeningPoints } from './OpeningPoints';
+import { resetIntroClock } from './opening';
 import { palette } from './constants';
 import { enuToWorld } from './coords';
 import { facadeUniforms, patchFacade } from './facadeMaterial';
 import { Greenery } from './Greenery';
 import { GroundLayer } from './GroundLayer';
+import { IntroGradeEffect } from './openingGrade';
 import { buildMassing } from './massing';
 import { OverlayProjector } from './OverlayProjector';
 import { Precipitation } from './Precipitation';
@@ -48,6 +51,8 @@ import type {
 /** Where the camera starts before gliding in: high above the Marmara side. */
 const INTRO_POSITION: [number, number, number] = [420, 1150, 1500];
 const INTRO_SMOOTH_S = 1.5;
+/** The opening's tilt from the dot map down into the 3D view. */
+const ASSEMBLE_SMOOTH_S = 1.1;
 const SMOOTH_S = 0.6;
 
 /** Screen area (CSS px) covered by panels; the view centres on the rest. */
@@ -79,6 +84,11 @@ interface SceneProps {
   paused?: boolean;
   /** Keep the opening camera until the landing hands over. */
   holdIntro?: boolean;
+  /**
+   * Play the opening (opening.ts) from the dot map into the campus. Read at
+   * mount; the callbacks fire when the chrome may come in and at the end.
+   */
+  assemble?: { onReveal: () => void; onDone: () => void };
 }
 
 export function CampusScene(props: SceneProps) {
@@ -111,9 +121,20 @@ function SceneContents({
   reducedMotion,
   photoreal,
   holdIntro = false,
+  assemble,
 }: SceneProps) {
   const controls = useRef<CameraControls>(null);
   const introduced = useRef(false);
+  // The opening plays once, from mount: later prop changes do not restart it.
+  const [assembling, setAssembling] = useState(() => Boolean(assemble));
+  const [glided, setGlided] = useState(false);
+  const onAssembleRef = useRef(assemble);
+  useEffect(() => {
+    if (assemble) onAssembleRef.current = assemble;
+  }, [assemble]);
+  const [playsOpening] = useState(() => Boolean(assemble));
+  useLayoutEffect(() => resetIntroClock(playsOpening), [playsOpening]);
+  const waiting = holdIntro || (assembling && !glided);
   // Selectors, not the whole store: the heading changes every frame while
   // the camera turns, and the scene must not re-render for it.
   const setControls = useCameraStore((s) => s.setControls);
@@ -147,16 +168,37 @@ function SceneContents({
     };
   }, [setControls, setHeading, setTopDown]);
 
+  // The opening starts over the dot map, looking almost straight down.
+  useEffect(() => {
+    const ctl = controls.current;
+    // Before the tilt only: a later graph (a refetch) must not pull it back.
+    if (!ctl || !playsOpening || glided) return;
+    const pose = overview(graph.nodes, false);
+    // High enough to see the dot map of the neighbourhood, within maxDistance.
+    const radius = Math.min(1380, Math.max(1200, pose.distance * 1.55));
+    const azimuth = Math.atan2(0.32, 0.62) - 0.6;
+    const polar = 0.2;
+    void ctl.setLookAt(
+      pose.centre.x + radius * Math.sin(polar) * Math.sin(azimuth),
+      radius * Math.cos(polar),
+      pose.centre.z + radius * Math.sin(polar) * Math.cos(azimuth),
+      pose.centre.x,
+      0,
+      pose.centre.z,
+      false,
+    );
+  }, [graph, playsOpening, glided]);
+
   // Glide in on first load, then frame the route, the step being previewed
   // (from behind the walker, facing the next node) or the whole network.
   useEffect(() => {
     const ctl = controls.current;
-    if (!ctl || holdIntro) return;
+    if (!ctl || waiting) return;
     const animate = !reducedMotion;
     if (!introduced.current) {
       introduced.current = true;
       if (animate) {
-        ctl.smoothTime = INTRO_SMOOTH_S;
+        ctl.smoothTime = playsOpening ? ASSEMBLE_SMOOTH_S : INTRO_SMOOTH_S;
         const restore = () => {
           ctl.smoothTime = SMOOTH_S;
           ctl.removeEventListener('rest', restore);
@@ -192,13 +234,9 @@ function SceneContents({
       );
       return;
     }
-    const box = boundsOf(hasRoute ? route : graph.nodes);
-    const centre = box.getCenter(new Vector3());
-    const size = box.getSize(new Vector3());
-    // Three-quarter view from the south-east, high enough to read the plaza.
-    const distance = Math.max(
-      hasRoute ? 170 : 260,
-      Math.max(size.x, size.z) * 2.2,
+    const { centre, distance } = overview(
+      hasRoute ? route : graph.nodes,
+      hasRoute,
     );
     void ctl.setLookAt(
       centre.x + distance * 0.32,
@@ -217,8 +255,14 @@ function SceneContents({
     exploreNodeId,
     reducedMotion,
     fitRequest,
-    holdIntro,
+    waiting,
+    playsOpening,
   ]);
+
+  // The opening's grade; a pass-through afterwards, so it stays mounted
+  // (removing an effect recompiles the composer's pass).
+  const grade = useMemo(() => new IntroGradeEffect(), []);
+  useEffect(() => () => grade.dispose(), [grade]);
 
   return (
     <>
@@ -242,8 +286,23 @@ function SceneContents({
             buildings={buildings}
             night={sky.phase === 'night' || sky.phase === 'twilight'}
             reducedMotion={reducedMotion}
+            // Shadows would show the buildings before they have risen.
+            castShadow={!assembling}
           />
         </>
+      )}
+      {assembling && buildings.length > 0 && (
+        <OpeningPoints
+          buildings={buildings}
+          ground={ground}
+          graph={graph}
+          onGlide={() => setGlided(true)}
+          onReveal={() => onAssembleRef.current?.onReveal()}
+          onDone={() => {
+            setAssembling(false);
+            onAssembleRef.current?.onDone();
+          }}
+        />
       )}
       {hasRoute && (
         <RouteRibbon
@@ -274,6 +333,7 @@ function SceneContents({
           quality="medium"
           halfRes
         />
+        <primitive object={grade} />
         <Vignette offset={0.32} darkness={0.42} />
       </EffectComposer>
     </>
@@ -320,6 +380,19 @@ function ViewOffset({
   });
   useEffect(() => () => camera.clearViewOffset(), [camera]);
   return null;
+}
+
+/** Three-quarter overview of `nodes`: the centre and the camera distance. */
+function overview(
+  nodes: GraphNode[],
+  route: boolean,
+): { centre: Vector3; distance: number } {
+  const box = boundsOf(nodes);
+  const centre = box.getCenter(new Vector3());
+  const size = box.getSize(new Vector3());
+  // Three-quarter view from the south-east, high enough to read the plaza.
+  const distance = Math.max(route ? 170 : 260, Math.max(size.x, size.z) * 2.2);
+  return { centre, distance };
 }
 
 function boundsOf(nodes: GraphNode[]): Box3 {
@@ -421,10 +494,12 @@ function Buildings({
   buildings,
   night,
   reducedMotion,
+  castShadow,
 }: {
   buildings: Building[];
   night: boolean;
   reducedMotion: boolean;
+  castShadow: boolean;
 }) {
   const material = useRef<MeshStandardMaterial>(null);
   // Windows fade on over dusk instead of switching.
@@ -447,7 +522,7 @@ function Buildings({
   }, [geometry]);
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} castShadow receiveShadow>
+    <mesh geometry={geometry} castShadow={castShadow} receiveShadow>
       <meshStandardMaterial
         ref={material}
         vertexColors

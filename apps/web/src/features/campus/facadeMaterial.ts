@@ -4,12 +4,18 @@ import {
   type WebGLProgramParametersWithUniforms,
 } from 'three';
 
+import { INTRO, introClock } from './opening';
 import { STYLE_INDEX } from './massing';
 
 /** Uniforms the facade patch adds; reach them via `facadeUniforms`. */
 export interface FacadeUniforms {
   /** 0 by day, 1 at night (windows light up). */
   uNight: { value: number };
+  /**
+   * Clock of the opening (opening.ts), in seconds. Buildings emerge from the
+   * ground as it passes their `aRise` time; after the opening they all stand.
+   */
+  uIntroTime: { value: number };
 }
 
 /** The patched shader's uniforms, once the material has compiled. */
@@ -167,10 +173,14 @@ export function patchFacade(
   this: Material,
   shader: WebGLProgramParametersWithUniforms,
 ): void {
-  const uniforms: FacadeUniforms = { uNight: { value: 0 } };
+  const uniforms: FacadeUniforms = {
+    uNight: { value: 0 },
+    uIntroTime: introClock.time,
+  };
   this.userData.facade = uniforms;
   const recipes = recipeArrays();
   shader.uniforms.uNight = uniforms.uNight;
+  shader.uniforms.uIntroTime = uniforms.uIntroTime;
   shader.uniforms.uStyleA = { value: recipes.a };
   shader.uniforms.uStyleB = { value: recipes.b };
   shader.uniforms.uStyleC = { value: recipes.c };
@@ -183,11 +193,22 @@ export function patchFacade(
         attribute vec4 aWall;
         attribute vec4 aMeta;
         attribute float aFlags;
+        attribute vec2 aRise;
+        uniform float uIntroTime;
         varying vec4 vWall;
         flat varying vec4 vMeta;
         flat varying float vFlags;
         varying vec3 vFacadePos;
-        varying vec3 vFacadeNormal;`,
+        varying vec3 vFacadeNormal;
+        varying float vRise;`,
+    )
+    .replace(
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
+        // Opening: the building comes up out of the ground (ease-out cubic).
+        float riseK = clamp((uIntroTime - aRise.x) / ${INTRO.riseDurS.toFixed(2)}, 0.0, 1.0);
+        vRise = 1.0 - pow(1.0 - riseK, 3.0);
+        transformed.y -= (1.0 - vRise) * aRise.y;`,
     )
     .replace(
       '#include <project_vertex>',
@@ -204,6 +225,7 @@ export function patchFacade(
       '#include <common>',
       `#include <common>
         uniform float uNight;
+        uniform float uIntroTime;
         uniform vec4 uStyleA[${STYLE_COUNT}];
         uniform vec4 uStyleB[${STYLE_COUNT}];
         uniform vec4 uStyleC[${STYLE_COUNT}];
@@ -213,6 +235,7 @@ export function patchFacade(
         flat varying float vFlags;
         varying vec3 vFacadePos;
         varying vec3 vFacadeNormal;
+        varying float vRise;
 
         float facadeHash(vec2 p) {
           return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -352,6 +375,13 @@ export function patchFacade(
             float wash = 1.0 - smoothstep(0.0, 14.0, vFacadePos.y);
             totalEmissiveRadiance += vec3(1.0, 0.82, 0.58) * wash * uNight * 0.55;
           }
+          // Opening: a bright seam on the walls where the rising building
+          // meets the ground (roofs cross it too fast to light up cleanly).
+          float rising = step(0.001, vRise) * (1.0 - vRise);
+          float seam = (1.0 - smoothstep(0.0, 1.1, vFacadePos.y)) * step(abs(n.y), 0.5);
+          // The intro grade dims the scene; the seam stays bright through it.
+          float graded = mix(${INTRO.lightFrom.toFixed(2)}, 1.0, smoothstep(${INTRO.lightRiseFromS.toFixed(2)}, ${INTRO.lightRiseToS.toFixed(2)}, uIntroTime));
+          totalEmissiveRadiance += vec3(1.0, 0.74, 0.4) * seam * rising * 0.9 / graded;
         }`,
     );
 }
