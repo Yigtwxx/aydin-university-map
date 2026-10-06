@@ -142,8 +142,13 @@ class _Models:
 
     def __init__(self, options: LearnedOptions) -> None:
         configure_torch_env()
-        import torch
-        from kornia.feature import ALIKED, DISK, LightGlue
+        # The `learned` extra (not installed in CI).
+        import torch  # pyright: ignore[reportMissingImports]
+        from kornia.feature import (  # pyright: ignore[reportMissingImports]
+            ALIKED,
+            DISK,
+            LightGlue,
+        )
 
         self.torch = torch
         self.device = select_device()

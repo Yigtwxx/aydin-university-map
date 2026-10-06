@@ -4,7 +4,7 @@ import os
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import torch
+    import torch  # pyright: ignore[reportMissingImports]  # `learned` extra
 
 
 def configure_torch_env() -> None:
@@ -14,7 +14,7 @@ def configure_torch_env() -> None:
 
 def select_device() -> "torch.device":
     configure_torch_env()
-    import torch
+    import torch  # pyright: ignore[reportMissingImports]  # `learned` extra
 
     if torch.cuda.is_available():
         return torch.device("cuda")
