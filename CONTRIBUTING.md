@@ -6,11 +6,13 @@ Thanks for helping! Please read the [Code of Conduct](CODE_OF_CONDUCT.md) and th
 ## Setup
 
 Requirements: [uv](https://docs.astral.sh/uv/) (Python 3.12 is installed by uv),
-Git. The web app (Node 24 + pnpm) arrives in a later phase.
+Node 24+ with pnpm (`corepack enable`), Git.
 
 ```bash
 uv sync --all-packages --all-extras   # .venv with all packages (+ pycolmap)
+pnpm install
 uvx pre-commit install      # ruff, gitleaks, repo guard on every commit
+./start.sh                  # run API + web locally
 ```
 
 ## Everyday commands
@@ -21,6 +23,11 @@ uv run ruff format .         # format
 uv run pyright               # type check
 uv run pytest                # tests (synthetic fixtures only)
 uv run amap --help           # pipeline CLI
+pnpm --filter web lint       # web: eslint
+pnpm --filter web typecheck  # web: tsc --noEmit
+pnpm --filter web test       # web: vitest
+pnpm format                  # prettier (web + config files)
+uv run python -m amap_api.export_openapi && pnpm --filter web gen:api  # after API changes
 ```
 
 Tests that need a database or real reconstruction data are marked `db` / `recon`

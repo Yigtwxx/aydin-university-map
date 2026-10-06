@@ -1,0 +1,13 @@
+data/
+.venv/
+node_modules/
+.next/
+coverage/
+*.md
+uv.lock
+pnpm-lock.yaml
+apps/api/openapi.json
+apps/web/src/lib/api/schema.d.ts
+packages/
+pipeline/
+tools/

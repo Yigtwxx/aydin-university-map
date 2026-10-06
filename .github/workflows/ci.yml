@@ -48,3 +48,54 @@ jobs:
         run: uv run pyright
       - name: Pytest
         run: uv run pytest -m "not db and not recon"
+
+  web:
+    name: Web (prettier, eslint, tsc, vitest, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Prettier
+        run: pnpm format:check
+      - name: ESLint
+        run: pnpm --filter web lint
+      - name: Typecheck
+        run: pnpm --filter web typecheck
+      - name: Vitest
+        run: pnpm --filter web test
+      - name: Build
+        run: pnpm --filter web build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.example.invalid
+
+  contracts:
+    name: Contract drift (OpenAPI -> TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install
+        run: |
+          uv sync --package amap-api --frozen
+          pnpm install --frozen-lockfile
+      - name: OpenAPI schema is up to date
+        run: |
+          uv run --package amap-api python -m amap_api.export_openapi
+          git diff --exit-code apps/api/openapi.json
+      - name: TypeScript types are up to date
+        run: |
+          pnpm --filter web gen:api
+          git diff --exit-code apps/web/src/lib/api/schema.d.ts

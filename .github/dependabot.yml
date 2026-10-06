@@ -15,3 +15,24 @@ updates:
     groups:
       python-dev-tools:
         patterns: ["ruff", "pyright", "pytest*"]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      three-stack:
+        # three is pinned to match Photo Sphere Viewer; update these together.
+        patterns:
+          [
+            "three",
+            "@types/three",
+            "@react-three/*",
+            "postprocessing",
+            "@photo-sphere-viewer/*",
+          ]
+      next-react:
+        patterns:
+          ["next", "eslint-config-next", "react", "react-dom", "@types/react*"]
+      test-tools:
+        patterns: ["vitest", "vite", "@vitejs/*", "@testing-library/*", "jsdom"]

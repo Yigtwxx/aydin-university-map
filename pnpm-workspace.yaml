@@ -1,0 +1,12 @@
+packages:
+  - "apps/*"
+
+allowBuilds:
+  "@parcel/watcher": false
+  "@swc/core": false
+  sharp: false
+  unrs-resolver: false
+
+minimumReleaseAgeExclude:
+  - "@vitejs/plugin-react@6.1.2"
+  - vite@8.3.3

@@ -64,9 +64,10 @@ Tasarımın tamamı: [`docs/superpowers/specs/2026-10-06-campus-map-design.md`](
 ### Geliştirme
 
 ```bash
-uv sync --all-packages        # Python 3.12 ortamı (uv kurar)
-uv run pytest                 # testler (sentetik veriyle)
-uv run amap tour build        # tur metadata'sını sınıflandır (yerel veri gerekir)
+./start.sh                    # API (:8000) + web (:3000) birlikte, Ctrl+C ile durur
+uv run pytest                 # Python testleri (sentetik veriyle)
+pnpm --filter web test        # web testleri
+uv run amap --help            # pipeline komutları (yerel tur verisi gerekir)
 ```
 
 Ayrıntılar için [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -105,8 +106,9 @@ Viewer, GSAP, Tailwind, next-intl) · Supabase (PostGIS, pgvector) · Cloudflare
 ### Development
 
 ```bash
-uv sync --all-packages
+./start.sh                    # API on :8000 and web on :3000 (Ctrl+C stops both)
 uv run ruff check . && uv run pyright && uv run pytest
+pnpm lint && pnpm typecheck && pnpm test
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and the
