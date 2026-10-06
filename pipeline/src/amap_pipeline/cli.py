@@ -7,6 +7,7 @@ from amap_pipeline.commands import (
     export,
     georef,
     graph,
+    publish,
     rag,
     rig,
     sfm,
@@ -24,3 +25,4 @@ app.add_typer(graph.app, name="graph")
 app.add_typer(export.app, name="export")
 app.add_typer(db.app, name="db")
 app.add_typer(rag.app, name="rag")
+app.add_typer(publish.app, name="publish")
