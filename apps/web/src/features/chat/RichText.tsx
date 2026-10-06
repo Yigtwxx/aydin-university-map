@@ -26,7 +26,10 @@ export function RichText({ text }: { text: string }) {
   const flush = () => {
     if (list.length === 0) return;
     blocks.push(
-      <ul key={`l${blocks.length}`} className="ml-4 list-disc space-y-0.5">
+      <ul
+        key={`l${blocks.length}`}
+        className="ml-4 list-disc space-y-1 marker:text-ink-faint"
+      >
         {list.map((item, i) => (
           <li key={i}>{inline(item)}</li>
         ))}

@@ -5,7 +5,10 @@ export interface PlaceRef {
   name: string;
 }
 
-interface RouteState {
+/** The panel's tabs; `?panel=assistant` opens the second one. */
+export type PanelTab = 'directions' | 'assistant';
+
+export interface RouteState {
   from?: PlaceRef;
   to?: PlaceRef;
   avoidStairs: boolean;
@@ -13,12 +16,24 @@ interface RouteState {
   activeStep?: number;
   /** A 360° spot opened from the map without following a route. */
   exploreNodeId?: string;
+  panel: PanelTab;
   setFrom: (place?: PlaceRef) => void;
   setTo: (place?: PlaceRef) => void;
   swap: () => void;
   setAvoidStairs: (value: boolean) => void;
   setActiveStep: (index?: number) => void;
   setExploreNode: (nodeId?: string) => void;
+  setPanel: (panel: PanelTab) => void;
+  /** Replaces the whole route at once (a shared link, back/forward). */
+  restore: (route: {
+    from?: PlaceRef;
+    to?: PlaceRef;
+    avoidStairs: boolean;
+    activeStep?: number;
+    panel?: PanelTab;
+  }) => void;
+  /** Renames the route ends (e.g. after a language switch), keeping the step. */
+  relabel: (names: { from?: string; to?: string }) => void;
 }
 
 export const useRouteStore = create<RouteState>((set) => ({
@@ -27,6 +42,7 @@ export const useRouteStore = create<RouteState>((set) => ({
   avoidStairs: false,
   activeStep: undefined,
   exploreNodeId: undefined,
+  panel: 'directions',
   setFrom: (from) => set({ from, activeStep: undefined }),
   setTo: (to) => set({ to, activeStep: undefined, exploreNodeId: undefined }),
   swap: () => set((s) => ({ from: s.to, to: s.from, activeStep: undefined })),
@@ -43,4 +59,19 @@ export const useRouteStore = create<RouteState>((set) => ({
         ? { exploreNodeId }
         : { exploreNodeId, activeStep: undefined },
     ),
+  setPanel: (panel) => set({ panel }),
+  restore: ({ from, to, avoidStairs, activeStep, panel = 'directions' }) =>
+    set({
+      from,
+      to,
+      avoidStairs,
+      activeStep: from && to ? activeStep : undefined,
+      exploreNodeId: undefined,
+      panel,
+    }),
+  relabel: (names) =>
+    set((s) => ({
+      from: s.from && names.from ? { ...s.from, name: names.from } : s.from,
+      to: s.to && names.to ? { ...s.to, name: names.to } : s.to,
+    })),
 }));

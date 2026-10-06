@@ -5,8 +5,9 @@ import '@photo-sphere-viewer/core/index.css';
 import { Viewer } from '@photo-sphere-viewer/core';
 import { CubemapAdapter } from '@photo-sphere-viewer/cubemap-adapter';
 import { ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
+import { cn } from 'cn';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, type Ref, useEffect, useRef, useState } from 'react';
 
 import { FanMark } from '@/components/brand/FanMark';
 import { Glass } from '@/components/glass/Glass';
@@ -32,6 +33,11 @@ interface Props {
   /** The photos are daylight; at night they get a light blue grade (≤ 25%). */
   night?: boolean;
   reducedMotion: boolean;
+  /**
+   * Mobile: the view covers the whole screen and acts as a dialog (focus
+   * moves to its close button and returns on close).
+   */
+  fullscreen?: boolean;
   onClose: () => void;
   onPrevious?: () => void;
   onNext?: () => void;
@@ -65,6 +71,7 @@ export function PanoInset({
   step,
   night = false,
   reducedMotion,
+  fullscreen = false,
   onClose,
   onPrevious,
   onNext,
@@ -76,6 +83,21 @@ export function PanoInset({
   /** Scene currently shown, so the first render doesn't reload (and abort) it. */
   const shown = useRef<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const closeButton = useRef<HTMLButtonElement>(null);
+
+  // Full screen, the rest of the page is inert: move focus in, and give it
+  // back to whatever opened the view (a route step, a map spot) on close.
+  useEffect(() => {
+    if (!fullscreen) return;
+    const opener =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : undefined;
+    closeButton.current?.focus({ preventScroll: true });
+    return () => {
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, [fullscreen]);
 
   useEffect(() => {
     const element = container.current;
@@ -135,7 +157,14 @@ export function PanoInset({
   return (
     <section
       aria-label={t('title')}
-      className="pointer-events-auto relative isolate h-full overflow-hidden rounded-[26px] bg-ink shadow-elevation-2 [&_.psv-loader-container]:hidden"
+      role={fullscreen ? 'dialog' : undefined}
+      aria-modal={fullscreen ? true : undefined}
+      className={cn(
+        'pointer-events-auto relative isolate h-full overflow-hidden bg-[#0e141e] [&_.psv-loader-container]:hidden',
+        fullscreen
+          ? 'rounded-none'
+          : 'rounded-[22px] shadow-elevation-2 ring-1 ring-black/10',
+      )}
     >
       <div ref={container} className="absolute inset-0" />
       <div
@@ -148,40 +177,47 @@ export function PanoInset({
 
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_50%_40%,#2a3445,#0e141e)]">
-          <FanMark className="size-14 animate-fan text-white" />
+          <FanMark className="size-12 animate-fan text-white/90" />
         </div>
       )}
 
       {/* Scrims keep the glass controls legible over bright skies and paving. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-black/35 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-black/40 to-transparent"
       />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/30 to-transparent"
       />
 
-      <header className="pointer-events-none absolute inset-x-3 top-3 flex items-start gap-2">
+      <header
+        className={cn(
+          'pointer-events-none absolute inset-x-2.5 flex items-start gap-2',
+          fullscreen
+            ? 'top-[max(0.625rem,env(safe-area-inset-top))]'
+            : 'top-2.5',
+        )}
+      >
         <Glass
           variant="tint"
-          radius={18}
-          className="pointer-events-auto flex min-w-0 items-center gap-3 py-2 pr-4 pl-2"
+          radius={16}
+          className="pointer-events-auto flex min-w-0 items-center gap-2.5 py-1.5 pr-3.5 pl-1.5"
         >
           {step ? (
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-route text-white">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-route text-on-route">
               {step.icon}
             </span>
           ) : (
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15">
-              <FanMark className="size-5 text-white" />
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-white/15">
+              <FanMark className="size-4.5 text-white" />
             </span>
           )}
           <span className="min-w-0">
-            <span className="block truncate font-display text-md leading-tight font-semibold">
+            <span className="block truncate text-md leading-tight font-semibold tracking-heading">
               {step ? step.instruction : title}
             </span>
-            <span className="block truncate text-xs text-white/75">
+            <span className="tabular block truncate text-xs text-white/75">
               {step
                 ? `${t('stepOf', { index: step.index + 1, count: step.count })}${step.distance ? `, ${step.distance}` : ''}`
                 : t('explore')}
@@ -189,25 +225,44 @@ export function PanoInset({
           </span>
         </Glass>
         <span className="flex-1" />
-        <Glass variant="tint" radius={999} className="pointer-events-auto flex">
+        <Glass
+          variant="tint"
+          radius={999}
+          className="pointer-events-auto flex p-0.5"
+        >
+          {/* Already full screen on phones, where the Fullscreen API is patchy. */}
+          {!fullscreen && (
+            <GlassIconButton
+              label={t('expand')}
+              onClick={() => viewer.current?.enterFullscreen()}
+            >
+              <Maximize2 className="size-4" />
+            </GlassIconButton>
+          )}
           <GlassIconButton
-            label={t('expand')}
-            onClick={() => viewer.current?.enterFullscreen()}
+            label={t('close')}
+            onClick={onClose}
+            buttonRef={closeButton}
           >
-            <Maximize2 className="size-4" />
-          </GlassIconButton>
-          <GlassIconButton label={t('close')} onClick={onClose}>
             <X className="size-4.5" />
           </GlassIconButton>
         </Glass>
       </header>
 
       {step && (
-        <footer className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+        <footer
+          className={cn(
+            'pointer-events-none absolute inset-x-0 flex justify-center',
+            // Full screen: clear of the home indicator and the thumb zone edge.
+            fullscreen
+              ? 'bottom-[max(1.25rem,env(safe-area-inset-bottom))]'
+              : 'bottom-2.5',
+          )}
+        >
           <Glass
             variant="tint"
             radius={999}
-            className="pointer-events-auto flex items-center gap-1 p-1"
+            className="pointer-events-auto flex items-center gap-0.5 p-0.5"
           >
             <GlassIconButton
               label={t('previous')}
@@ -225,7 +280,8 @@ export function PanoInset({
                   aria-label={t('goToStep', { index: i + 1 })}
                   aria-current={i === step.index ? 'step' : undefined}
                   className={[
-                    'h-1.5 rounded-full transition-all duration-250 ease-out-soft',
+                    // A 6 px dot with a finger-sized hit area around it.
+                    'relative h-1.5 rounded-full transition-all duration-250 ease-out-soft after:absolute after:-inset-x-0.5 after:-inset-y-3',
                     i === step.index
                       ? 'w-5 bg-white'
                       : 'w-1.5 bg-white/45 hover:bg-white/70',
@@ -251,21 +307,24 @@ function GlassIconButton({
   label,
   onClick,
   disabled,
+  buttonRef,
   children,
 }: {
   label: string;
   onClick?: () => void;
   disabled?: boolean;
+  buttonRef?: Ref<HTMLButtonElement>;
   children: ReactNode;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="flex size-10 items-center justify-center rounded-full text-white transition-colors duration-150 ease-out-soft hover:bg-white/15 disabled:opacity-35 disabled:hover:bg-transparent"
+      className="flex size-9 items-center justify-center rounded-full text-white transition-colors duration-150 ease-out-soft hover:bg-white/15 disabled:opacity-35 disabled:hover:bg-transparent"
     >
       {children}
     </button>

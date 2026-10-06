@@ -9,33 +9,50 @@
 /* Design tokens: docs/design-system.md. shadcn's semantic variables below are
    aliases of these, so there is one palette. */
 :root {
-  --ink: #131a24;
-  --ink-muted: #586170;
-  --stone: #e9e7e1;
-  --stone-raised: #fbfaf7;
-  --stone-deep: #d5d2c9;
+  /* Neutrals: cool, slightly blue greys so the ochre campus reads first. */
+  --ink: #0f1724;
+  --ink-muted: #5a6472;
+  --ink-faint: #8a93a1;
+  --stone: #e6e8eb;
+  --stone-raised: #ffffff;
+  --stone-deep: #d7dbe0;
+  /* Quiet fills for fields, chips and hovers, layered on any surface. */
+  --fill: rgb(15 23 36 / 0.05);
+  --fill-strong: rgb(15 23 36 / 0.085);
+  --hairline: rgb(15 23 36 / 0.08);
+
   --ochre: #dfa53c;
-  --brick: #b2432f;
+  --ochre-ink: #1d1505;
+  --brick: #c4432d;
   --plane: #557a4c;
   --marmara: #2d5d7c;
+  /* Sign blue: the route, the primary action and focus. Nothing else. */
   --route: #1f5fd6;
-  --route-soft: rgb(31 95 214 / 0.12);
-  --panel: rgb(251 250 247 / 0.92);
+  --route-soft: rgb(31 95 214 / 0.1);
+  --on-route: #ffffff;
+
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-spring: cubic-bezier(0.32, 1.4, 0.48, 1);
 
   /* Materials (docs/design-system.md#materials). Thick glass carries text
      over the map, regular glass carries controls, tinted glass sits on photos. */
-  --glass-thick: rgb(251 250 247 / 0.8);
-  --glass-regular: rgb(251 250 247 / 0.58);
-  --glass-tint: rgb(14 20 30 / 0.3);
-  --glass-edge: rgb(255 255 255 / 0.7);
-  --glass-edge-soft: rgb(255 255 255 / 0.28);
-  --hairline: rgb(19 26 36 / 0.08);
+  --glass-thick: rgb(255 255 255 / 0.82);
+  --glass-regular: rgb(255 255 255 / 0.66);
+  --glass-tint: rgb(12 17 26 / 0.36);
+  /* Menus that open over other glass: nearly opaque, or the layers mix. */
+  --glass-solid: rgb(255 255 255 / 0.94);
+  /* A 1 px light catch along the top edge, and a hairline rim all round. */
+  --glass-highlight: rgb(255 255 255 / 0.85);
+  --glass-rim: rgb(15 23 36 / 0.07);
   --elevation-1:
-    0 1px 1px rgb(19 26 36 / 0.05), 0 4px 14px -2px rgb(19 26 36 / 0.12);
+    0 0.5px 1px rgb(15 23 36 / 0.06), 0 2px 6px -1px rgb(15 23 36 / 0.08),
+    0 8px 20px -8px rgb(15 23 36 / 0.16);
   --elevation-2:
-    0 1px 2px rgb(19 26 36 / 0.06), 0 24px 56px -16px rgb(19 26 36 / 0.32);
+    0 0.5px 1px rgb(15 23 36 / 0.05), 0 4px 10px -2px rgb(15 23 36 / 0.06),
+    0 18px 44px -14px rgb(15 23 36 / 0.24);
+  /* The raised thumb of segmented controls and the selected chip. */
+  --elevation-thumb:
+    0 0.5px 1px rgb(15 23 36 / 0.1), 0 2px 5px -1px rgb(15 23 36 / 0.1);
 
   --background: var(--stone);
   --foreground: var(--ink);
@@ -44,60 +61,73 @@
   --popover: var(--stone-raised);
   --popover-foreground: var(--ink);
   --primary: var(--route);
-  --primary-foreground: #ffffff;
+  --primary-foreground: var(--on-route);
   --secondary: var(--stone-deep);
   --secondary-foreground: var(--ink);
-  --muted: color-mix(in oklch, var(--stone-deep) 45%, var(--stone));
+  --muted: var(--fill);
   --muted-foreground: var(--ink-muted);
-  --accent: rgb(19 26 36 / 0.06);
+  --accent: var(--fill);
   --accent-foreground: var(--ink);
   --destructive: var(--brick);
   --border: var(--stone-deep);
   --input: var(--stone-deep);
   --ring: var(--route);
-  --radius: 0.75rem;
+  /* Controls; cards and panels step up from here (see @theme). */
+  --radius: 0.625rem;
 }
 
 :root[data-theme='night'] {
-  --ink: #eceee9;
-  --ink-muted: #a3abb7;
-  --stone: #0f1520;
+  --ink: #eef1f5;
+  --ink-muted: #a3acb9;
+  --ink-faint: #6e7786;
+  --stone: #0b1018;
   --stone-raised: #1a2230;
-  --stone-deep: #2a3445;
+  --stone-deep: #2a3444;
+  --fill: rgb(255 255 255 / 0.06);
+  --fill-strong: rgb(255 255 255 / 0.1);
+  --hairline: rgb(255 255 255 / 0.08);
+
   --ochre: #f2b84b;
-  --brick: #e0705a;
+  --brick: #e8705a;
   --plane: #3e5a3c;
   --marmara: #7fb0cf;
   --route: #5aa2ff;
   --route-soft: rgb(90 162 255 / 0.16);
-  --panel: rgb(26 34 48 / 0.9);
-  --primary-foreground: #0b1422;
+  --on-route: #07111f;
 
-  --glass-thick: rgb(22 29 41 / 0.78);
-  --glass-regular: rgb(22 29 41 / 0.55);
-  --glass-tint: rgb(8 12 20 / 0.38);
-  --glass-edge: rgb(255 255 255 / 0.16);
-  --glass-edge-soft: rgb(255 255 255 / 0.08);
-  --hairline: rgb(255 255 255 / 0.08);
-  --elevation-1: 0 1px 1px rgb(0 0 0 / 0.3), 0 4px 14px -2px rgb(0 0 0 / 0.45);
+  --glass-thick: rgb(20 26 36 / 0.84);
+  --glass-regular: rgb(20 26 36 / 0.6);
+  --glass-tint: rgb(6 10 16 / 0.42);
+  --glass-solid: rgb(26 33 45 / 0.95);
+  --glass-highlight: rgb(255 255 255 / 0.12);
+  --glass-rim: rgb(255 255 255 / 0.08);
+  --elevation-1:
+    0 0.5px 1px rgb(0 0 0 / 0.3), 0 2px 6px -1px rgb(0 0 0 / 0.3),
+    0 8px 20px -8px rgb(0 0 0 / 0.5);
   --elevation-2:
-    0 1px 2px rgb(0 0 0 / 0.3), 0 24px 56px -16px rgb(0 0 0 / 0.65);
-  --accent: rgb(255 255 255 / 0.07);
+    0 0.5px 1px rgb(0 0 0 / 0.3), 0 4px 10px -2px rgb(0 0 0 / 0.3),
+    0 18px 44px -14px rgb(0 0 0 / 0.7);
+  --elevation-thumb:
+    0 0.5px 1px rgb(0 0 0 / 0.4), 0 2px 5px -1px rgb(0 0 0 / 0.35);
 }
 
 @theme inline {
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
   --color-stone: var(--stone);
   --color-stone-raised: var(--stone-raised);
   --color-stone-deep: var(--stone-deep);
+  --color-fill: var(--fill);
+  --color-fill-strong: var(--fill-strong);
   --color-ochre: var(--ochre);
+  --color-ochre-ink: var(--ochre-ink);
   --color-brick: var(--brick);
   --color-plane: var(--plane);
   --color-marmara: var(--marmara);
   --color-route: var(--route);
-  --color-panel: var(--panel);
   --color-route-soft: var(--route-soft);
+  --color-on-route: var(--on-route);
   --color-hairline: var(--hairline);
 
   --color-background: var(--background);
@@ -119,30 +149,52 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --font-sans: var(--font-atkinson), system-ui, sans-serif;
-  --font-display: var(--font-barlow), var(--font-atkinson), sans-serif;
-  --font-heading: var(--font-display);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  /* One family: display text is the same grotesk, set tighter and heavier. */
+  --font-display: var(--font-sans);
+  --font-heading: var(--font-sans);
   --ease-out-soft: var(--ease-out);
 
-  --text-xs: 0.8125rem;
-  --text-sm: 1rem;
-  --text-md: 1.25rem;
-  --text-lg: 1.5625rem;
-  --text-xl: 1.9375rem;
-  --text-2xl: 2.4375rem;
-  --text-3xl: 3.0625rem;
+  /* Type scale for a dense, map-side UI (docs/design-system.md#type). */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.125rem;
+  --text-md: 0.875rem;
+  --text-md--line-height: 1.25rem;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.375rem;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.625rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.875rem;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 2.25rem;
 
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --tracking-heading: -0.015em;
+  --tracking-display: -0.03em;
+
+  /* Radius hierarchy: panel > card > control > small; pills are round. */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-xl: 0.75rem;
+  --radius-2xl: 0.875rem;
+  --radius-control: var(--radius);
+  --radius-card: 0.875rem;
+  --radius-panel: 1.375rem;
 
   --shadow-elevation-1: var(--elevation-1);
   --shadow-elevation-2: var(--elevation-2);
+  --shadow-thumb: var(--elevation-thumb);
 
   --animate-fan: fan-sweep 1.4s var(--ease-out) infinite;
   --animate-ping-soft: ping-soft 2.2s var(--ease-out) infinite;
+  --animate-shimmer: shimmer 1.6s var(--ease-out) infinite;
 }
 
 @keyframes fan-sweep {
@@ -167,6 +219,16 @@
   }
 }
 
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -177,9 +239,10 @@
   }
   html {
     @apply font-sans;
+    font-optical-sizing: auto;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-md text-foreground antialiased;
   }
   button:not(:disabled),
   [role='button']:not(:disabled) {
@@ -200,24 +263,58 @@
     position: relative;
     isolation: isolate;
     background: var(--glass-bg, var(--glass-regular));
-    -webkit-backdrop-filter: blur(var(--glass-blur, 22px)) saturate(1.8);
-    backdrop-filter: blur(var(--glass-blur, 22px)) saturate(1.8);
+    -webkit-backdrop-filter: blur(var(--glass-blur, 24px)) saturate(1.7);
+    backdrop-filter: blur(var(--glass-blur, 24px)) saturate(1.7);
     box-shadow:
-      inset 0 1px 0 0 var(--glass-edge),
-      inset 0 0 0 1px var(--glass-edge-soft),
+      inset 0 1px 0 0 var(--glass-highlight),
+      0 0 0 1px var(--glass-rim),
       var(--glass-shadow, var(--elevation-1));
   }
   .glass-thick {
     --glass-bg: var(--glass-thick);
-    --glass-blur: 30px;
+    --glass-blur: 40px;
+    --glass-shadow: var(--elevation-2);
+  }
+  .glass-solid {
+    --glass-bg: var(--glass-solid);
+    --glass-blur: 24px;
     --glass-shadow: var(--elevation-2);
   }
   .glass-tint {
     --glass-bg: var(--glass-tint);
-    --glass-blur: 14px;
-    --glass-edge: rgb(255 255 255 / 0.32);
-    --glass-edge-soft: rgb(255 255 255 / 0.14);
+    --glass-blur: 16px;
+    --glass-highlight: rgb(255 255 255 / 0.22);
+    --glass-rim: rgb(255 255 255 / 0.1);
     color: #fff;
+  }
+
+  /* White map text that stays legible over sunlit paving and night roofs. */
+  .map-halo {
+    text-shadow:
+      0 0 2px rgb(255 255 255 / 0.95),
+      0 0 6px rgb(255 255 255 / 0.85);
+  }
+  :root[data-theme='night'] .map-halo {
+    text-shadow:
+      0 0 2px rgb(8 12 20 / 0.95),
+      0 0 6px rgb(8 12 20 / 0.8);
+  }
+
+  /* Horizontal scrollers fade out at the edge instead of clipping. */
+  .fade-x {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 0.75rem,
+      #000 calc(100% - 1.5rem),
+      transparent
+    );
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 

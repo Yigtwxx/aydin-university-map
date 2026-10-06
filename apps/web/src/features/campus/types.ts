@@ -30,13 +30,64 @@ export interface GraphEdge {
   target: string;
   kind: EdgeKind;
   length_m: number;
+  /** Walking line source -> target [east, north] when it bends round buildings. */
+  path_enu?: [number, number][] | null;
 }
 
 export interface CampusGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
   byId: Map<string, GraphNode>;
+  /** Edges keyed "source|target" (ids sorted, as the pipeline writes them). */
+  edgeById: Map<string, GraphEdge>;
 }
+
+/** What a building is (pipeline: geo/building_style.py). */
+export type BuildingStyle =
+  | 'campus'
+  | 'apartment'
+  | 'house'
+  | 'retail'
+  | 'showroom'
+  | 'office'
+  | 'industrial'
+  | 'hangar'
+  | 'school'
+  | 'dormitory'
+  | 'worship'
+  | 'hospital'
+  | 'hotel'
+  | 'sports'
+  | 'canopy';
+
+type Ring = [number, number][];
+
+export type Roof =
+  | {
+      shape: 'flat';
+      /** Inner ring of a parapet wall around the roof. */
+      parapet?: Ring;
+      /** Set-back top floor (çekme kat) outline and height. */
+      penthouse?: Ring;
+      penthouse_m?: number;
+      units?: number;
+      unit_kind?: 'solar' | 'hvac';
+    }
+  | {
+      shape: 'hipped';
+      /** Minimum rotated rectangle, long side first. */
+      obb: Ring;
+      rise: number;
+      overhang: number;
+    }
+  | { shape: 'barrel'; obb: Ring; rise: number }
+  | {
+      shape: 'dome';
+      centre: [number, number];
+      radius: number;
+      minaret: [number, number];
+      minaret_m: number;
+    };
 
 export interface Building {
   id: string;
@@ -44,7 +95,17 @@ export interface Building {
   campus: boolean;
   height_m: number;
   /** Closed ring in local metres [east, north]. */
-  outline: [number, number][];
+  outline: Ring;
+  /** Missing in assets exported before building styles existed. */
+  style?: BuildingStyle;
+  levels?: number;
+  roof?: Roof;
+  /** Underside of a raised slab (canopies), metres above ground. */
+  base_m?: number;
+  /** Shops or cafés at street level. */
+  shops?: boolean;
+  /** Roof colour sampled from satellite imagery (#rrggbb). */
+  roof_colour?: string;
 }
 
 export interface Greenery {
@@ -83,5 +144,10 @@ export function parseGraph(geojson: { features: GeoFeature[] }): CampusGraph {
       edges.push(feature.properties as unknown as GraphEdge);
     }
   }
-  return { nodes, edges, byId: new Map(nodes.map((n) => [n.id, n])) };
+  return {
+    nodes,
+    edges,
+    byId: new Map(nodes.map((n) => [n.id, n])),
+    edgeById: new Map(edges.map((e) => [e.id, e])),
+  };
 }

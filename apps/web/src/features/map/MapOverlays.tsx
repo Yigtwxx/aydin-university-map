@@ -9,6 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { FanMark } from '@/components/brand/FanMark';
 import { anchors } from '@/features/campus/anchors';
 import { enuToWorld } from '@/features/campus/coords';
 import { openRing } from '@/features/campus/geometry';
@@ -20,10 +21,13 @@ import { useCameraStore, type ZoomTier } from './cameraStore';
 function MapAnchor({
   id,
   position,
+  layer = 0,
   children,
 }: {
   id: string;
   position: [number, number, number];
+  /** Stacking order among anchors: pins over labels over plain spots. */
+  layer?: number;
   children: ReactNode;
 }) {
   const element = useRef<HTMLDivElement>(null);
@@ -41,9 +45,10 @@ function MapAnchor({
   return (
     <div
       ref={element}
-      className="absolute top-0 left-0 will-change-transform"
+      // The projector fades occluded anchors through opacity; ease it.
+      className="absolute top-0 left-0 transition-opacity duration-200 ease-out-soft will-change-transform"
       // Off-screen until the projector places it on the next frame.
-      style={{ transform: 'translate3d(-200px, -200px, 0)' }}
+      style={{ transform: 'translate3d(-200px, -200px, 0)', zIndex: layer }}
     >
       {children}
     </div>
@@ -55,10 +60,10 @@ const atNode = (node: GraphNode, up = 0.6) =>
 
 function StartPin({ node }: { node: GraphNode }) {
   return (
-    <MapAnchor id="pin-start" position={atNode(node)}>
+    <MapAnchor id="pin-start" position={atNode(node)} layer={3}>
       <span
         aria-hidden
-        className="block size-5 -translate-1/2 rounded-full border-[5px] border-route bg-white shadow-[0_2px_8px_rgb(19_26_36/0.35)]"
+        className="block size-4.5 -translate-1/2 rounded-full border-[4.5px] border-route bg-white shadow-[0_0_0_1.5px_#fff,0_2px_8px_rgb(15_23_36/0.35)]"
       />
     </MapAnchor>
   );
@@ -66,23 +71,28 @@ function StartPin({ node }: { node: GraphNode }) {
 
 function DestinationPin({ node, label }: { node: GraphNode; label: string }) {
   return (
-    <MapAnchor id="pin-end" position={atNode(node)}>
+    <MapAnchor id="pin-end" position={atNode(node)} layer={4}>
       {/* The pin's tip sits on the node: shift up by its height, left by half its width. */}
       <div
         aria-hidden
-        className="flex -translate-x-[15px] -translate-y-full items-end gap-1.5"
+        className="flex -translate-x-[13px] -translate-y-full items-end gap-1.5"
       >
         <svg
-          viewBox="0 0 30 40"
-          className="h-10 w-[30px] drop-shadow-[0_4px_6px_rgb(19_26_36/0.35)]"
+          viewBox="0 0 26 34"
+          className="h-[34px] w-[26px] drop-shadow-[0_3px_5px_rgb(15_23_36/0.35)]"
         >
           <path
-            d="M15 0C6.7 0 0 6.6 0 14.8 0 25.7 15 40 15 40s15-14.3 15-25.2C30 6.6 23.3 0 15 0Z"
+            d="M13 .75C6.2.75.75 6.1.75 12.8c0 9.1 12.25 20.45 12.25 20.45S25.25 21.9 25.25 12.8C25.25 6.1 19.8.75 13 .75Z"
             fill="var(--brick)"
+            stroke="#fff"
+            strokeWidth="1.5"
           />
-          <circle cx="15" cy="14.5" r="5.5" fill="#fff" />
+          <circle cx="13" cy="12.6" r="4.4" fill="#fff" />
         </svg>
-        <span className="mb-5 rounded-full bg-stone-raised/92 px-2.5 py-1 font-display text-sm font-semibold whitespace-nowrap text-ink shadow-elevation-1">
+        <span
+          data-label
+          className="mb-[18px] rounded-full bg-stone-raised/92 px-2.5 py-1 text-sm font-semibold tracking-heading whitespace-nowrap text-ink shadow-elevation-1 ring-1 ring-hairline backdrop-blur-md"
+        >
           {label}
         </span>
       </div>
@@ -92,19 +102,24 @@ function DestinationPin({ node, label }: { node: GraphNode; label: string }) {
 
 function FocusPulse({ node }: { node: GraphNode }) {
   return (
-    <MapAnchor id="pin-focus" position={atNode(node)}>
+    <MapAnchor id="pin-focus" position={atNode(node)} layer={4}>
       <span
         aria-hidden
         className="relative flex size-6 -translate-1/2 items-center justify-center"
       >
         <span className="absolute inset-0 animate-ping-soft rounded-full bg-route" />
-        <span className="relative size-4 rounded-full border-[3px] border-white bg-route shadow-[0_2px_6px_rgb(19_26_36/0.4)]" />
+        <span className="relative size-4 rounded-full border-[3px] border-white bg-route shadow-[0_2px_6px_rgb(15_23_36/0.4)]" />
       </span>
     </MapAnchor>
   );
 }
 
-/** Spots with a 360° panorama; clicking one opens it. */
+/**
+ * Spots with a 360° panorama; clicking one opens it. Fewer, more meaningful
+ * markers: entrances (the places people walk to) show at every zoom level,
+ * ochre-rimmed and named; plain path spots only appear up close, small and
+ * quiet.
+ */
 function PanoSpots({
   nodes,
   tier,
@@ -116,25 +131,43 @@ function PanoSpots({
   nodes: GraphNode[];
   tier: ZoomTier;
   hidden: Set<string>;
-  /** While a route is shown, spots only appear up close. */
+  /** While a route is shown, entrance names give way to its pins. */
   quiet: boolean;
   labelOf: (node: GraphNode) => string;
   onOpen: (node: GraphNode) => void;
 }) {
   const t = useTranslations('Map');
+  const near = tier === 'near';
+  // A place can have several entrance spots under one name; label only the
+  // first, so names never stack up on each other.
+  const namedIds = useMemo(() => {
+    const seen = new Set<string>();
+    const ids = new Set<string>();
+    for (const node of nodes) {
+      if (node.kind !== 'entrance') continue;
+      const label = labelOf(node);
+      if (seen.has(label)) continue;
+      seen.add(label);
+      ids.add(node.id);
+    }
+    return ids;
+  }, [nodes, labelOf]);
   return (
     <>
       {nodes.map((node) => {
-        const visible =
-          !hidden.has(node.id) &&
-          (tier === 'near' || (tier === 'mid' && !quiet));
-        if (!visible) return null;
+        const entrance = node.kind === 'entrance';
+        if (hidden.has(node.id) || (!entrance && !near)) return null;
         const label = labelOf(node);
+        // Names only up close: on the overview they would collide.
+        // Overlapping names are hidden by the projector (declutter).
+        const named =
+          (near || tier === 'mid') && !quiet && namedIds.has(node.id);
         return (
           <MapAnchor
             key={node.id}
             id={`spot-${node.id}`}
             position={atNode(node, 0.4)}
+            layer={entrance ? 2 : 1}
           >
             <Tooltip>
               <TooltipTrigger
@@ -143,17 +176,35 @@ function PanoSpots({
                     type="button"
                     onClick={() => onOpen(node)}
                     aria-label={t('panoSpot', { label })}
-                    className={[
-                      'pointer-events-auto block -translate-1/2 rounded-full border-route bg-white shadow-[0_1px_3px_rgb(19_26_36/0.35)]',
-                      'transition-transform duration-150 ease-out-soft hover:scale-150 focus-visible:scale-150',
-                      tier === 'near'
-                        ? 'size-3.5 border-[3px]'
-                        : 'size-2 border-[1.5px] opacity-80',
-                    ].join(' ')}
+                    // A 24 px hit target around a small dot.
+                    className="group pointer-events-auto flex size-6 -translate-1/2 items-center justify-center rounded-full"
                   />
                 }
-              />
-              <TooltipContent side="top" sideOffset={8}>
+              >
+                <span
+                  aria-hidden
+                  className={[
+                    'block rounded-full bg-white transition-transform duration-150 ease-out-soft group-hover:scale-140 group-focus-visible:scale-140',
+                    !entrance
+                      ? 'size-2 shadow-[0_0_0_1px_rgb(15_23_36/0.22),0_1px_3px_rgb(15_23_36/0.3)]'
+                      : near
+                        ? 'size-3 shadow-[0_0_0_2.5px_var(--ochre),0_1px_4px_rgb(15_23_36/0.45)]'
+                        : tier === 'mid'
+                          ? 'size-2.5 shadow-[0_0_0_2px_var(--ochre),0_1px_3px_rgb(15_23_36/0.4)]'
+                          : 'size-2 shadow-[0_0_0_1.5px_var(--ochre),0_1px_2px_rgb(15_23_36/0.4)]',
+                  ].join(' ')}
+                />
+                {named && (
+                  <span
+                    aria-hidden
+                    data-label
+                    className="map-halo pointer-events-none absolute top-1/2 left-full ml-0.5 -translate-y-1/2 text-xs font-semibold tracking-heading whitespace-nowrap text-ink transition-opacity duration-150"
+                  >
+                    {label}
+                  </span>
+                )}
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={6}>
                 {t('panoSpot', { label })}
               </TooltipContent>
             </Tooltip>
@@ -203,6 +254,7 @@ function BuildingLabels({
     return out;
   }, [buildings]);
 
+  const near = tier === 'near';
   return (
     <>
       {labels.map((label) => (
@@ -210,24 +262,69 @@ function BuildingLabels({
           key={label.id}
           id={`label-${label.id}`}
           position={label.position}
+          layer={2}
         >
           <span
             aria-hidden
             className={[
-              'flex -translate-1/2 items-center gap-1.5 rounded-full bg-stone-raised/92 py-0.5 pr-2.5 pl-0.5 whitespace-nowrap shadow-elevation-1 transition-opacity duration-250',
+              'flex -translate-1/2 items-center gap-1.5 whitespace-nowrap transition-opacity duration-250 ease-out-soft',
               tier === 'far' ? 'opacity-0' : 'opacity-100',
             ].join(' ')}
           >
-            <span className="flex size-6 items-center justify-center rounded-full bg-ochre font-display text-sm font-bold text-[#131a24]">
+            <span className="flex h-5.5 min-w-5.5 items-center justify-center rounded-[7px] bg-ochre px-1 text-xs font-semibold text-ochre-ink shadow-[0_0_0_1.5px_#fff,0_2px_6px_rgb(15_23_36/0.3)]">
               {label.code}
             </span>
-            <span className="font-display text-sm font-semibold text-ink">
-              {t('block', { code: label.code })}
-            </span>
+            {near && (
+              <span
+                data-label
+                className="map-halo text-sm font-semibold tracking-heading text-ink transition-opacity duration-150"
+              >
+                {t('block', { code: label.code })}
+              </span>
+            )}
           </span>
         </MapAnchor>
       ))}
     </>
+  );
+}
+
+/** One name for the whole campus when zoomed out, where block labels hide. */
+function CampusLabel({
+  buildings,
+  tier,
+}: {
+  buildings: Building[];
+  tier: ZoomTier;
+}) {
+  const t = useTranslations('Map');
+  const centre = useMemo(() => {
+    const campus = buildings.filter((b) => b.campus);
+    if (campus.length === 0) return undefined;
+    let e = 0;
+    let n = 0;
+    let count = 0;
+    for (const b of campus)
+      for (const [pe, pn] of openRing(b.outline)) {
+        e += pe;
+        n += pn;
+        count++;
+      }
+    return enuToWorld(e / count, n / count, 40);
+  }, [buildings]);
+  if (!centre || tier !== 'far') return null;
+  return (
+    <MapAnchor id="label-campus" position={centre} layer={3}>
+      <span
+        data-label
+        className="flex -translate-1/2 items-center gap-1.5 rounded-full bg-stone-raised/90 py-1 pr-3 pl-1 text-sm font-semibold tracking-heading whitespace-nowrap text-ink shadow-elevation-1 ring-1 ring-hairline backdrop-blur-md"
+      >
+        <span className="flex size-6 items-center justify-center rounded-full bg-ochre text-ochre-ink">
+          <FanMark className="size-3.5" />
+        </span>
+        {t('campus')}
+      </span>
+    </MapAnchor>
   );
 }
 
@@ -237,6 +334,8 @@ interface OverlayProps {
   route: GraphNode[];
   /** Node shown in 360° (a route step or an explored spot). */
   focusNodeId?: string;
+  /** The chosen destination; pinned even before a route exists. */
+  destinationNodeId?: string;
   destinationLabel?: string;
   labelOf: (node: GraphNode) => string;
   onOpenPano: (node: GraphNode) => void;
@@ -248,6 +347,7 @@ export function MapOverlays({
   buildings,
   route,
   focusNodeId,
+  destinationNodeId,
   destinationLabel,
   labelOf,
   onOpenPano,
@@ -255,7 +355,11 @@ export function MapOverlays({
   const tier = useCameraStore((s) => s.tier);
   const hasRoute = route.length > 1;
   const start = hasRoute ? route[0] : undefined;
-  const end = hasRoute ? route[route.length - 1] : undefined;
+  const end = hasRoute
+    ? route[route.length - 1]
+    : destinationNodeId
+      ? nodes.find((n) => n.id === destinationNodeId)
+      : undefined;
   const focus = focusNodeId
     ? nodes.find((n) => n.id === focusNodeId)
     : undefined;
@@ -264,18 +368,20 @@ export function MapOverlays({
       new Set([
         ...(hasRoute ? route.map((n) => n.id) : []),
         ...(focusNodeId ? [focusNodeId] : []),
+        ...(destinationNodeId ? [destinationNodeId] : []),
       ]),
-    [hasRoute, route, focusNodeId],
+    [hasRoute, route, focusNodeId, destinationNodeId],
   );
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <CampusLabel buildings={buildings} tier={tier} />
       <BuildingLabels buildings={buildings} tier={tier} />
       <PanoSpots
         nodes={nodes}
         tier={tier}
         hidden={hidden}
-        quiet={hasRoute}
+        quiet={hasRoute || Boolean(destinationNodeId)}
         labelOf={labelOf}
         onOpen={onOpenPano}
       />

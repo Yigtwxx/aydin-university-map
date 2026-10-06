@@ -7,7 +7,7 @@ import {
   isToolUIPart,
   type UIMessage,
 } from 'ai';
-import { ArrowUp, Footprints, Square } from 'lucide-react';
+import { ArrowUp, Footprints, MessageCircle, Square } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
@@ -117,20 +117,27 @@ export function AssistantPanel({
         className="flex min-h-0 flex-1 [scrollbar-width:thin] flex-col gap-3 overflow-y-auto overscroll-contain pr-1"
       >
         {messages.length === 0 && (
-          <div className="flex flex-col gap-3 px-1 pt-1">
-            <p className="text-sm text-ink-muted">{t('intro')}</p>
-            <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-3 pt-0.5">
+            <p className="px-0.5 text-sm leading-relaxed text-ink-muted">
+              {t('intro')}
+            </p>
+            <ul className="flex flex-col divide-y divide-hairline overflow-hidden rounded-card bg-fill">
               {suggestions.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => ask(s)}
-                  className="rounded-xl bg-stone-raised/75 px-3 py-2 text-left text-sm shadow-[inset_0_0_0_1px_var(--hairline)] transition-colors duration-150 ease-out-soft hover:bg-stone-raised"
-                >
-                  {s}
-                </button>
+                <li key={s}>
+                  <button
+                    type="button"
+                    onClick={() => ask(s)}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors duration-150 ease-out-soft hover:bg-fill-strong focus-visible:-outline-offset-2"
+                  >
+                    <MessageCircle
+                      className="size-3.5 shrink-0 text-ink-muted"
+                      aria-hidden
+                    />
+                    {s}
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
         <AnimatePresence initial={false}>
@@ -146,20 +153,20 @@ export function AssistantPanel({
           ))}
         </AnimatePresence>
         {status === 'submitted' && (
-          <div className="flex items-center gap-2 px-1 text-xs text-ink-muted">
+          <div className="flex items-center gap-2 px-0.5 text-xs text-ink-muted">
             <FanMark className="size-4 animate-fan" />
             {t('thinking')}
           </div>
         )}
         {error && (
-          <p className="rounded-xl bg-brick/10 px-3 py-2 text-sm">
+          <p className="rounded-control bg-brick/10 px-3 py-2 text-sm">
             {error.message.includes('429') ? t('rateLimited') : t('error')}
           </p>
         )}
       </div>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-1.5">
-        <div className="flex items-end gap-2 rounded-2xl bg-stone-raised/80 p-1.5 shadow-[inset_0_0_0_1px_var(--hairline)] focus-within:ring-2 focus-within:ring-route/40">
+        <div className="flex items-end gap-1.5 rounded-card bg-fill p-1 transition-[background-color,box-shadow] duration-150 ease-out-soft focus-within:bg-stone-raised focus-within:shadow-thumb focus-within:ring-2 focus-within:ring-route/40">
           <label htmlFor="assistant-input" className="sr-only">
             {t('placeholder')}
           </label>
@@ -175,14 +182,15 @@ export function AssistantPanel({
             }}
             rows={1}
             placeholder={t('placeholder')}
-            className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-ink-muted"
+            // 16 px on touch screens stops iOS zooming into the field on focus.
+            className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-2.5 py-2 text-[16px] leading-5 outline-none placeholder:text-ink-muted md:text-md"
           />
           {busy ? (
             <button
               type="button"
               onClick={() => void stop()}
               aria-label={t('stop')}
-              className="flex size-9 items-center justify-center rounded-xl bg-ink text-stone-raised"
+              className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-ink text-stone-raised"
             >
               <Square className="size-3.5 fill-current" />
             </button>
@@ -191,13 +199,13 @@ export function AssistantPanel({
               type="submit"
               disabled={!input.trim()}
               aria-label={t('send')}
-              className="flex size-9 items-center justify-center rounded-xl bg-route text-white transition-opacity disabled:opacity-40"
+              className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-route text-on-route transition-colors duration-150 ease-out-soft disabled:bg-fill-strong disabled:text-ink-faint"
             >
-              <ArrowUp className="size-4.5" />
+              <ArrowUp className="size-4" strokeWidth={2.25} />
             </button>
           )}
         </div>
-        <p className="px-1 text-[11px] leading-snug text-ink-muted">
+        <p className="px-0.5 text-2xs leading-snug text-ink-muted">
           {t('notice')}
         </p>
       </form>
@@ -222,14 +230,14 @@ function Message({
           return user ? (
             <p
               key={i}
-              className="max-w-[85%] rounded-2xl rounded-br-md bg-ink px-3 py-2 text-sm whitespace-pre-wrap text-stone-raised"
+              className="max-w-[85%] rounded-[16px] rounded-br-[6px] bg-ink px-3 py-2 text-sm whitespace-pre-wrap text-stone-raised"
             >
               {part.text}
             </p>
           ) : (
             <div
               key={i}
-              className="flex flex-col gap-1.5 px-1 text-sm leading-relaxed"
+              className="flex flex-col gap-2 px-0.5 text-sm leading-relaxed [&_strong]:font-semibold"
             >
               <RichText text={part.text} />
             </div>
@@ -238,7 +246,7 @@ function Message({
         if (isToolUIPart(part) && getToolName(part) === 'get_route') {
           if (part.state !== 'output-available' || !isRouteOutput(part.output))
             return (
-              <p key={i} className="px-1 text-xs text-ink-muted">
+              <p key={i} className="px-0.5 text-xs text-ink-muted">
                 {t('routing')}
               </p>
             );
@@ -248,27 +256,31 @@ function Message({
               key={i}
               type="button"
               onClick={onShowDirections}
-              className="flex items-center gap-3 rounded-2xl bg-route px-3 py-2.5 text-left text-white shadow-[0_8px_20px_-10px_var(--route)]"
+              className="flex items-center gap-3 rounded-card bg-stone-raised/80 p-2 pr-3 text-left shadow-[inset_0_0_0_1px_var(--hairline)] transition-colors duration-150 ease-out-soft hover:bg-stone-raised"
             >
-              <Footprints className="size-5 shrink-0" aria-hidden />
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-route text-on-route">
+                <Footprints className="size-4.5" aria-hidden />
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-display text-md leading-tight font-semibold">
+                <span className="block truncate text-md leading-tight font-medium tracking-heading">
                   {locale === 'en' ? to.name_en : to.name_tr}
                 </span>
-                <span className="text-xs text-white/80">
+                <span className="tabular text-xs text-ink-muted">
                   {t('routeSummary', {
                     minutes: duration_min,
                     metres: length_m,
                   })}
                 </span>
               </span>
-              <span className="text-xs font-semibold">{t('showSteps')}</span>
+              <span className="text-xs font-medium text-route">
+                {t('showSteps')}
+              </span>
             </button>
           );
         }
         if (isToolUIPart(part) && part.state !== 'output-available') {
           return (
-            <p key={i} className="px-1 text-xs text-ink-muted">
+            <p key={i} className="px-0.5 text-xs text-ink-muted">
               {getToolName(part) === 'search_knowledge'
                 ? t('searching')
                 : t('looking')}

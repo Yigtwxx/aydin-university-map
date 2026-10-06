@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Atkinson_Hyperlegible_Next, Barlow_Condensed } from 'next/font/google';
+import { Geist } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -8,16 +8,11 @@ import { routing } from '@/i18n/routing';
 
 import '../globals.css';
 
-const atkinson = Atkinson_Hyperlegible_Next({
+// One grotesk for everything (docs/design-system.md#type); latin-ext carries
+// ı, ğ, ş and İ. Variable weight, so 400/500/600 cost a single file.
+const geist = Geist({
   subsets: ['latin', 'latin-ext'],
-  variable: '--font-atkinson',
-  display: 'swap',
-});
-
-const barlow = Barlow_Condensed({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['500', '600', '700'],
-  variable: '--font-barlow',
+  variable: '--font-geist',
   display: 'swap',
 });
 
@@ -46,7 +41,7 @@ export default async function LocaleLayout({
   }
   setRequestLocale(locale);
   return (
-    <html lang={locale} className={`${atkinson.variable} ${barlow.variable}`}>
+    <html lang={locale} className={geist.variable}>
       <body>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>

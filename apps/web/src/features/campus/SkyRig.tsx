@@ -10,6 +10,8 @@ import type { Condition } from '@/features/environment/weather';
 import { enuToWorld } from './coords';
 
 const SUN_DISTANCE = 700;
+/** Share of the hemisphere fill kept next to the image-based sky light. */
+const HEMI_SHARE = 0.5;
 
 interface Lighting {
   sunColor: string;
@@ -65,7 +67,7 @@ function weatherDim(condition?: Condition): {
 } {
   switch (condition) {
     case 'overcast':
-      return { light: 0.6, fogScale: 0.85 };
+      return { light: 0.72, fogScale: 0.85 };
     case 'fog':
       return { light: 0.5, fogScale: 0.3 };
     case 'drizzle':
@@ -108,8 +110,9 @@ export function SkyRig({
     );
   }, [sun, night]);
 
-  const fogNear = 900 * dim.fogScale;
-  const fogFar = 3400 * dim.fogScale;
+  // Haze starts past the neighbourhood so the campus stays crisp.
+  const fogNear = 1300 * dim.fogScale;
+  const fogFar = 4800 * dim.fogScale;
 
   return (
     <>
@@ -137,12 +140,14 @@ export function SkyRig({
           speed={0}
         />
       )}
-      {/* Clouds trade direct sun for diffuse skylight, so the map stays bright. */}
+      {/* Clouds trade direct sun for diffuse skylight, so the map stays
+          bright. The sky environment (CampusScene) already adds ambient light,
+          so the hemisphere only fills, keeping contrast in the shading. */}
       <hemisphereLight
         args={[
           look.hemiSky,
           look.hemiGround,
-          look.hemiIntensity * (1 + (1 - dim.light) * 0.9),
+          look.hemiIntensity * HEMI_SHARE * (1 + (1 - dim.light) * 0.9),
         ]}
       />
       <directionalLight

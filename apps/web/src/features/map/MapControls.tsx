@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from 'cn';
 import { Minus, Plus, ScanSearch } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
@@ -16,6 +17,7 @@ import { POLAR_3D, POLAR_TOP_DOWN, useCameraStore } from './cameraStore';
 const ZOOM_IN = 0.38;
 const ZOOM_OUT = -0.6;
 
+/** Compass, zoom, 2D/3D and fit as one slim glass column. */
 export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {
   const t = useTranslations('Map');
   const { controls, headingDeg, topDown, setTopDown, requestFit } =
@@ -23,84 +25,69 @@ export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {
   const animate = !reducedMotion;
 
   return (
-    <div className="pointer-events-auto flex flex-col items-center gap-2.5">
-      <Glass radius={999} className="size-12">
-        <ControlButton
-          label={t('north')}
-          onClick={() => void controls?.rotateAzimuthTo(0, animate)}
-          className="size-12 rounded-full"
+    <Glass
+      radius={14}
+      className="pointer-events-auto flex w-10 flex-col items-stretch py-0.5"
+    >
+      <ControlButton
+        label={t('north')}
+        onClick={() => void controls?.rotateAzimuthTo(0, animate)}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          className="size-6"
+          style={{ transform: `rotate(${-headingDeg}deg)` }}
+          aria-hidden
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="size-7 transition-transform duration-75"
-            style={{ transform: `rotate(${-headingDeg}deg)` }}
-            aria-hidden
-          >
-            <path d="M12 2.5 15.2 12H8.8Z" fill="var(--brick)" />
-            <path d="M12 21.5 8.8 12h6.4Z" fill="currentColor" opacity=".35" />
-            <text
-              x="12"
-              y="13.6"
-              textAnchor="middle"
-              fontSize="4.6"
-              fontWeight="700"
-              fill="var(--stone-raised)"
-              className="font-display"
-            >
-              {t('northLetter')}
-            </text>
-          </svg>
-        </ControlButton>
-      </Glass>
-
-      <Glass radius={16} className="flex w-12 flex-col">
+          <path d="M12 3.2 14.9 12H9.1Z" fill="var(--brick)" />
+          <path d="M12 20.8 9.1 12h5.8Z" fill="currentColor" opacity=".28" />
+          <circle cx="12" cy="12" r="1.3" fill="var(--stone-raised)" />
+        </svg>
+      </ControlButton>
+      <Divider />
+      {/* Touch screens pinch to zoom; the buttons are for mouse and keyboard. */}
+      <div className="hidden flex-col md:flex">
         <ControlButton
           label={t('zoomIn')}
           onClick={() =>
             void controls?.dolly(controls.distance * ZOOM_IN, animate)
           }
-          className="h-11 w-12 rounded-t-2xl"
         >
-          <Plus className="size-5" />
+          <Plus className="size-4.5" strokeWidth={2} />
         </ControlButton>
-        <span aria-hidden className="mx-3 h-px bg-hairline" />
         <ControlButton
           label={t('zoomOut')}
           onClick={() =>
             void controls?.dolly(controls.distance * ZOOM_OUT, animate)
           }
-          className="h-11 w-12 rounded-b-2xl"
         >
-          <Minus className="size-5" />
+          <Minus className="size-4.5" strokeWidth={2} />
         </ControlButton>
-      </Glass>
-
-      <Glass radius={16} className="flex w-12 flex-col">
-        <ControlButton
-          label={topDown ? t('view3d') : t('view2d')}
-          pressed={topDown}
-          onClick={() => {
-            void controls?.rotatePolarTo(
-              topDown ? POLAR_3D : POLAR_TOP_DOWN,
-              animate,
-            );
-            setTopDown(!topDown);
-          }}
-          className="h-11 w-12 rounded-t-2xl font-display text-md font-bold"
-        >
-          {topDown ? '3D' : '2D'}
-        </ControlButton>
-        <span aria-hidden className="mx-3 h-px bg-hairline" />
-        <ControlButton
-          label={t('fit')}
-          onClick={requestFit}
-          className="h-11 w-12 rounded-b-2xl"
-        >
-          <ScanSearch className="size-5" />
-        </ControlButton>
-      </Glass>
-    </div>
+        <Divider />
+      </div>
+      <ControlButton
+        label={topDown ? t('view3d') : t('view2d')}
+        pressed={topDown}
+        onClick={() => {
+          void controls?.rotatePolarTo(
+            topDown ? POLAR_3D : POLAR_TOP_DOWN,
+            animate,
+          );
+          setTopDown(!topDown);
+        }}
+        className="text-xs font-semibold tracking-heading"
+      >
+        {topDown ? '3D' : '2D'}
+      </ControlButton>
+      <ControlButton label={t('fit')} onClick={requestFit}>
+        <ScanSearch className="size-4.5" strokeWidth={1.75} />
+      </ControlButton>
+    </Glass>
   );
+}
+
+function Divider() {
+  return <span aria-hidden className="mx-2.5 my-0.5 h-px bg-hairline" />;
 }
 
 function ControlButton({
@@ -125,10 +112,10 @@ function ControlButton({
             onClick={onClick}
             aria-label={label}
             aria-pressed={pressed}
-            className={[
-              'flex items-center justify-center text-ink transition-colors duration-150 ease-out-soft hover:bg-accent active:bg-accent',
-              className ?? '',
-            ].join(' ')}
+            className={cn(
+              'mx-0.5 flex h-9 items-center justify-center rounded-[10px] text-ink transition-colors duration-150 ease-out-soft hover:bg-fill-strong active:bg-fill-strong',
+              className,
+            )}
           />
         }
       >

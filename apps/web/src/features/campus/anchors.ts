@@ -1,4 +1,5 @@
-import { type Camera, Vector3 } from 'three';
+import { type Camera, DoubleSide, Ray, Vector3 } from 'three';
+import type { MeshBVH } from 'three-mesh-bvh';
 
 /**
  * DOM elements pinned to points in the 3D scene. Markers and labels render
@@ -12,6 +13,13 @@ export interface Anchor {
 }
 
 export const anchors = new Map<string, Anchor>();
+
+/**
+ * Geometry that hides anchors behind it (the building massing, in world
+ * coordinates). DOM overlays have no depth test of their own: without this a
+ * spot behind a block would float on its roof.
+ */
+export const occluders = new Set<MeshBVH>();
 
 const projected = new Vector3();
 
@@ -28,4 +36,21 @@ export function projectToScreen(
     (projected.x * 0.5 + 0.5) * width,
     (-projected.y * 0.5 + 0.5) * height,
   ];
+}
+
+const ray = new Ray();
+const toPoint = new Vector3();
+
+/** Whether a building stands between the camera and ``position``. */
+export function isOccluded(position: Vector3, eye: Vector3): boolean {
+  toPoint.subVectors(position, eye);
+  // Ignore hits within a metre of the point: a spot at a facade still shows.
+  const distance = toPoint.length() - 1;
+  if (distance <= 0) return false;
+  ray.set(eye, toPoint.normalize());
+  for (const bvh of occluders) {
+    const hit = bvh.raycastFirst(ray, DoubleSide, 0, distance);
+    if (hit) return true;
+  }
+  return false;
 }

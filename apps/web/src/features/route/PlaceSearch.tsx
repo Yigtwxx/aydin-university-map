@@ -1,9 +1,18 @@
 'use client';
 
+import { cn } from 'cn';
+import {
+  BookOpen,
+  Coffee,
+  Cross,
+  DoorOpen,
+  type LucideIcon,
+  Search,
+  Trees,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { type Ref, useId, useMemo, useRef, useState } from 'react';
 
-import { FanMark } from '@/components/brand/FanMark';
 import {
   Combobox,
   ComboboxContent,
@@ -12,9 +21,12 @@ import {
   ComboboxItem,
   ComboboxList,
 } from '@/components/ui/combobox';
+import { InputGroupAddon } from '@/components/ui/input-group';
 import { type Place, usePlaces } from '@/features/campus/queries';
 import { useDebounced } from '@/hooks/useDebounced';
 
+import { PanoThumb } from './PanoThumb';
+import { categoryOf, type PlaceCategory, sceneOf } from './places';
 import type { PlaceRef } from './store';
 
 interface Props {
@@ -22,7 +34,12 @@ interface Props {
   placeholder: string;
   value?: PlaceRef;
   onChange: (place?: PlaceRef) => void;
-  marker: 'start' | 'end';
+  /**
+   * `hero`: the panel's main "Where to?" field. `row`: one line of the
+   * from/to card, where the card itself draws the field.
+   */
+  variant: 'hero' | 'row';
+  inputRef?: Ref<HTMLInputElement>;
 }
 
 /** Server-side, Turkish-aware place search (the API folds ı/İ/ş/ğ…). */
@@ -31,7 +48,8 @@ export function PlaceSearch({
   placeholder,
   value,
   onChange,
-  marker,
+  variant,
+  inputRef,
 }: Props) {
   const id = useId();
   const locale = useLocale();
@@ -62,6 +80,10 @@ export function PlaceSearch({
   else if (isFetching) emptyText = t('searching');
   else if (query.trim()) emptyText = t('noResults');
 
+  const hero = variant === 'hero';
+  // The list lines up with the whole field (icon included), not the bare input.
+  const field = useRef<HTMLDivElement>(null);
+
   return (
     <Combobox
       items={items}
@@ -77,33 +99,63 @@ export function PlaceSearch({
       <label htmlFor={id} className="sr-only">
         {label}
       </label>
-      <ComboboxInput
-        id={id}
-        placeholder={placeholder}
-        showClear={Boolean(value)}
-        clearLabel={t('clear', { field: label })}
-        showTrigger={false}
-        className={[
-          'h-11 w-full rounded-xl border-0 bg-transparent pl-1 text-sm',
-          'transition-colors duration-150 ease-out-soft hover:bg-accent',
-          'has-[[data-slot=input-group-control]:focus-visible]:bg-stone-raised has-[[data-slot=input-group-control]:focus-visible]:ring-2 has-[[data-slot=input-group-control]:focus-visible]:ring-route/40',
-          marker === 'end' ? 'font-semibold' : '',
-        ].join(' ')}
-      />
-      <ComboboxContent className="glass glass-thick rounded-2xl bg-transparent p-1 ring-0">
-        <ComboboxEmpty>{emptyText}</ComboboxEmpty>
-        <ComboboxList>
+      <div ref={field} className="w-full min-w-0">
+        <ComboboxInput
+          id={id}
+          ref={inputRef}
+          placeholder={placeholder}
+          showClear={Boolean(value)}
+          clearLabel={t('clear', { field: label })}
+          showTrigger={false}
+          className={cn(
+            'w-full border-0 bg-transparent transition-[background-color,box-shadow] duration-150 ease-out-soft',
+            // 16 px on touch screens stops iOS zooming into the field on focus.
+            '[&_input]:text-[16px] [&_input]:placeholder:text-ink-muted md:[&_input]:text-base',
+            hero
+              ? [
+                  'h-11 rounded-control bg-fill pl-1 hover:bg-fill-strong',
+                  'has-[[data-slot=input-group-control]:focus-visible]:bg-stone-raised has-[[data-slot=input-group-control]:focus-visible]:shadow-thumb has-[[data-slot=input-group-control]:focus-visible]:ring-2 has-[[data-slot=input-group-control]:focus-visible]:ring-route/45',
+                ]
+              : [
+                  'h-10 rounded-[8px] pl-0 [&_input]:px-1',
+                  'has-[[data-slot=input-group-control]:focus-visible]:ring-0',
+                ],
+            value ? '[&_input]:font-medium' : '',
+          )}
+        >
+          {hero && (
+            <InputGroupAddon align="inline-start" className="pr-0 pl-2.5">
+              <Search className="size-4.5 text-ink-muted" aria-hidden />
+            </InputGroupAddon>
+          )}
+        </ComboboxInput>
+      </div>
+      <ComboboxContent
+        anchor={field}
+        sideOffset={hero ? 8 : 6}
+        className="glass glass-solid min-w-72 rounded-card bg-(--glass-bg) p-1 ring-0"
+      >
+        <ComboboxEmpty className="py-3 text-sm text-ink-muted">
+          {emptyText}
+        </ComboboxEmpty>
+        <ComboboxList className="p-0">
           {(place: Place) => (
             <ComboboxItem
               key={place.id}
               value={place}
-              className="gap-3 rounded-xl py-2 pl-2"
+              className="gap-3 rounded-[10px] py-1.5 pr-8 pl-1.5 data-highlighted:bg-fill-strong"
             >
-              <PlaceGlyph place={place} />
+              <PanoThumb
+                scene={sceneOf(place)}
+                fallback={<PlaceGlyph place={place} />}
+                className="size-10 shrink-0 rounded-[8px]"
+              />
               <span className="flex min-w-0 flex-col">
-                <span className="truncate font-semibold">{nameOf(place)}</span>
-                <span className="text-xs text-ink-muted">
-                  {describePlace(place, locale)}
+                <span className="truncate text-md font-medium">
+                  {nameOf(place)}
+                </span>
+                <span className="truncate text-xs text-ink-muted">
+                  {t(`type.${categoryOf(place)}`)}
                 </span>
               </span>
             </ComboboxItem>
@@ -114,36 +166,50 @@ export function PlaceSearch({
   );
 }
 
-/** Building letter for entrances, a fan for open campus areas. */
-export function PlaceGlyph({ place }: { place: Place }) {
+export const CATEGORY_ICONS: Record<
+  Exclude<PlaceCategory, 'blocks'>,
+  LucideIcon
+> = {
+  gates: DoorOpen,
+  health: Cross,
+  library: BookOpen,
+  cafe: Coffee,
+  outdoor: Trees,
+};
+
+/** Block letter on ochre (like the map labels), or the category's icon. */
+export function PlaceGlyph({
+  place,
+  className,
+}: {
+  place: Place;
+  className?: string;
+}) {
   if (place.building)
     return (
       <span
         aria-hidden
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-ochre/20 font-display text-md font-bold text-ink"
+        className={cn(
+          'flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-ochre text-sm font-semibold tracking-heading text-ochre-ink',
+          className,
+        )}
       >
         {place.building}
       </span>
     );
+  const category = categoryOf(place);
+  const Icon = CATEGORY_ICONS[category === 'blocks' ? 'gates' : category];
   return (
     <span
       aria-hidden
-      className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-plane/15 text-plane"
+      className={cn(
+        'flex size-8 shrink-0 items-center justify-center rounded-[8px] text-ink-muted',
+        className,
+      )}
     >
-      <FanMark className="size-5" />
+      <Icon className="size-4.5" strokeWidth={1.75} />
     </span>
   );
-}
-
-export function describePlace(place: Place, locale: string): string {
-  const en = locale === 'en';
-  if (place.kind === 'entrance' && place.building)
-    return en
-      ? `Block ${place.building} entrance`
-      : `${place.building} Blok girişi`;
-  if (place.kind === 'entrance') return en ? 'Entrance' : 'Giriş';
-  if (place.kind === 'indoor') return en ? 'Indoors' : 'Bina içi';
-  return en ? 'Open campus' : 'Açık alan';
 }
 
 /** Keeps a chosen place selectable while its search results are not loaded. */

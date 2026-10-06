@@ -6,7 +6,9 @@
   "Brand": {
     "name": "Aydın Campus Map",
     "independent": "Bağımsız bir proje; resmi üniversite uygulaması değildir.",
-    "campus": "Florya Yerleşkesi"
+    "campus": "Florya Yerleşkesi",
+    "short": "Aydın Kampüs",
+    "place": "Florya"
   },
   "Route": {
     "title": "Rota",
@@ -28,8 +30,43 @@
     "walkDistance": "{distance} yürüyüş",
     "startWalk": "360° yürüyüşü başlat",
     "suggested": "Önerilen yerler",
-    "coverage": "Şimdilik kampüs girişi ile A ve E blokları rota ağında. Diğer binalar sanal turdan işlendikçe eklenecek.",
-    "clear": "{field} alanını temizle"
+    "coverage": "Rotalar kampüsün açık alanlarını ve bina girişlerini kapsar. Bina içleri sanal turdan işlendikçe eklenecek.",
+    "clear": "{field} alanını temizle",
+    "search": "Nereye gitmek istiyorsunuz?",
+    "searchLabel": "Varış yeri ara",
+    "pickStart": "Nereden başlıyorsunuz?",
+    "pickStartHint": "Bir yer seçin ya da yukarıya yazın.",
+    "highlights": "Önemli noktalar",
+    "blocks": "Bloklar",
+    "categories": "Yer türleri",
+    "arrivalAt": "Varış {time}",
+    "stepFree": "Merdivensiz",
+    "previewStep": "360°’de önizle",
+    "stepCount": "{count} adım",
+    "avoidStairsHint": "Basamakları atlayan yolları kullanır",
+    "category": {
+      "blocks": "Bloklar",
+      "gates": "Girişler",
+      "health": "Sağlık",
+      "library": "Kütüphane",
+      "cafe": "Kafe",
+      "outdoor": "Açık alan"
+    },
+    "type": {
+      "blocks": "Bina girişi",
+      "gates": "Giriş",
+      "health": "Sağlık",
+      "library": "Kütüphane",
+      "cafe": "Kafe",
+      "outdoor": "Açık alan"
+    },
+    "startShort": "Başlat",
+    "copyLink": "Bağlantıyı kopyala",
+    "copied": "Kopyalandı",
+    "linkCopiedShort": "Bağlantı kopyalandı",
+    "copyFailed": "Kopyalanamadı",
+    "linkCopied": "Rota bağlantısı panoya kopyalandı.",
+    "linkCopyFailed": "Bağlantı kopyalanamadı. Adres çubuğundaki bağlantıyı paylaşabilirsiniz."
   },
   "Pano": {
     "title": "360° görünüm",
@@ -76,7 +113,8 @@
   "Attribution": {
     "imagery": "360° görüntüler: İstanbul Aydın Üniversitesi sanal turu",
     "map": "© OpenStreetMap katkıcıları",
-    "weather": "Hava durumu: Open-Meteo"
+    "weather": "Hava durumu: Open-Meteo",
+    "short": "Kaynaklar"
   },
   "Language": {
     "label": "Dil",
@@ -115,12 +153,18 @@
     "fit": "Görünüme sığdır",
     "panoSpot": "360° görünüm: {label}",
     "block": "{code} Blok",
-    "loading": "Kampüs hazırlanıyor"
+    "loading": "Kampüs hazırlanıyor",
+    "campus": "Florya Kampüsü"
   },
   "Panel": {
     "label": "Panel",
     "directions": "Yol tarifi",
     "assistant": "Asistan"
+  },
+  "Sheet": {
+    "expand": "Paneli büyüt",
+    "expandFull": "Paneli tam boy aç",
+    "collapse": "Paneli küçült"
   },
   "Chat": {
     "title": "Kampüs asistanı",
@@ -140,5 +184,21 @@
     "error": "Asistana şu an ulaşılamıyor. Biraz sonra tekrar deneyin.",
     "rateLimited": "Çok hızlı soruldu; birkaç saniye bekleyip tekrar deneyin.",
     "notice": "Yanıtlar ücretsiz yapay zekâ servisleriyle (Groq, Google Gemini) üretilir; sağlayıcılar soruları hizmetlerini geliştirmek için kullanabilir. Kişisel bilgi yazmayın."
+  },
+  "Landing": {
+    "skip": "Doğrudan haritaya geç",
+    "openMap": "Haritayı aç",
+    "askAssistant": "Asistana sor",
+    "scroll": "Aşağı kaydırın",
+    "title": "Kampüste nereye giderseniz gidin, en kısa yol burada.",
+    "stage0Body": "İstanbul Aydın Üniversitesi Florya Yerleşkesi'nin 3B haritası: yürüyüş rotaları 360° sanal turdan çıkarıldı, adım adım.",
+    "stage1": "Boğaz'dan Marmara kıyısına",
+    "stage1Body": "İki kıtanın buluştuğu yerden batıya, Küçükçekmece'ye doğru alçalıyoruz.",
+    "stage2": "Florya, eski Atatürk Havalimanı'nın yanında",
+    "stage2Body": "Yerleşke, havalimanının batı kenarında, Beşyol'da. Marmara birkaç kilometre güneyde.",
+    "stage3": "Halit Aydın Yerleşkesi",
+    "stage3Body": "Nereden nereye gideceğinizi seçin: rota 3B haritada çizilir, her adımı 360° görüntüyle önizlersiniz.",
+    "pin": "İstanbul Aydın Üniversitesi",
+    "skipDive": "Haritaya geç"
   }
 }

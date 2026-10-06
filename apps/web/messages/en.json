@@ -6,7 +6,9 @@
   "Brand": {
     "name": "Aydın Campus Map",
     "independent": "An independent project, not an official university app.",
-    "campus": "Florya Campus"
+    "campus": "Florya Campus",
+    "short": "Aydın Campus",
+    "place": "Florya"
   },
   "Route": {
     "title": "Route",
@@ -28,8 +30,43 @@
     "walkDistance": "{distance} on foot",
     "startWalk": "Start the 360° walk",
     "suggested": "Suggested places",
-    "coverage": "The route network covers the campus entrance and blocks A and E for now. More buildings follow as the virtual tour is processed.",
-    "clear": "Clear {field}"
+    "coverage": "Routes cover the campus grounds and building entrances. Building interiors follow as the virtual tour is processed.",
+    "clear": "Clear {field}",
+    "search": "Where to?",
+    "searchLabel": "Search for a destination",
+    "pickStart": "Where are you starting from?",
+    "pickStartHint": "Pick a place or type one above.",
+    "highlights": "Key places",
+    "blocks": "Blocks",
+    "categories": "Place types",
+    "arrivalAt": "Arrive {time}",
+    "stepFree": "Step-free",
+    "previewStep": "Preview in 360°",
+    "stepCount": "{count} steps",
+    "avoidStairsHint": "Uses paths without steps",
+    "category": {
+      "blocks": "Blocks",
+      "gates": "Entrances",
+      "health": "Health",
+      "library": "Library",
+      "cafe": "Café",
+      "outdoor": "Outdoors"
+    },
+    "type": {
+      "blocks": "Building entrance",
+      "gates": "Entrance",
+      "health": "Health",
+      "library": "Library",
+      "cafe": "Café",
+      "outdoor": "Outdoors"
+    },
+    "startShort": "Start",
+    "copyLink": "Copy link",
+    "copied": "Copied",
+    "linkCopiedShort": "Link copied",
+    "copyFailed": "Not copied",
+    "linkCopied": "Route link copied to the clipboard.",
+    "linkCopyFailed": "The link could not be copied. You can share the address bar link instead."
   },
   "Pano": {
     "title": "360° view",
@@ -76,7 +113,8 @@
   "Attribution": {
     "imagery": "360° imagery: İstanbul Aydın University virtual tour",
     "map": "© OpenStreetMap contributors",
-    "weather": "Weather: Open-Meteo"
+    "weather": "Weather: Open-Meteo",
+    "short": "Sources"
   },
   "Language": {
     "label": "Language",
@@ -115,12 +153,18 @@
     "fit": "Fit to view",
     "panoSpot": "360° view: {label}",
     "block": "Block {code}",
-    "loading": "Preparing the campus"
+    "loading": "Preparing the campus",
+    "campus": "Florya Campus"
   },
   "Panel": {
     "label": "Panel",
     "directions": "Directions",
     "assistant": "Assistant"
+  },
+  "Sheet": {
+    "expand": "Expand panel",
+    "expandFull": "Expand panel to full height",
+    "collapse": "Collapse panel"
   },
   "Chat": {
     "title": "Campus assistant",
@@ -140,5 +184,21 @@
     "error": "The assistant is unavailable right now. Try again in a moment.",
     "rateLimited": "Too many questions at once; wait a few seconds and try again.",
     "notice": "Answers come from free AI services (Groq, Google Gemini); providers may use questions to improve their services. Do not share personal information."
+  },
+  "Landing": {
+    "skip": "Skip to the map",
+    "openMap": "Open the map",
+    "askAssistant": "Ask the assistant",
+    "scroll": "Scroll down",
+    "title": "Wherever you're headed on campus, here is the shortest way.",
+    "stage0Body": "A 3D map of İstanbul Aydın University's Florya campus, with walking routes built from its 360° virtual tour, step by step.",
+    "stage1": "From the Bosphorus to the Marmara shore",
+    "stage1Body": "From where two continents meet, we descend west towards Küçükçekmece.",
+    "stage2": "Florya, beside the former Atatürk Airport",
+    "stage2Body": "The campus sits on the airport's western edge, in Beşyol, a few kilometres north of the Marmara.",
+    "stage3": "Halit Aydın Campus",
+    "stage3Body": "Pick where you are and where you're going: the route is drawn on the 3D map, and every step can be previewed in 360°.",
+    "pin": "İstanbul Aydın University",
+    "skipDive": "Go to the map"
   }
 }

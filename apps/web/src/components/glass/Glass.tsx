@@ -23,17 +23,22 @@ import {
 
 export type GlassVariant = 'regular' | 'thick' | 'tint';
 
+/** Mirrors `--glass-blur` in globals.css, so both paths frost the same. */
 const BLUR_PX: Record<GlassVariant, number> = {
-  regular: 18,
-  thick: 28,
-  tint: 12,
+  regular: 24,
+  thick: 40,
+  tint: 16,
 };
 
-/** Edge lensing strength; thick panels carry text, so they bend least. */
+/**
+ * Edge lensing strength. Kept low: the bend should read as a thick pane
+ * catching light, not as a visual effect. Thick panels carry text, so they
+ * bend least.
+ */
 const DISTORTION: Record<GlassVariant, number> = {
-  regular: -110,
-  thick: -60,
-  tint: -140,
+  regular: -56,
+  thick: -32,
+  tint: -72,
 };
 
 type GlassProps<T extends ElementType> = {
@@ -131,7 +136,7 @@ export function Glass<T extends ElementType = 'div'>({
       style={{
         borderRadius: radius,
         ...(active && {
-          backdropFilter: `blur(${BLUR_PX[variant]}px) url(#${filterId}) saturate(1.8)`,
+          backdropFilter: `blur(${BLUR_PX[variant]}px) url(#${filterId}) saturate(1.7)`,
         }),
         ...style,
       }}
@@ -161,7 +166,7 @@ export function Glass<T extends ElementType = 'div'>({
                 key={channel}
                 in="SourceGraphic"
                 in2="map"
-                scale={scale + i * 8}
+                scale={scale + i * 5}
                 xChannelSelector="R"
                 yChannelSelector="G"
                 result={`d${channel}`}

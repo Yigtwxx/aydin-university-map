@@ -165,23 +165,24 @@ export function StatusPill({
             type="button"
             radius={999}
             className={[
-              'flex h-11 items-center gap-3 pr-4 pl-3 text-sm transition-transform duration-150 ease-out-soft active:scale-[0.98]',
+              'flex h-9 items-center gap-2.5 px-3.5 text-sm transition-transform duration-150 ease-out-soft active:scale-[0.98] md:pl-2.5',
               previewing ? 'ring-2 ring-route/60' : '',
             ].join(' ')}
             aria-label={t('details')}
           />
         }
       >
-        <span className="flex items-center gap-2">
+        {/* Phones show only the temperature and the clock. */}
+        <span className="flex items-center gap-1.5">
           <WeatherIcon
             condition={condition}
             isDay={isDay}
-            className={`size-5 ${iconTint(condition, isDay)}`}
+            className={`hidden size-4 md:block ${iconTint(condition, isDay)}`}
             strokeWidth={2}
           />
           {weather ? (
             <>
-              <span className="tabular font-display text-md leading-none font-semibold">
+              <span className="tabular leading-none font-semibold">
                 {number.format(weather.temperature_c)}°
               </span>
               <span className="hidden text-ink-muted lg:inline">
@@ -194,17 +195,17 @@ export function StatusPill({
             </span>
           )}
         </span>
-        <span aria-hidden className="h-5 w-px bg-hairline" />
-        <span className="flex items-baseline gap-2">
+        <span aria-hidden className="h-4 w-px bg-hairline" />
+        <span className="flex items-center gap-1.5">
           <time
             dateTime={now.toISOString()}
             suppressHydrationWarning
-            className="tabular font-display text-md leading-none font-semibold"
+            className="tabular leading-none font-semibold"
           >
             {time(now)}
           </time>
           {previewing ? (
-            <span className="rounded-full bg-route px-2 py-0.5 text-xs font-semibold text-white">
+            <span className="hidden rounded-full bg-route px-1.5 py-px text-2xs font-semibold text-on-route md:inline">
               {t('previewBadge')}
             </span>
           ) : (
@@ -217,15 +218,15 @@ export function StatusPill({
       <PopoverContent
         align="end"
         sideOffset={10}
-        className="glass glass-thick w-[22rem] gap-4 rounded-[22px] bg-transparent p-5 ring-0"
+        className="glass glass-thick w-[min(21rem,calc(100vw-1rem))] gap-4 rounded-[18px] bg-(--glass-bg) p-4 ring-0"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs text-ink-muted">{t('now')}</p>
-            <p className="tabular mt-1 font-display text-3xl leading-none font-semibold">
+            <p className="tabular mt-1.5 text-3xl leading-none font-semibold tracking-display">
               {weather ? `${number.format(weather.temperature_c)}°` : '—'}
             </p>
-            <p className="mt-1 text-sm">
+            <p className="mt-1.5 text-sm">
               {liveCondition
                 ? t(`condition.${liveCondition}`)
                 : t('unavailable')}
@@ -234,7 +235,7 @@ export function StatusPill({
           <WeatherIcon
             condition={liveCondition}
             isDay={weather?.is_day ?? isDay}
-            className={`size-12 ${iconTint(liveCondition, weather?.is_day ?? isDay)}`}
+            className={`size-10 ${iconTint(liveCondition, weather?.is_day ?? isDay)}`}
             strokeWidth={1.5}
           />
         </div>
@@ -271,14 +272,17 @@ export function StatusPill({
           className="flex flex-col gap-3 border-t border-hairline pt-4"
         >
           <div className="flex items-center justify-between">
-            <h3 id="preview-heading" className="text-sm font-semibold">
+            <h3
+              id="preview-heading"
+              className="text-sm font-semibold tracking-heading"
+            >
               {t('preview')}
             </h3>
             {previewing && (
               <button
                 type="button"
                 onClick={backToLive}
-                className="rounded-full px-2 py-1 text-xs font-semibold text-route hover:bg-route-soft"
+                className="rounded-full px-2 py-1 text-xs font-medium text-route hover:bg-route-soft"
               >
                 {t('backToLive')}
               </button>
@@ -287,7 +291,7 @@ export function StatusPill({
           <div className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between text-xs text-ink-muted">
               <span id="preview-time">{t('time')}</span>
-              <span className="tabular font-display text-md font-semibold text-ink">
+              <span className="tabular text-sm font-semibold text-ink">
                 {time(now)}
               </span>
             </div>
@@ -301,7 +305,7 @@ export function StatusPill({
                 setHour(Array.isArray(value) ? value[0] : value)
               }
             />
-            <div className="tabular flex justify-between text-[11px] text-ink-muted">
+            <div className="tabular flex justify-between text-2xs text-ink-muted">
               <span>00</span>
               <span>06</span>
               <span>12</span>
@@ -361,10 +365,10 @@ function PreviewChip({
       aria-pressed={pressed}
       onClick={onClick}
       className={[
-        'flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-semibold transition-colors duration-150 ease-out-soft',
+        'flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-medium transition-colors duration-150 ease-out-soft',
         pressed
-          ? 'bg-ink text-stone-raised'
-          : 'bg-accent text-ink hover:bg-stone-deep/60',
+          ? 'bg-ink text-stone-raised shadow-thumb'
+          : 'bg-fill text-ink hover:bg-fill-strong',
       ].join(' ')}
     >
       {children}
@@ -383,10 +387,14 @@ function Detail({
 }) {
   return (
     <div className="flex items-start gap-2">
-      <Icon className="mt-0.5 size-4 text-ink-muted" aria-hidden />
+      <Icon
+        className="mt-0.5 size-4 text-ink-muted"
+        strokeWidth={1.75}
+        aria-hidden
+      />
       <div>
         <dt className="text-xs text-ink-muted">{label}</dt>
-        <dd className="tabular font-semibold">{children}</dd>
+        <dd className="tabular font-medium">{children}</dd>
       </div>
     </div>
   );

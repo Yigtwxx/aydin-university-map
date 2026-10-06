@@ -1,17 +1,21 @@
 'use client';
 
-import { CameraControls, Edges } from '@react-three/drei';
+import { CameraControls, Environment } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, N8AO, Vignette } from '@react-three/postprocessing';
 import { useEffect, useMemo, useRef } from 'react';
 import {
+  BackSide,
   Box3,
+  Color,
   type MeshStandardMaterial,
   type PerspectiveCamera,
   Vector3,
 } from 'three';
+import { MeshBVH } from 'three-mesh-bvh';
 
 import type { Sky } from '@/features/environment/hooks';
+import { type Credit, GoogleTiles } from '@/features/landing/GoogleTiles';
 import {
   type Condition,
   precipitationOf,
@@ -22,12 +26,13 @@ import {
   useCameraStore,
 } from '@/features/map/cameraStore';
 
-import { buildingColors, palette } from './constants';
+import { occluders } from './anchors';
+import { palette } from './constants';
 import { enuToWorld } from './coords';
 import { facadeUniforms, patchFacade } from './facadeMaterial';
-import { extrudeBuildings, paintWallsAndRoofs } from './geometry';
 import { Greenery } from './Greenery';
 import { GroundLayer } from './GroundLayer';
+import { buildMassing } from './massing';
 import { OverlayProjector } from './OverlayProjector';
 import { Precipitation } from './Precipitation';
 import { RouteRibbon } from './RouteRibbon';
@@ -65,6 +70,15 @@ interface SceneProps {
   sky: Sky;
   condition?: Condition;
   reducedMotion: boolean;
+  /**
+   * Google's photorealistic tiles instead of the drawn massing and ground
+   * (Cesium ion token); the route, pins and labels stay on top.
+   */
+  photoreal?: { token: string; onCredits: (credits: Credit[]) => void };
+  /** Render on demand only (the landing dive covers the map). */
+  paused?: boolean;
+  /** Keep the opening camera until the landing hands over. */
+  holdIntro?: boolean;
 }
 
 export function CampusScene(props: SceneProps) {
@@ -72,6 +86,9 @@ export function CampusScene(props: SceneProps) {
     <Canvas
       shadows="percentage"
       dpr={[1, 2]}
+      // Paused under the landing dive: one frame at mount compiles every
+      // shader and uploads the massing, so taking over later costs nothing.
+      frameloop={props.paused ? 'demand' : 'always'}
       camera={{ fov: 34, near: 2, far: 5200, position: INTRO_POSITION }}
       gl={{ antialias: false, powerPreference: 'high-performance' }}
     >
@@ -92,6 +109,8 @@ function SceneContents({
   condition,
   insets,
   reducedMotion,
+  photoreal,
+  holdIntro = false,
 }: SceneProps) {
   const controls = useRef<CameraControls>(null);
   const introduced = useRef(false);
@@ -132,7 +151,7 @@ function SceneContents({
   // (from behind the walker, facing the next node) or the whole network.
   useEffect(() => {
     const ctl = controls.current;
-    if (!ctl) return;
+    if (!ctl || holdIntro) return;
     const animate = !reducedMotion;
     if (!introduced.current) {
       introduced.current = true;
@@ -198,21 +217,42 @@ function SceneContents({
     exploreNodeId,
     reducedMotion,
     fitRequest,
+    holdIntro,
   ]);
 
   return (
     <>
       <ViewOffset insets={insets} reducedMotion={reducedMotion} />
       <SkyRig sun={sky.sun} phase={sky.phase} condition={condition} />
-      <BaseGround />
-      {ground && <GroundLayer data={ground} />}
-      {greenery && <Greenery data={greenery} />}
-      <Buildings
-        buildings={buildings}
-        night={sky.phase === 'night' || sky.phase === 'twilight'}
-        reducedMotion={reducedMotion}
-      />
-      {hasRoute && <RouteRibbon nodes={route} reducedMotion={reducedMotion} />}
+      <SkyEnvironment phase={sky.phase} sun={sky.sun.direction} />
+      {photoreal ? (
+        <GoogleTiles
+          token={photoreal.token}
+          errorTarget={6}
+          onReady={() => undefined}
+          onFailure={() => undefined}
+          onAttributions={photoreal.onCredits}
+        />
+      ) : (
+        <>
+          <BaseGround />
+          {ground && <GroundLayer data={ground} />}
+          {greenery && <Greenery data={greenery} />}
+          <Buildings
+            buildings={buildings}
+            night={sky.phase === 'night' || sky.phase === 'twilight'}
+            reducedMotion={reducedMotion}
+          />
+        </>
+      )}
+      {hasRoute && (
+        <RouteRibbon
+          graph={graph}
+          nodes={route}
+          reducedMotion={reducedMotion}
+          onTop={Boolean(photoreal)}
+        />
+      )}
       <OverlayProjector />
       {precipitation && !reducedMotion && (
         <Precipitation kind={precipitation} />
@@ -303,6 +343,80 @@ function BaseGround() {
   );
 }
 
+/**
+ * Image-based light from a gradient of the live sky, so glass reflects the
+ * sky and shaded walls pick up its tint. Re-rendered when the phase or the
+ * sun moves noticeably (the sun is rounded to a few degrees).
+ */
+function SkyEnvironment({
+  phase,
+  sun,
+}: {
+  phase: Sky['phase'];
+  sun: [number, number, number];
+}) {
+  const night = phase === 'night' || phase === 'twilight';
+  const key = `${phase}:${sun.map((v) => v.toFixed(1)).join(',')}`;
+  const uniforms = useMemo(() => {
+    const colors = {
+      day: ['#5E8FC9', '#CFE0EE', '#8C8778'],
+      golden: ['#6E86B4', '#F2CDA6', '#7E6E5C'],
+      twilight: ['#1E2B4D', '#5A5F86', '#24242C'],
+      night: ['#0B1222', '#1E2A44', '#121419'],
+    }[phase];
+    const [x, y, z] = enuToWorld(sun[0], sun[1], Math.max(sun[2], 0.05));
+    return {
+      uTop: { value: new Color(colors[0]) },
+      uHorizon: { value: new Color(colors[1]) },
+      uBottom: { value: new Color(colors[2]) },
+      uSun: { value: new Vector3(x, y, z).normalize() },
+      uSunGlow: { value: phase === 'night' || phase === 'twilight' ? 0 : 1 },
+    };
+  }, [phase, sun]);
+  return (
+    <Environment
+      key={key}
+      frames={1}
+      resolution={128}
+      environmentIntensity={night ? 0.35 : 0.9}
+    >
+      <mesh scale={100}>
+        <sphereGeometry args={[1, 32, 16]} />
+        <shaderMaterial
+          side={BackSide}
+          depthWrite={false}
+          uniforms={uniforms}
+          vertexShader={
+            /* glsl */ `
+            varying vec3 vDir;
+            void main() {
+              vDir = normalize(position);
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }`
+          }
+          fragmentShader={
+            /* glsl */ `
+            uniform vec3 uTop;
+            uniform vec3 uHorizon;
+            uniform vec3 uBottom;
+            uniform vec3 uSun;
+            uniform float uSunGlow;
+            varying vec3 vDir;
+            void main() {
+              float h = vDir.y;
+              vec3 sky = mix(uHorizon, uTop, smoothstep(0.0, 0.6, h));
+              vec3 color = h > 0.0 ? sky : mix(uHorizon * 0.8, uBottom, smoothstep(0.0, -0.25, h));
+              float sun = max(dot(normalize(vDir), uSun), 0.0);
+              color += vec3(1.0, 0.92, 0.8) * (pow(sun, 64.0) * 6.0 + pow(sun, 6.0) * 0.35) * uSunGlow;
+              gl_FragColor = vec4(color, 1.0);
+            }`
+          }
+        />
+      </mesh>
+    </Environment>
+  );
+}
+
 function Buildings({
   buildings,
   night,
@@ -312,63 +426,36 @@ function Buildings({
   night: boolean;
   reducedMotion: boolean;
 }) {
-  const campusMaterial = useRef<MeshStandardMaterial>(null);
-  const otherMaterial = useRef<MeshStandardMaterial>(null);
+  const material = useRef<MeshStandardMaterial>(null);
   // Windows fade on over dusk instead of switching.
   useFrame((_, delta) => {
     const k = reducedMotion ? 1 : 1 - Math.exp(-delta * 1.5);
-    for (const material of [campusMaterial.current, otherMaterial.current]) {
-      const uniforms = material && facadeUniforms(material);
-      if (uniforms)
-        uniforms.uNight.value += ((night ? 1 : 0) - uniforms.uNight.value) * k;
-    }
+    const uniforms = material.current && facadeUniforms(material.current);
+    if (uniforms)
+      uniforms.uNight.value += ((night ? 1 : 0) - uniforms.uNight.value) * k;
   });
-  const campus = useMemo(() => {
-    const g = extrudeBuildings(buildings.filter((b) => b.campus));
-    if (g)
-      paintWallsAndRoofs(
-        g,
-        buildingColors.campusWall,
-        buildingColors.campusRoof,
-      );
-    return g;
-  }, [buildings]);
-  const others = useMemo(() => {
-    const g = extrudeBuildings(buildings.filter((b) => !b.campus));
-    if (g)
-      paintWallsAndRoofs(g, buildingColors.otherWall, buildingColors.otherRoof);
-    return g;
-  }, [buildings]);
-  useEffect(
-    () => () => {
-      campus?.dispose();
-      others?.dispose();
-    },
-    [campus, others],
-  );
+  const geometry = useMemo(() => buildMassing(buildings), [buildings]);
+  // Buildings hide the DOM markers behind them (OverlayProjector).
+  useEffect(() => {
+    if (!geometry) return;
+    const bvh = new MeshBVH(geometry);
+    occluders.add(bvh);
+    return () => {
+      occluders.delete(bvh);
+      geometry.dispose();
+    };
+  }, [geometry]);
+  if (!geometry) return null;
   return (
-    <>
-      {others && (
-        <mesh geometry={others} castShadow receiveShadow>
-          <meshStandardMaterial
-            ref={otherMaterial}
-            vertexColors
-            roughness={0.92}
-            onBeforeCompile={patchFacade}
-          />
-        </mesh>
-      )}
-      {campus && (
-        <mesh geometry={campus} castShadow receiveShadow>
-          <meshStandardMaterial
-            ref={campusMaterial}
-            vertexColors
-            roughness={0.8}
-            onBeforeCompile={patchFacade}
-          />
-          <Edges threshold={25} color={palette.edges} />
-        </mesh>
-      )}
-    </>
+    <mesh geometry={geometry} castShadow receiveShadow>
+      <meshStandardMaterial
+        ref={material}
+        vertexColors
+        roughness={0.86}
+        metalness={0}
+        envMapIntensity={0.8}
+        onBeforeCompile={patchFacade}
+      />
+    </mesh>
   );
 }

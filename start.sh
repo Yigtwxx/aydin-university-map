@@ -54,8 +54,13 @@ ASSET_DIR="$ROOT/data/out" uv run uvicorn amap_api.main:create_app --factory --r
   --port "$API_PORT" &
 pids+=("$!")
 
+# Browser token for the landing's photorealistic tiles (optional; read from
+# .env without echoing it). Without it the landing uses satellite imagery.
+CESIUM_TOKEN="$(sed -n 's/^NEXT_PUBLIC_CESIUM_ION_TOKEN=//p' .env | tail -n 1)"
+
 NEXT_PUBLIC_API_URL="http://localhost:$API_PORT" \
   NEXT_PUBLIC_ASSET_BASE_URL="http://localhost:$API_PORT/assets" \
+  NEXT_PUBLIC_CESIUM_ION_TOKEN="$CESIUM_TOKEN" \
   pnpm --filter web dev --port "$WEB_PORT" &
 pids+=("$!")
 
