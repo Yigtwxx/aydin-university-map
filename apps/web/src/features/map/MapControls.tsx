@@ -75,7 +75,8 @@ export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {
         <Divider />
       </div>
       <ControlButton
-        label={topDown ? t('view3d') : t('view2d')}
+        // The visible "2D"/"3D" leads the name, so voice control matches it.
+        label={topDown ? `3D: ${t('view3d')}` : `2D: ${t('view2d')}`}
         pressed={topDown}
         onClick={() => {
           void controls?.rotatePolarTo(

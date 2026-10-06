@@ -168,10 +168,12 @@ export function StatusPill({
               'flex h-9 items-center gap-2.5 px-3.5 text-sm transition-transform duration-150 ease-out-soft active:scale-[0.98] md:pl-2.5',
               previewing ? 'ring-2 ring-route/60' : '',
             ].join(' ')}
-            aria-label={t('details')}
           />
         }
       >
+        {/* The visible weather and time are the button's name (WCAG 2.5.3);
+            screen readers also hear what it opens. */}
+        <span className="sr-only">{t('details')}: </span>
         {/* Phones show only the temperature and the clock. */}
         <span className="flex items-center gap-1.5">
           <WeatherIcon
