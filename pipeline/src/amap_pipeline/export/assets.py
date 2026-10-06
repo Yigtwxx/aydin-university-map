@@ -15,8 +15,11 @@ from typing import Any
 
 from PIL import Image
 from shapely.geometry import LineString, MultiLineString, Point, Polygon
+from shapely.geometry.base import BaseGeometry
 
 from amap_pipeline.acquire.store import FACES
+from amap_pipeline.geo.building_style import style_records
+from amap_pipeline.geo.context import Context
 from amap_pipeline.geo.osm import Building, Greenery, Ground
 from amap_pipeline.geo.region import (
     ATTRIBUTION as REGION_ATTRIBUTION,
@@ -30,13 +33,12 @@ from amap_pipeline.geo.region import (
 
 LEVEL_HEIGHT_M = 3.2
 DEFAULT_LEVELS = 3
-CAMPUS_NAME = "Aydın Üniversitesi"
 SMALL_FACE_PX = 384
 
 
 @dataclass(frozen=True, slots=True)
 class MassingParams:
-    radius_m: float = 450.0
+    radius_m: float = 1200.0
     default_levels: int = DEFAULT_LEVELS
 
 
@@ -52,21 +54,27 @@ def building_height_m(
 def massing(
     buildings: Iterable[Building],
     params: MassingParams = MassingParams(),  # noqa: B008
+    context: Context | None = None,
+    streets: BaseGeometry | None = None,
 ) -> dict[str, Any]:
-    """Buildings within ``radius_m`` of the campus origin, ready to extrude."""
+    """Buildings within ``radius_m`` of the campus origin, ready to extrude.
+
+    Each building carries a style, a height and a roof
+    (:mod:`amap_pipeline.geo.building_style`); ``context`` (land use and POIs)
+    sharpens the style of footprints tagged only ``building=yes``.
+    """
     origin = Point(0.0, 0.0)
+    kept = [b for b in buildings if b.outline.distance(origin) <= params.radius_m]
     features: list[dict[str, Any]] = []
-    for b in buildings:
-        if b.outline.distance(origin) > params.radius_m:
-            continue
+    styled_all = style_records(kept, context, streets)
+    for b, styled in zip(kept, styled_all, strict=True):
         ring = [[round(x, 2), round(y, 2)] for x, y in b.outline.exterior.coords]
         features.append(
             {
                 "id": b.osm_id,
                 "name": b.name,
-                "campus": bool(b.name and CAMPUS_NAME in b.name),
-                "height_m": building_height_m(b, params.default_levels),
-                "height_source": "osm_levels" if b.levels else "default",
+                "campus": styled["style"] == "campus",
+                **styled,
                 "outline": ring,
             }
         )

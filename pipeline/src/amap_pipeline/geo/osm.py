@@ -10,8 +10,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +36,32 @@ USER_AGENT = (
 
 # Campus plus a margin for the surrounding streets.
 CAMPUS_OSM_BBOX = BBox(south=40.9860, west=28.7900, north=40.9950, east=28.8010)
+# About 2.4 km square around the campus: the neighbourhood the map shows.
+WIDE_OSM_BBOX = BBox(south=40.9805, west=28.7826, north=41.0025, east=28.8116)
+
+# Tags the building styling reads (geo.building_style); the rest are dropped.
+STYLE_TAGS = frozenset(
+    {
+        "building",
+        "building:levels",
+        "building:colour",
+        "building:material",
+        "roof:shape",
+        "roof:colour",
+        "roof:material",
+        "roof:levels",
+        "min_height",
+        "height",
+        "amenity",
+        "shop",
+        "office",
+        "tourism",
+        "leisure",
+        "aeroway",
+        "religion",
+        "brand",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +70,7 @@ class Building:
     name: str | None
     levels: float | None
     outline: Polygon  # local metres (x east, y north)
+    tags: Mapping[str, str] = field(default_factory=dict, hash=False, compare=False)
 
 
 class LocalProjector:
@@ -63,6 +90,22 @@ class LocalProjector:
         """Return (lng, lat)."""
         lng, lat = self._inv.transform(x + self.origin[0], y + self.origin[1])
         return float(lng), float(lat)
+
+    def to_local_arrays(
+        self, lng: FloatArray, lat: FloatArray
+    ) -> tuple[FloatArray, FloatArray]:
+        """Vectorised :meth:`to_local`: arrays of lng/lat to arrays of x/y."""
+        x, y = self._fwd.transform(np.asarray(lng, float), np.asarray(lat, float))
+        return np.asarray(x) - self.origin[0], np.asarray(y) - self.origin[1]
+
+    def to_wgs84_arrays(
+        self, x: FloatArray, y: FloatArray
+    ) -> tuple[FloatArray, FloatArray]:
+        """Vectorised :meth:`to_wgs84`: arrays of x/y to arrays of (lng, lat)."""
+        lng, lat = self._inv.transform(
+            np.asarray(x, float) + self.origin[0], np.asarray(y, float) + self.origin[1]
+        )
+        return np.asarray(lng), np.asarray(lat)
 
 
 def overpass_query(bbox: BBox) -> str:
@@ -85,7 +128,9 @@ def fetch_buildings_raw(bbox: BBox, cache: Path) -> dict[str, Any]:
     return payload
 
 
-def _post_overpass(body: bytes, attempts_per_mirror: int = 2) -> dict[str, Any]:
+def _post_overpass(
+    body: bytes, attempts_per_mirror: int = 2, timeout_s: float = 90.0
+) -> dict[str, Any]:
     """POST to Overpass, rotating mirrors with backoff on 429/5xx/timeouts."""
     errors: list[str] = []
     for url in OVERPASS_URLS:
@@ -94,7 +139,7 @@ def _post_overpass(body: bytes, attempts_per_mirror: int = 2) -> dict[str, Any]:
                 url, data=body, headers={"User-Agent": USER_AGENT}
             )
             try:
-                with urllib.request.urlopen(request, timeout=90) as response:
+                with urllib.request.urlopen(request, timeout=timeout_s) as response:
                     return json.loads(response.read())
             except (urllib.error.URLError, TimeoutError) as exc:
                 errors.append(f"{url} attempt {attempt + 1}: {exc}")
@@ -138,6 +183,7 @@ def parse_buildings(
                     name=tags.get("name"),
                     levels=_levels(tags),
                     outline=outline,
+                    tags={k: v for k, v in tags.items() if k in STYLE_TAGS},
                 )
             )
     return buildings
