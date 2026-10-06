@@ -27,6 +27,11 @@ db = [
     "psycopg[binary]>=3.3",
     "python-dotenv>=1.1",
 ]
+# Assistant knowledge base: Gemini vision descriptions and embeddings.
+rag = [
+    "google-genai>=2.28",
+    "tenacity>=9.1",
+]
 # Pretrained ALIKED + LightGlue inference on CUDA/MPS (no training). Heavy, so
 # CI and start.sh never install it.
 learned = [
