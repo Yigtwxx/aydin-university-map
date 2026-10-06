@@ -21,12 +21,19 @@ export interface PanoStep {
   instruction: string;
   icon: ReactNode;
   distance?: string;
+  /** Where the step is when the map cannot say ("Bina içi · −1. kat"). */
+  detail?: string;
 }
 
 interface Props {
   node: GraphNode;
   /** Where the visitor walks next; the view opens facing it. */
   next?: GraphNode;
+  /**
+   * Viewer yaw (radians from the front face) to open on instead, where
+   * positions cannot tell the way (indoor spots face the tour's hotspots).
+   */
+  yaw?: number;
   title: string;
   /** Present while following a route; absent when exploring a single spot. */
   step?: PanoStep;
@@ -67,6 +74,7 @@ function yawTowards(node: GraphNode, next?: GraphNode): number {
 export function PanoInset({
   node,
   next,
+  yaw,
   title,
   step,
   night = false,
@@ -112,7 +120,7 @@ export function PanoInset({
         container: element,
         adapter: CubemapAdapter,
         panorama: faces(node.id),
-        defaultYaw: yawTowards(node, next),
+        defaultYaw: yaw ?? yawTowards(node, next),
         defaultPitch: -0.05,
         defaultZoomLvl: 30,
         navbar: false,
@@ -136,7 +144,7 @@ export function PanoInset({
   useEffect(() => {
     const instance = viewer.current;
     if (!instance) return;
-    const position = { yaw: yawTowards(node, next), pitch: -0.05 };
+    const position = { yaw: yaw ?? yawTowards(node, next), pitch: -0.05 };
     if (shown.current === node.id) {
       // Same panorama (e.g. first render): just face the next step.
       if (reducedMotion) instance.rotate(position);
@@ -152,7 +160,7 @@ export function PanoInset({
       position,
       showLoader: false,
     });
-  }, [node, next, reducedMotion]);
+  }, [node, next, yaw, reducedMotion]);
 
   return (
     <section
@@ -219,7 +227,7 @@ export function PanoInset({
             </span>
             <span className="tabular block truncate text-xs text-white/75">
               {step
-                ? `${t('stepOf', { index: step.index + 1, count: step.count })}${step.distance ? `, ${step.distance}` : ''}`
+                ? `${t('stepOf', { index: step.index + 1, count: step.count })}${step.distance ? `, ${step.distance}` : ''}${step.detail ? ` · ${step.detail}` : ''}`
                 : t('explore')}
             </span>
           </span>

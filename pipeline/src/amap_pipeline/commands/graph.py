@@ -20,6 +20,7 @@ from amap_pipeline.graph.build import (
     blocked_edges,
     build_graph,
     components,
+    step_free_conflicts,
     summarise,
 )
 
@@ -81,6 +82,9 @@ def graph_export(
     keep_islands: Annotated[
         bool, typer.Option(help="Keep components cut off from the main network.")
     ] = False,
+    indoor: Annotated[
+        bool, typer.Option(help="Add indoor panoramas through the tour's links.")
+    ] = True,
 ) -> None:
     """Merge georeferenced runs and write data/out/graph.geojson + report."""
     georefs: list[dict[str, Any]] = []
@@ -112,7 +116,9 @@ def graph_export(
         scenes,
         footprints,
         run_id="+".join(runs),
-        params=GraphParams(max_link_m=max_link_m, infer_radius_m=infer_radius_m),
+        params=GraphParams(
+            max_link_m=max_link_m, infer_radius_m=infer_radius_m, indoor=indoor
+        ),
     )
     islands: list[list[str]] = []
     if not keep_islands:
@@ -120,6 +126,9 @@ def graph_export(
     blocked = blocked_edges(graph, footprints)
     if blocked:
         raise typer.BadParameter(f"edges cut through buildings: {blocked}")
+    conflicts = step_free_conflicts(graph)
+    if conflicts:
+        raise typer.BadParameter(f"step-free stretches change floor: {conflicts}")
     out_dir = paths.data_dir() / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "graph.geojson").write_text(
@@ -135,6 +144,11 @@ def graph_export(
                 "snapped": report.snapped,
                 "detoured": report.detoured,
                 "islands": islands,
+                "bridges": report.bridged,
+                "passages": [e.id for e in graph.edges if e.passage],
+                "menu_jumps": report.indoor.menu_jumps,
+                "door_walks": report.indoor.door_walks,
+                "indoor_unreachable": report.indoor.unreachable,
             },
             indent=2,
         )

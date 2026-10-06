@@ -22,6 +22,13 @@ export interface GraphNode {
   label: LocalizedText;
   area: LocalizedText;
   building: string | null;
+  /** Storey (0 = ground, negative = basement); missing in older graphs. */
+  floor?: number | null;
+  /**
+   * Indoor spots have no measured position: they stand at this measured
+   * node (the entrance they hang off). Never draw them as places of their own.
+   */
+  anchor?: string | null;
 }
 
 export interface GraphEdge {
@@ -32,6 +39,11 @@ export interface GraphEdge {
   length_m: number;
   /** Walking line source -> target [east, north] when it bends round buildings. */
   path_enu?: [number, number][] | null;
+  /** Panorama yaw (degrees from the front face) looking along the edge, from the tour. */
+  source_yaw_deg?: number | null;
+  target_yaw_deg?: number | null;
+  /** A walk through a building between two doors: never drawn on the map. */
+  passage?: boolean;
   /** 'tour': walked between two panoramas; 'inferred': added by line of sight. */
   origin?: 'tour' | 'inferred';
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDistance, formatDuration } from './format';
+import {
+  formatDistance,
+  formatDuration,
+  formatFloor,
+  sentenceCase,
+} from './format';
 
 describe('formatDistance', () => {
   it.each([
@@ -20,5 +25,25 @@ describe('formatDuration', () => {
 
   it('uses the Turkish abbreviation', () => {
     expect(formatDuration(310, 'tr')).toBe('5 dk');
+  });
+});
+
+describe('formatFloor', () => {
+  it.each([
+    [0, 'tr', 'zemin kat'],
+    [5, 'tr', '5. kat'],
+    [-1, 'tr', '\u22121. kat'],
+    [0, 'en', 'ground floor'],
+    [3, 'en', 'floor 3'],
+    [-2, 'en', 'floor \u22122'],
+  ] as const)('formats floor %d in %s as %s', (floor, locale, expected) => {
+    expect(formatFloor(floor, locale)).toBe(expected);
+  });
+});
+
+describe('sentenceCase', () => {
+  it('capitalises with Turkish rules', () => {
+    expect(sentenceCase('iç mekân', 'tr')).toBe('İç mekân');
+    expect(sentenceCase('ground floor', 'en')).toBe('Ground floor');
   });
 });

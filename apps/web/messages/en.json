@@ -30,7 +30,7 @@
     "walkDistance": "{distance} on foot",
     "startWalk": "Start the 360° walk",
     "suggested": "Suggested places",
-    "coverage": "Routes cover the campus grounds and building entrances. Building interiors follow as the virtual tour is processed.",
+    "coverage": "Routes cover the campus grounds, building entrances and the interiors in the virtual tour. Indoor distances are estimates.",
     "clear": "Clear {field}",
     "search": "Where to?",
     "searchLabel": "Search for a destination",
@@ -50,7 +50,8 @@
       "health": "Health",
       "library": "Library",
       "cafe": "Café",
-      "outdoor": "Outdoors"
+      "outdoor": "Outdoors",
+      "rooms": "Rooms"
     },
     "type": {
       "blocks": "Building entrance",
@@ -58,7 +59,8 @@
       "health": "Health",
       "library": "Library",
       "cafe": "Café",
-      "outdoor": "Outdoors"
+      "outdoor": "Outdoors",
+      "rooms": "Indoors"
     },
     "startShort": "Start",
     "copyLink": "Copy link",
@@ -66,7 +68,10 @@
     "linkCopiedShort": "Link copied",
     "copyFailed": "Not copied",
     "linkCopied": "Route link copied to the clipboard.",
-    "linkCopyFailed": "The link could not be copied. You can share the address bar link instead."
+    "linkCopyFailed": "The link could not be copied. You can share the address bar link instead.",
+    "noStepFree": "There is no known step-free way there: the virtual tour has no lift data. Turn off “Avoid stairs” and try again.",
+    "approxDistance": "≈ {distance}",
+    "indoorEstimate": "Indoor parts are estimated from the virtual tour."
   },
   "Pano": {
     "title": "360° view",
@@ -131,7 +136,20 @@
     "right": "Turn right",
     "sharp_right": "Sharp right",
     "u_turn": "Turn around",
-    "arrive": "Arrive at {place}"
+    "arrive": "Arrive at {place}",
+    "startAt": "Start at {place}",
+    "enter": "Enter {building} Block",
+    "enterNamed": "Enter {place}",
+    "enterBuilding": "Enter the building",
+    "exit": "Leave {building} Block, head {direction}",
+    "exitNamed": "Leave {place}, head {direction}",
+    "exitBuilding": "Leave the building, head {direction}",
+    "go_to": "Continue to {place}",
+    "stairs_up": "{count, plural, one {Take the stairs up # floor} other {Take the stairs up # floors}}",
+    "stairs_down": "{count, plural, one {Take the stairs down # floor} other {Take the stairs down # floors}}",
+    "through": "Walk through {building} Block",
+    "throughNamed": "Walk through {place}",
+    "throughBuilding": "Walk through the building"
   },
   "Compass": {
     "0": "north",
@@ -202,5 +220,9 @@
     "stage3Body": "Pick where you are and where you're going: the route is drawn on the 3D map, and every step can be previewed in 360°.",
     "pin": "İstanbul Aydın University",
     "skipDive": "Go to the map"
+  },
+  "Indoor": {
+    "marker": "Indoors",
+    "pin": "{place} · {where}"
   }
 }

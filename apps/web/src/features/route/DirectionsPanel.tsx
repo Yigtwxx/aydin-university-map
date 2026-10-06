@@ -5,6 +5,8 @@ import {
   Accessibility,
   ArrowDownUp,
   Check,
+  DoorOpen,
+  Info,
   Play,
   TriangleAlert,
 } from 'lucide-react';
@@ -13,7 +15,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { type RefObject, useEffect, useMemo, useRef } from 'react';
 
 import { Switch } from '@/components/ui/switch';
-import { bearingDeg, compassIndex } from '@/features/campus/coords';
+import { bearingDeg } from '@/features/campus/coords';
 import {
   type Place,
   RouteError,
@@ -21,13 +23,21 @@ import {
   type RouteStep,
   useCampusGraph,
 } from '@/features/campus/queries';
-import { formatDistance, formatDuration, type Locale } from '@/lib/format';
+import {
+  formatDistance,
+  formatDuration,
+  formatFloor,
+  type Locale,
+  sentenceCase,
+} from '@/lib/format';
 
 import { CopyLinkButton, useCopyLink } from './CopyLinkButton';
-import { type CubeFace, faceTowards, PanoThumb } from './PanoThumb';
+import { isIndoorSpot, shownFloor, viewYaw } from './indoor';
+import { type CubeFace, faceForYaw, faceTowards, PanoThumb } from './PanoThumb';
 import { PlaceBrowser } from './PlaceBrowser';
 import { PlaceSearch } from './PlaceSearch';
 import { StepIcon } from './StepIcon';
+import { isIndoorStep, stepDistance, useStepText } from './stepText';
 import { useRouteStore } from './store';
 
 interface Props {
@@ -196,7 +206,8 @@ export function DirectionsPanel({
               />
               <p>
                 {error instanceof RouteError && error.kind === 'no_route'
-                  ? t('noRoute')
+                  ? // Indoors there is no lift data: say why, not "no way".
+                    t(avoidStairs ? 'noStepFree' : 'noRoute')
                   : t('apiDown')}
               </p>
             </motion.div>
@@ -305,6 +316,10 @@ function RouteSummary({
 }) {
   const t = useTranslations('Route');
   const link = useCopyLink();
+  // Indoor lengths are estimates from the tour's links.
+  const distance = route.approximate
+    ? t('approxDistance', { distance: formatDistance(route.length_m, locale) })
+    : formatDistance(route.length_m, locale);
   const arrival = new Intl.DateTimeFormat(locale === 'tr' ? 'tr-TR' : 'en-GB', {
     hour: '2-digit',
     minute: '2-digit',
@@ -326,9 +341,7 @@ function RouteSummary({
           {/* The copy confirmation briefly takes the meta line's place. */}
           {link.state === 'idle' ? (
             <p className="tabular mt-1.5 truncate text-xs text-ink-muted">
-              {t('walkDistance', {
-                distance: formatDistance(route.length_m, locale),
-              })}
+              {t('walkDistance', { distance })}
               {' · '}
               {t('arrivalAt', { time: arrival })}
               {stepFree && (
@@ -376,9 +389,7 @@ function RouteSummary({
             {formatDuration(route.duration_s, locale)}
           </p>
           <p className="mt-2 text-sm text-ink-muted">
-            {t('walkDistance', {
-              distance: formatDistance(route.length_m, locale),
-            })}
+            {t('walkDistance', { distance })}
             {stepFree && (
               <span className="ml-2 inline-flex items-center gap-1 text-ink">
                 <Accessibility className="size-3.5" aria-hidden />
@@ -394,6 +405,12 @@ function RouteSummary({
           </span>
         </p>
       </div>
+      {route.approximate && (
+        <p className="-mt-1 flex items-start gap-1.5 px-0.5 text-xs leading-relaxed text-ink-muted">
+          <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          {t('indoorEstimate')}
+        </p>
+      )}
       <div className="flex gap-2">
         <button
           type="button"
@@ -421,8 +438,8 @@ function Steps({
   reducedMotion: boolean;
 }) {
   const t = useTranslations('Route');
-  const turns = useTranslations('Turns');
-  const compass = useTranslations('Compass');
+  const indoorText = useTranslations('Indoor');
+  const stepText = useStepText();
   const locale = useLocale() as Locale;
   const { activeStep, setActiveStep } = useRouteStore();
   const graph = useCampusGraph();
@@ -430,14 +447,17 @@ function Steps({
 
   // Each thumbnail looks the way the visitor walks from that spot (on
   // arrival: the way they came in), the same view the 360° inset opens on.
+  // Indoors, where positions say nothing, the tour's hotspots decide.
   const faces = useMemo(() => {
-    const byId = graph.data?.byId;
+    const data = graph.data;
     return steps.map((step): CubeFace => {
-      const node = byId?.get(step.node_id);
+      const node = data?.byId.get(step.node_id);
       const at = route.node_ids.indexOf(step.node_id);
-      const next = byId?.get(route.node_ids[at + 1] ?? '');
-      const previous = byId?.get(route.node_ids[at - 1] ?? '');
-      if (!node) return 'f';
+      const next = data?.byId.get(route.node_ids[at + 1] ?? '');
+      const previous = data?.byId.get(route.node_ids[at - 1] ?? '');
+      if (!node || !data) return 'f';
+      if ([node, next, previous].some((n) => isIndoorSpot(n)))
+        return faceForYaw(viewYaw(data, node, next, previous));
       const [a, b] = next ? [node, next] : previous ? [previous, node] : [];
       if (!a || !b) return 'f';
       return faceTowards(
@@ -447,14 +467,7 @@ function Steps({
     });
   }, [graph.data, route.node_ids, steps]);
 
-  const instruction = (step: RouteStep) =>
-    step.turn === 'arrive'
-      ? turns('arrive', { place: destination })
-      : step.turn === 'start'
-        ? turns('start', {
-            direction: compass(String(compassIndex(step.bearing_deg)) as '0'),
-          })
-        : turns(step.turn);
+  const instruction = (step: RouteStep) => stepText(step, destination);
 
   return (
     <ol
@@ -466,10 +479,33 @@ function Steps({
         const arrive = step.turn === 'arrive';
         const start = index === 0;
         const last = index === steps.length - 1;
+        // Indoors the distance is an estimate: the step says where instead.
+        const indoor = isIndoorStep(step);
+        const following = steps[index + 1];
         const distance =
-          step.distance_m > 0 ? formatDistance(step.distance_m, locale) : '';
+          stepDistance(
+            step,
+            (m) => formatDistance(m, locale),
+            (d) => t('approxDistance', { distance: d }),
+          ) ?? '';
+        // Never a "−2.Kat" label next to a "2. kat" badge.
+        const level = indoor
+          ? shownFloor(
+              step.floor,
+              step.place?.tr ?? '',
+              step.place?.en ?? '',
+              arrive ? destination : '',
+            )
+          : undefined;
+        const floor =
+          level === undefined
+            ? undefined
+            : sentenceCase(formatFloor(level, locale), locale);
         const text = instruction(step);
         const meta = start ? origin : distance;
+        const where = indoor
+          ? [indoorText('marker'), floor].filter(Boolean).join(' ')
+          : '';
         return (
           <motion.li
             key={`${step.node_id}-${index}`}
@@ -485,14 +521,20 @@ function Steps({
             {!last && (
               <span
                 aria-hidden
-                className="absolute top-1/2 left-[21px] h-full w-0.5 rounded-full bg-route/25"
+                className={cn(
+                  'absolute top-1/2 left-[21px] h-full',
+                  // Dotted indoors: the way between rooms is not measured.
+                  indoor && following && isIndoorStep(following)
+                    ? 'w-0 border-l-2 border-dotted border-route/45'
+                    : 'w-0.5 rounded-full bg-route/25',
+                )}
               />
             )}
             <button
               type="button"
               onClick={() => setActiveStep(active ? undefined : index)}
               aria-current={active ? 'step' : undefined}
-              aria-label={`${text}${distance ? `, ${distance}` : ''}. ${t('previewStep')}`}
+              aria-label={`${text}${distance ? `, ${distance}` : ''}${where ? `, ${where}` : ''}. ${t('previewStep')}`}
               title={t('previewStep')}
               className={cn(
                 'group relative grid min-h-14 w-full grid-cols-[1.75rem_1fr_auto] items-center gap-x-3 rounded-[12px] py-1.5 pr-1.5 pl-2 text-left',
@@ -522,9 +564,20 @@ function Steps({
               </span>
               <span className="flex min-w-0 flex-col">
                 <span className="text-md leading-snug font-medium">{text}</span>
-                {meta && (
-                  <span className="tabular truncate text-xs text-ink-muted">
-                    {meta}
+                {(meta || indoor) && (
+                  <span className="flex min-w-0 items-center gap-1.5 text-xs text-ink-muted">
+                    {indoor && (
+                      <span className="inline-flex shrink-0 items-center gap-1 font-medium text-ink-muted">
+                        <DoorOpen className="size-3" aria-hidden />
+                        {indoorText('marker')}
+                      </span>
+                    )}
+                    {floor && (
+                      <span className="tabular shrink-0 rounded-[5px] bg-fill-strong px-1.5 text-[11px] leading-[18px] font-semibold text-ink">
+                        {floor}
+                      </span>
+                    )}
+                    {meta && <span className="tabular truncate">{meta}</span>}
                   </span>
                 )}
               </span>

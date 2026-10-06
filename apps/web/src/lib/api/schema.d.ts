@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * Graph
-         * @description The walking graph as GeoJSON (nodes and edges).
+         * @description The walking graph as GeoJSON (nodes and edges); ETag-cached.
          */
         get: operations["graph_graph_get"];
         put?: never;
@@ -54,6 +54,10 @@ export interface paths {
         /**
          * Places
          * @description Word-prefix search; with a database, typos fall back to trigrams.
+         *
+         *     Without ``q``: the places the map shows (open areas and entrances at
+         *     measured spots); rooms and doors known only from the tour are found
+         *     by searching.
          */
         get: operations["places_places_get"];
         put?: never;
@@ -94,6 +98,8 @@ export interface paths {
         /**
          * Nearest
          * @description Nearest outdoor/entrance panorama to a map click (equirectangular metres).
+         *
+         *     Indoor spots stand at borrowed positions and are never the answer.
          */
         get: operations["nearest_nodes_nearest_get"];
         put?: never;
@@ -218,6 +224,13 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** LocalizedText */
+        LocalizedText: {
+            /** Tr */
+            tr: string;
+            /** En */
+            en: string;
+        };
         /** NearestNode */
         NearestNode: {
             /** Node Id */
@@ -246,6 +259,22 @@ export interface components {
             building: string | null;
             /** Node Ids */
             node_ids: string[];
+            /**
+             * Floor
+             * @description Storey of a room (kind indoor), when known
+             */
+            floor?: number | null;
+            /**
+             * Area Tr
+             * @description Tour area, e.g. Kimya - M Blok
+             * @default
+             */
+            area_tr: string;
+            /**
+             * Area En
+             * @default
+             */
+            area_en: string;
         };
         /** RouteRequest */
         RouteRequest: {
@@ -275,34 +304,78 @@ export interface components {
             duration_s: number;
             /**
              * Coordinates
-             * @description [lng, lat] per node
+             * @description [lng, lat] per node; indoor spots repeat their entrance's position: draw `parts`, not this
              */
             coordinates: [
                 number,
                 number
             ][];
+            /**
+             * Parts
+             * @description [lng, lat] runs the map can draw: measured nodes joined by walks outside (the line breaks at indoor spots and passages)
+             */
+            parts?: [
+                number,
+                number
+            ][][];
             /** Steps */
             steps: components["schemas"]["StepOut"][];
+            /**
+             * Approximate
+             * @description Length and duration include estimated indoor stretches
+             * @default false
+             */
+            approximate: boolean;
         };
         /** StepOut */
         StepOut: {
             /** Node Id */
             node_id: string;
             turn: components["schemas"]["Turn"];
-            /** Distance M */
+            /**
+             * Distance M
+             * @description Walked after this step (estimate indoors)
+             */
             distance_m: number;
-            /** Bearing Deg */
+            /**
+             * Bearing Deg
+             * @description Compass bearing outdoors; 0 indoors
+             */
             bearing_deg: number;
             /** Text Tr */
             text_tr: string;
             /** Text En */
             text_en: string;
+            /**
+             * Indoor
+             * @description Inside a building: no compass, the distance is an estimate
+             * @default false
+             */
+            indoor: boolean;
+            /**
+             * Building
+             * @description Block the step is in, enters or leaves
+             */
+            building?: string | null;
+            /**
+             * Floor
+             * @description Storey at the step's spot (0 = ground)
+             */
+            floor?: number | null;
+            /**
+             * Floors
+             * @description Storeys climbed (+) or descended (-) by stairs
+             * @default 0
+             */
+            floors: number;
+            /** @description Indoor spot walked to (or started at) */
+            place?: components["schemas"]["LocalizedText"] | null;
         };
         /**
          * Turn
          * @enum {string}
          */
-        Turn: "start" | "straight" | "slight_left" | "left" | "sharp_left" | "slight_right" | "right" | "sharp_right" | "u_turn" | "arrive";
+        Turn: "start" | "straight" | "slight_left" | "left" | "sharp_left" | "slight_right" | "right" | "sharp_right" | "u_turn" | "arrive" | "enter" | "exit" | "go_to" | "stairs_up" | "stairs_down" | "through";
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -393,6 +466,13 @@ export interface operations {
                     };
                 };
             };
+            /** @description Not modified (If-None-Match) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     places_places_get: {
@@ -415,6 +495,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PlaceOut"][];
                 };
+            };
+            /** @description Not modified (If-None-Match) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

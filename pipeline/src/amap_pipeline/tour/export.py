@@ -34,6 +34,22 @@ def classify_tour(
     )
 
 
+def link_yaws(scene: Scene, linked: set[str]) -> dict[str, float]:
+    """Hotspot yaw (krpano ``ath``, degrees in [0, 360)) towards each linked scene.
+
+    ``ath`` is measured clockwise from the panorama's front face, so it says
+    where a doorway is in the picture even where no position is known. Only
+    the first hotspot per target counts; links listed from the other end
+    only have no yaw here.
+    """
+    yaws: dict[str, float] = {}
+    for hotspot in scene.hotspots:
+        target = hotspot.linked_scene
+        if target in linked and target not in yaws and hotspot.ath is not None:
+            yaws[target] = round(hotspot.ath % 360.0, 2)
+    return dict(sorted(yaws.items()))
+
+
 def scene_record(scene: Scene, tour: ClassifiedTour) -> dict[str, Any]:
     meta = scene.meta
     assert meta is not None, "Florya scenes always carry metadata"
@@ -48,6 +64,7 @@ def scene_record(scene: Scene, tour: ClassifiedTour) -> dict[str, Any]:
         "label": {"tr": meta.label_tr, "en": meta.label_en},
         "area": {"tr": meta.area_tr, "en": meta.area_en},
         "links": sorted(tour.adjacency[scene.name]),
+        "link_yaw": link_yaws(scene, tour.adjacency[scene.name]),
     }
 
 

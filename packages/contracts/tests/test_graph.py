@@ -89,3 +89,82 @@ def test_edge_non_positive_length_raises_validation_error() -> None:
             cost_s=1.0,
             length_source=LengthSource.SFM,
         )
+
+
+def _indoor(graph: Graph) -> Graph:
+    """b's room r: no measured position, stands at b; reached by a stairs edge."""
+    b = next(n for n in graph.nodes if n.id == "b")
+    room = b.model_copy(
+        update={
+            "id": "r",
+            "kind": NodeKind.INDOOR,
+            "pose_source": PoseSource.INTERPOLATED,
+            "anchor": "b",
+            "floor": -1,
+        }
+    )
+    stairs = Edge(
+        id="b|r",
+        source="b",
+        target="r",
+        kind=EdgeKind.STAIRS,
+        origin=EdgeOrigin.TOUR,
+        length_m=12.0,
+        cost_s=12.0 / WALKING_SPEED_MPS + 15.0,
+        length_source=LengthSource.ESTIMATE,
+        target_yaw_deg=270.0,
+    )
+    return graph.model_copy(
+        update={"nodes": [*graph.nodes, room], "edges": [*graph.edges, stairs]}
+    )
+
+
+def test_graph_geojson_round_trip_keeps_indoor_fields(graph: Graph) -> None:
+    indoor = _indoor(graph)
+    restored = Graph.from_geojson(indoor.to_geojson())
+    assert restored == indoor, "anchor, floor and yaws must survive"
+    room = next(n for n in restored.nodes if n.id == "r")
+    assert room.approximate and room.anchor == "b", room
+
+
+def test_graph_geojson_without_indoor_fields_still_parses(graph: Graph) -> None:
+    data = graph.to_geojson()
+    for feature in data["features"]:
+        for key in ("anchor", "source_yaw_deg", "target_yaw_deg"):
+            feature["properties"].pop(key, None)
+    restored = Graph.from_geojson(data)  # a graph exported before indoor routing
+    assert restored == graph, "older graphs parse unchanged"
+    assert not any(n.approximate for n in restored.nodes), restored.nodes
+
+
+@pytest.mark.parametrize(
+    ("kind", "floor", "expected"),
+    [
+        (NodeKind.OUTDOOR, None, 0),  # outdoors is ground level
+        (NodeKind.ENTRANCE, None, None),
+        (NodeKind.ENTRANCE, 1, 1),
+        (NodeKind.INDOOR, None, None),
+        (NodeKind.INDOOR, -2, -2),
+    ],
+)
+def test_node_level_is_floor_or_ground_outdoors(
+    kind: NodeKind, floor: int | None, expected: int | None
+) -> None:
+    node = _node("x", 28.797).model_copy(update={"kind": kind, "floor": floor})
+    assert node.level == expected, f"{kind} {floor}: {node.level}"
+
+
+@pytest.mark.parametrize("yaw", [-1.0, 360.0])
+def test_edge_yaw_out_of_range_raises_validation_error(yaw: float) -> None:
+    with pytest.raises(ValidationError):
+        Edge(
+            id="a|b",
+            source="a",
+            target="b",
+            kind=EdgeKind.INDOOR,
+            origin=EdgeOrigin.TOUR,
+            length_m=12.0,
+            cost_s=9.0,
+            length_source=LengthSource.ESTIMATE,
+            source_yaw_deg=yaw,
+        )

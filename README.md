@@ -32,6 +32,9 @@ walking graph and shortest walking routes.
   fotogerçekçi görünüme geçilir.
 - **En kısa yürüyüş yolu:** 360° turdan çıkarılan metrik yürüyüş grafı ve A\* rotası.
   Rotalar binaların içinden geçmez; "merdivensiz rota" seçeneği de var.
+- **Bina içi rota:** 190'dan fazla oda ve laboratuvar aranabilir ("Anatomi Lab"); rota
+  binaya girer, merdivenle kaç kat inileceğini söyler ve odada biter. Bina içi mesafeler
+  sanal turun bağlantılarından tahmin edilir ve öyle belirtilir.
 - **Adım adım 360° tarif:** her adımın panoraması, doğru yöne bakan önizleme.
 - **Canlı ortam:** güneşin gerçek konumu ve anlık hava durumu (gündüz, gün batımı, gece,
   yağmur, sis).
@@ -70,7 +73,7 @@ Tasarımın tamamı: [`docs/superpowers/specs/2026-10-06-campus-map-design.md`](
 | 4 | Web: 3D harita, rota, 360° tur, canlı ortam, mobil | ✅ |
 | 5 | Yapay zekâ asistanı (RAG) | ✅ |
 | 6 | Açılış animasyonu, yayına alma, E2E | ✅ |
-| 7 | Yoğun dokulu mesh, iç mekân navigasyonu | 🚧 |
+| 7 | Yoğun dokulu mesh, bina içi rota | ✅ |
 
 ### Geliştirme
 
@@ -104,6 +107,9 @@ Bkz. [docs/data-policy.md](docs/data-policy.md).
   one-tap photorealistic view.
 - **Shortest walking routes:** a metric walking graph built from the 360° tour, A\*
   routing that never cuts through buildings, and an avoid-stairs option.
+- **Indoor routes:** 190+ rooms and labs are searchable ("Anatomi Lab"); the route enters
+  the building, says how many floors to climb and ends in the room. Indoor distances are
+  estimated from the tour's links and marked as such.
 - **Step-by-step 360° directions:** each step's panorama, facing the way you walk.
 - **Live environment:** the real sun position and current weather.
 - **AI assistant:** answers "How do I get to E Blok?" by drawing the route and quoting

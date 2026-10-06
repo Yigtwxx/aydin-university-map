@@ -5,6 +5,7 @@ import {
   BookOpen,
   Coffee,
   Cross,
+  DoorClosed,
   DoorOpen,
   type LucideIcon,
   Search,
@@ -24,7 +25,9 @@ import {
 import { InputGroupAddon } from '@/components/ui/input-group';
 import { type Place, usePlaces } from '@/features/campus/queries';
 import { useDebounced } from '@/hooks/useDebounced';
+import type { Locale } from '@/lib/format';
 
+import { whereText } from './indoor';
 import { PanoThumb } from './PanoThumb';
 import { categoryOf, type PlaceCategory, sceneOf } from './places';
 import type { PlaceRef } from './store';
@@ -52,7 +55,7 @@ export function PlaceSearch({
   inputRef,
 }: Props) {
   const id = useId();
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const t = useTranslations('Route');
   const [input, setInput] = useState('');
   const query = useDebounced(input, 150);
@@ -79,6 +82,17 @@ export function PlaceSearch({
   if (isError) emptyText = t('apiDown');
   else if (isFetching) emptyText = t('searching');
   else if (query.trim()) emptyText = t('noResults');
+
+  // Rooms share names across blocks ("Derslik"): say where each one is.
+  const subtitleOf = (place: Place) => {
+    const category = categoryOf(place);
+    if (category !== 'rooms') return t(`type.${category}`);
+    const area = locale === 'en' ? place.area_en : place.area_tr;
+    return (
+      whereText(place, locale, place.name_tr, place.name_en) ??
+      (area || t('type.rooms'))
+    );
+  };
 
   const hero = variant === 'hero';
   // The list lines up with the whole field (icon included), not the bare input.
@@ -155,7 +169,7 @@ export function PlaceSearch({
                   {nameOf(place)}
                 </span>
                 <span className="truncate text-xs text-ink-muted">
-                  {t(`type.${categoryOf(place)}`)}
+                  {subtitleOf(place)}
                 </span>
               </span>
             </ComboboxItem>
@@ -175,6 +189,7 @@ export const CATEGORY_ICONS: Record<
   library: BookOpen,
   cafe: Coffee,
   outdoor: Trees,
+  rooms: DoorClosed,
 };
 
 /** Block letter on ochre (like the map labels), or the category's icon. */
@@ -221,5 +236,7 @@ function placeholderPlace(ref: PlaceRef): Place {
     kind: 'outdoor',
     building: null,
     node_ids: [ref.id],
+    area_tr: '',
+    area_en: '',
   };
 }

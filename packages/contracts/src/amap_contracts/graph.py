@@ -4,6 +4,14 @@ Serialized as GeoJSON: nodes are Point features (lng, lat, alt), edges are
 LineString features. ``heading_deg`` is the compass bearing (clockwise from
 true north) of panorama yaw 0, i.e. the centre of the front cube face, so a
 hotspot at krpano ``ath`` points to ``(ath + heading_deg) % 360``.
+
+Indoor panoramas have no measured position: they hang off the walking network
+through the tour's links and stand at the measured node they hang off
+(``Node.anchor``), so straight-line distances never overestimate a walk.
+Clients must not draw them as places of their own; their edges carry
+estimated lengths (``LengthSource.ESTIMATE``), and ``Edge.passage`` marks the
+walks through a building between two different places. Every field added for
+indoor routing is optional, so older readers keep parsing newer graphs.
 """
 
 from collections.abc import Callable
@@ -15,6 +23,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 WALKING_SPEED_MPS = 1.3
 GRAPH_SCHEMA_VERSION = 1
+# A tour link this many storeys between two rooms of known floor is a menu
+# jump in the tour, not a staircase: a passage (stairs cost and a penalty).
+MENU_JUMP_FLOORS = 4
 
 
 class NodeKind(StrEnum):
@@ -34,6 +45,7 @@ class EdgeKind(StrEnum):
 class PoseSource(StrEnum):
     SFM = "sfm"
     POSE_GRAPH = "pose_graph"
+    # Not measured: derived from linked panoramas (indoor nodes, see anchor).
     INTERPOLATED = "interpolated"
 
 
@@ -71,7 +83,28 @@ class Node(BaseModel):
     label: LocalizedText
     area: LocalizedText
     building: str | None = None
-    floor: int | None = None
+    floor: int | None = Field(
+        default=None, description="Storey (0 = ground, negative = basement)"
+    )
+    anchor: str | None = Field(
+        default=None,
+        description=(
+            "Measured node whose position this node borrows (indoor spots "
+            "reached through tour links); None = the position is measured"
+        ),
+    )
+
+    @property
+    def approximate(self) -> bool:
+        """The position is borrowed from ``anchor``, not measured."""
+        return self.anchor is not None
+
+    @property
+    def level(self) -> int | None:
+        """Storey for vertical moves: the floor, or 0 outdoors; None if unknown."""
+        if self.floor is not None:
+            return self.floor
+        return 0 if self.kind is NodeKind.OUTDOOR else None
 
 
 class Edge(BaseModel):
@@ -89,6 +122,16 @@ class Edge(BaseModel):
     # Walking line in local metres [east, north] from source to target, when
     # it bends around buildings; None = the straight segment between nodes.
     path_enu: list[tuple[float, float]] | None = None
+    # Panorama yaw (degrees clockwise from the front cube face) that looks
+    # along the edge: at the source towards the target, and at the target
+    # towards the source. From the tour's hotspots; set where positions
+    # cannot tell (indoor edges), None when the tour has no hotspot there.
+    source_yaw_deg: float | None = Field(default=None, ge=0.0, lt=360.0)
+    target_yaw_deg: float | None = Field(default=None, ge=0.0, lt=360.0)
+    # A walk through a building between two places the map knows (a door and
+    # another door, or a room off another door): the tour links them, but no
+    # line outside does. Clients must not draw it; routes avoid it when they can.
+    passage: bool = False
 
 
 class GraphMeta(BaseModel):

@@ -146,3 +146,121 @@ def db_client(store: GraphStore, fake_db: FakeDatabase) -> Iterator[TestClient]:
     app = create_app(settings=settings, store=store, database=fake_db)
     with TestClient(app) as test_client:
         yield test_client
+
+
+# --- Indoor: spots without a measured position, hung off two entrances ------
+# (x, y, kind, label tr, label en, building, floor, anchor, area)
+# Measured: x, y, kind, label tr, label en, building, floor.
+MEASURED: dict[str, tuple[Any, ...]] = {
+    "gate": (0, 0, NodeKind.OUTDOOR, "Kampüs Girişi", "Campus Entrance", None, None),
+    "yard": (0, 40, NodeKind.OUTDOOR, "Kampüs", "Campus", None, None),
+    "m": (40, 40, NodeKind.ENTRANCE, "M Blok Giriş", "M Block Entrance", "M", 0),
+    "x": (100, 40, NodeKind.ENTRANCE, "D Blok Giriş", "D Block Entrance", "D", 0),
+}
+# Indoor, standing at their anchor: anchor, label tr, label en, building, floor.
+# Listed first, so the nearest node to a click on a door must skip them.
+INDOOR_SPOTS: dict[str, tuple[Any, ...]] = {
+    "m1": ("m", "M Blok -1.Kat", "M Block -1.Floor", "M", -1),
+    "lab": ("m", "Anatomi Lab", "Anatomy Lab", "M", -1),
+    "lab2": ("m", "Anatomi Lab", "Anatomy Lab", "M", -1),
+    "m5": ("m", "M Blok -5 Koridor", "M Block -5 Corridor", "M", 5),
+    "class_m": ("m", "Derslik", "Classroom", "M", 5),
+    "p": ("m", "Geçit", "Passage", None, 0),
+    "d0": ("x", "D Blok Giriş Kat", "D Block Entrance Floor", "D", 0),
+    "d3": ("x", "D Blok 3.Kat", "D Block 3.Floor", "D", 3),
+    "class_d": ("x", "Derslik", "Classroom", "D", 3),
+}
+INDOOR_AREAS = {"lab": "Sağlık Bilimleri", "lab2": "Sağlık Bilimleri"}
+# A door SfM could not pose: an entrance at a borrowed position (no links).
+INDOOR_DOORS = {"side": ("m", "M Blok Yan Giriş", "M Block Side Entrance", "M", 0)}
+# (a, b, kind, length m, extra stairs seconds); m-x walks round a corner.
+INDOOR_EDGES: list[tuple[str, str, EdgeKind, float, float]] = [
+    ("gate", "yard", EdgeKind.OUTDOOR, 40.0, 0.0),
+    ("m", "yard", EdgeKind.OUTDOOR, 40.0, 0.0),
+    ("m", "x", EdgeKind.ENTRANCE, 90.0, 0.0),
+    ("m", "m1", EdgeKind.STAIRS, 12.0, 15.0),
+    ("lab", "m1", EdgeKind.INDOOR, 12.0, 0.0),
+    ("lab", "lab2", EdgeKind.INDOOR, 12.0, 0.0),
+    ("m", "m5", EdgeKind.STAIRS, 12.0, 75.0),
+    ("class_m", "m5", EdgeKind.INDOOR, 12.0, 0.0),
+    ("d0", "x", EdgeKind.ENTRANCE, 12.0, 0.0),
+    ("d0", "d3", EdgeKind.STAIRS, 12.0, 45.0),
+    ("class_d", "d3", EdgeKind.INDOOR, 12.0, 0.0),
+    # A passage through a third building: shorter, but only an estimate.
+    ("m", "p", EdgeKind.ENTRANCE, 12.0, 0.0),
+    ("p", "x", EdgeKind.ENTRANCE, 60.0, 0.0),
+    # A tour menu jump from the -1 corridor to the fifth floor's classroom.
+    ("class_m", "m1", EdgeKind.STAIRS, 12.0, 90.0),
+]  # fmt: skip
+
+
+def _indoor_node(node_id: str) -> Node:
+    if node_id in MEASURED:
+        x, y, kind, tr, en, building, floor = MEASURED[node_id]
+        anchor = None
+    else:
+        door = node_id in INDOOR_DOORS
+        spot = INDOOR_DOORS[node_id] if door else INDOOR_SPOTS[node_id]
+        anchor, tr, en, building, floor = spot
+        x, y, *_ = MEASURED[anchor]
+        kind = NodeKind.ENTRANCE if door else NodeKind.INDOOR
+    area = INDOOR_AREAS.get(node_id, "Florya Kampüs")
+    return Node(
+        id=node_id,
+        kind=kind,
+        lat=40.9915 + y / 111_320.0,
+        lng=28.7971 + x / 84_000.0,
+        alt_m=1.6,
+        enu=(float(x), float(y), 1.6),
+        heading_deg=0.0,
+        pose_source=PoseSource.INTERPOLATED if anchor else PoseSource.SFM,
+        label=LocalizedText(tr=tr, en=en),
+        area=LocalizedText(tr=area, en=area),
+        building=building,
+        floor=floor,
+        anchor=anchor,
+    )
+
+
+@pytest.fixture
+def indoor_store() -> GraphStore:
+    nodes = [_indoor_node(n) for n in [*INDOOR_SPOTS, *INDOOR_DOORS, *MEASURED]]
+    edges = [
+        Edge(
+            id="|".join(sorted((a, b))),
+            source=min(a, b),
+            target=max(a, b),
+            kind=kind,
+            origin=EdgeOrigin.TOUR,
+            length_m=length,
+            cost_s=length / WALKING_SPEED_MPS + stairs,
+            length_source=(
+                LengthSource.SFM
+                if kind is EdgeKind.OUTDOOR or (a, b) == ("m", "x")
+                else LengthSource.ESTIMATE
+            ),
+            path_enu=[(40.0, 40.0), (70.0, 70.0), (100.0, 40.0)]
+            if (a, b) == ("m", "x")
+            else None,
+            # p stands at m: through a building; class_m-m1: a menu jump.
+            passage=(a, b) in {("p", "x"), ("class_m", "m1")},
+        )
+        for a, b, kind, length, stairs in INDOOR_EDGES
+    ]
+    meta = GraphMeta(
+        generated_at=datetime(2026, 10, 6, tzinfo=UTC),
+        run_id="test",
+        origin_lat=40.9915,
+        origin_lng=28.7971,
+    )
+    return GraphStore.from_graph(Graph(meta=meta, nodes=nodes, edges=edges))
+
+
+@pytest.fixture
+def indoor_client(indoor_store: GraphStore) -> Iterator[TestClient]:
+    settings = Settings(
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        graph_source="unused",
+    )
+    with TestClient(create_app(settings=settings, store=indoor_store)) as client:
+        yield client

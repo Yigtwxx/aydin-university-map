@@ -16,6 +16,7 @@ from typing import Annotated, Any
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from amap_api import __version__
@@ -30,9 +31,10 @@ from amap_api.assistant.testing import offline_model
 from amap_api.db import Database
 from amap_api.directions import instruction
 from amap_api.graph_store import GraphStore, load_graph
+from amap_api.http_cache import CachedJson
 from amap_api.places import Place, build_places, search_places
 from amap_api.rate_limit import TokenBucket
-from amap_api.routing import NoRouteError, shortest_route
+from amap_api.routing import NoRouteError, drawable_parts, shortest_route
 from amap_api.schemas import (
     BuildingOut,
     ErrorOut,
@@ -53,6 +55,8 @@ log = logging.getLogger("amap_api")
 os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
 
 MAX_CHAT_CHARS = 1000
+# The graph and the place directory change only when the API restarts.
+CACHE_MAX_AGE_S = 300
 # About three questions a minute per visitor, with a short burst.
 CHAT_BUCKET = TokenBucket(capacity=6, refill_per_s=1 / 20)
 
@@ -115,6 +119,17 @@ def create_app(
                 )
         app.state.store = loaded
         app.state.places = build_places(loaded) if loaded else []
+        # 1.1 MB of GeoJSON: serialised once, compressed per request.
+        app.state.graph_json = (
+            CachedJson.of(loaded.graph.to_geojson()) if loaded else None
+        )
+        app.state.directory = [
+            place_out(p)
+            for p in app.state.places
+            if loaded
+            and p.kind is not NodeKind.INDOOR
+            and not loaded.nodes[p.id].approximate
+        ]
         app.state.http = httpx.AsyncClient()
         app.state.weather = WeatherService(app.state.http, ttl_s=cfg.weather_ttl_s)
         db = database
@@ -143,6 +158,8 @@ def create_app(
     app = FastAPI(title="Aydın Campus Map API", version=__version__, lifespan=lifespan)
     if cfg.asset_dir and Path(cfg.asset_dir).is_dir():
         app.mount("/assets", StaticFiles(directory=cfg.asset_dir), name="assets")
+    # Text/event-stream (the chat) is never compressed: it would stop streaming.
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cfg.cors_origin_list,
@@ -159,6 +176,9 @@ def create_app(
             kind=place.kind,
             building=place.building,
             node_ids=list(place.node_ids),
+            floor=place.floor,
+            area_tr=place.area_tr,
+            area_en=place.area_en,
         )
 
     @app.get("/health", response_model=Health)
@@ -179,21 +199,40 @@ def create_app(
             version=__version__,
         )
 
-    @app.get("/graph")
-    def graph(store: StoreDep) -> dict[str, Any]:
-        """The walking graph as GeoJSON (nodes and edges)."""
-        return store.graph.to_geojson()
+    @app.get(
+        "/graph",
+        response_model=dict[str, Any],
+        responses={304: {"description": "Not modified (If-None-Match)"}},
+    )
+    def graph(request: Request, store: StoreDep) -> Response:
+        """The walking graph as GeoJSON (nodes and edges); ETag-cached."""
+        cached: CachedJson | None = request.app.state.graph_json
+        if cached is None:  # a store given directly (tests)
+            cached = CachedJson.of(store.graph.to_geojson())
+            request.app.state.graph_json = cached
+        return cached.response(request, CACHE_MAX_AGE_S)
 
-    @app.get("/places", response_model=list[PlaceOut])
+    @app.get(
+        "/places",
+        response_model=list[PlaceOut],
+        responses={304: {"description": "Not modified (If-None-Match)"}},
+    )
     async def places(
         request: Request,
         q: Annotated[str | None, Query(max_length=100)] = None,
         limit: Annotated[int, Query(ge=1, le=50)] = 10,
-    ) -> list[PlaceOut]:
-        """Word-prefix search; with a database, typos fall back to trigrams."""
+    ) -> list[PlaceOut] | Response:
+        """Word-prefix search; with a database, typos fall back to trigrams.
+
+        Without ``q``: the places the map shows (open areas and entrances at
+        measured spots); rooms and doors known only from the tour are found
+        by searching.
+        """
         all_places: list[Place] = request.app.state.places
         if not q:
-            return [place_out(p) for p in all_places[:limit]]
+            directory: list[PlaceOut] = request.app.state.directory
+            listed = [p.model_dump(mode="json") for p in directory[:limit]]
+            return CachedJson.of(listed).response(request, CACHE_MAX_AGE_S)
         found = search_places(all_places, q, limit)
         db: Database | None = request.app.state.database
         key = search_key(q)
@@ -224,12 +263,15 @@ def create_app(
         lat: Annotated[float, Query(ge=-90, le=90)],
         lng: Annotated[float, Query(ge=-180, le=180)],
     ) -> NearestNode:
-        """Nearest outdoor/entrance panorama to a map click (equirectangular metres)."""
+        """Nearest outdoor/entrance panorama to a map click (equirectangular metres).
+
+        Indoor spots stand at borrowed positions and are never the answer.
+        """
         k = 111_320.0
         candidates = [
             n
             for n in store.graph.nodes
-            if n.kind in (NodeKind.OUTDOOR, NodeKind.ENTRANCE)
+            if n.kind in (NodeKind.OUTDOOR, NodeKind.ENTRANCE) and not n.approximate
         ] or store.graph.nodes
         best = min(
             candidates,
@@ -266,7 +308,12 @@ def create_app(
             coordinates=[
                 (store.nodes[n].lng, store.nodes[n].lat) for n in found.node_ids
             ],
+            parts=[
+                [(store.nodes[n].lng, store.nodes[n].lat) for n in part]
+                for part in drawable_parts(store, found.node_ids)
+            ],
             steps=steps,
+            approximate=found.approximate,
         )
 
     @app.get(

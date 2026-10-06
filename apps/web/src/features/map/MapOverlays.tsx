@@ -1,5 +1,6 @@
 'use client';
 
+import { DoorOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useLayoutEffect, useMemo, useRef } from 'react';
 import { Vector3 } from 'three';
@@ -57,6 +58,23 @@ function MapAnchor({
 
 const atNode = (node: GraphNode, up = 0.6) =>
   enuToWorld(node.enu[0], node.enu[1], up);
+
+/**
+ * A door where the drawn route stops to go inside (or through a building)
+ * and where it comes out again: the gap between them is not a line outside.
+ */
+function DoorPin({ node }: { node: GraphNode }) {
+  return (
+    <MapAnchor id={`pin-door-${node.id}`} position={atNode(node)} layer={3}>
+      <span
+        aria-hidden
+        className="flex size-5 -translate-1/2 items-center justify-center rounded-full bg-white text-route shadow-[0_0_0_2.5px_var(--route),0_2px_6px_rgb(15_23_36/0.35)]"
+      >
+        <DoorOpen className="size-3" strokeWidth={2.5} />
+      </span>
+    </MapAnchor>
+  );
+}
 
 function StartPin({ node }: { node: GraphNode }) {
   return (
@@ -332,6 +350,8 @@ interface OverlayProps {
   nodes: GraphNode[];
   buildings: Building[];
   route: GraphNode[];
+  /** Doors at the ends of the route's gaps (indoors, passages). */
+  doors?: GraphNode[];
   /** Node shown in 360° (a route step or an explored spot). */
   focusNodeId?: string;
   /** The chosen destination; pinned even before a route exists. */
@@ -346,6 +366,7 @@ export function MapOverlays({
   nodes,
   buildings,
   route,
+  doors = [],
   focusNodeId,
   destinationNodeId,
   destinationLabel,
@@ -385,6 +406,11 @@ export function MapOverlays({
         labelOf={labelOf}
         onOpen={onOpenPano}
       />
+      {doors
+        .filter((n) => n.id !== focus?.id)
+        .map((n) => (
+          <DoorPin key={n.id} node={n} />
+        ))}
       {start && start.id !== focus?.id && <StartPin node={start} />}
       {end && (
         <DestinationPin node={end} label={destinationLabel ?? labelOf(end)} />

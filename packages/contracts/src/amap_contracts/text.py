@@ -41,3 +41,23 @@ def search_key(text: str) -> str:
     decomposed = unicodedata.normalize("NFKD", folded)
     ascii_only = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     return _NON_ALNUM.sub(" ", ascii_only).strip()
+
+
+# A floor number written with a hyphen or minus sign before it ("-2.Kat",
+# "M Blok-4.Kat", "-5 Koridor"), or plainly as a floor ("2.Kat", "1. K").
+_MINUS_NUMBER = re.compile("[-\\u2212]" + r"(\d+)(?!\d)")
+_PLAIN_FLOOR = re.compile(r"(?:^|\s)(\d+)\s*\.\s*(?:Kat|K\b)", re.IGNORECASE)
+
+
+def spells_other_floor(label: str, floor: int) -> bool:
+    """The label writes this floor's number with the other sign.
+
+    A tour label "T Blok -2.Kat" next to "2. kat" (or "T Blok 2.Kat" next to
+    "-2. kat") would contradict itself on screen: callers then leave the
+    floor out and let the label speak.
+    """
+    if floor > 0:
+        return any(int(m) == floor for m in _MINUS_NUMBER.findall(label))
+    if floor < 0:
+        return any(int(m) == -floor for m in _PLAIN_FLOOR.findall(label))
+    return False

@@ -29,7 +29,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { compassIndex } from '@/features/campus/coords';
 import {
   useBuildings,
   useCampusGraph,
@@ -52,12 +51,31 @@ import {
 import { conditionOf } from '@/features/environment/weather';
 import type { PanoStep } from '@/features/pano/PanoInset';
 import { DirectionsPanel } from '@/features/route/DirectionsPanel';
+import {
+  gapDoors,
+  isIndoorSpot,
+  routeMapIds,
+  routeParts,
+  shownFloor,
+  viewYaw,
+  whereText,
+} from '@/features/route/indoor';
 import { RouteUrlSync } from '@/features/route/RouteUrlSync';
 import { StepIcon } from '@/features/route/StepIcon';
+import {
+  isIndoorStep,
+  stepDistance,
+  useStepText,
+} from '@/features/route/stepText';
 import { type PanelTab, useRouteStore } from '@/features/route/store';
 import { routeParamsOf, withRouteParams } from '@/features/route/urlState';
 import { Link, usePathname } from '@/i18n/navigation';
-import { formatDistance, type Locale } from '@/lib/format';
+import {
+  formatDistance,
+  formatFloor,
+  type Locale,
+  sentenceCase,
+} from '@/lib/format';
 
 import { useCameraStore } from './cameraStore';
 import { MapControls } from './MapControls';
@@ -172,6 +190,13 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
       ? routeData.node_ids[routeData.node_ids.indexOf(step.node_id) + 1]
       : undefined;
   const nextNode = nextNodeId ? graph.data?.byId.get(nextNodeId) : undefined;
+  const previousNodeId =
+    step && routeData
+      ? routeData.node_ids[routeData.node_ids.indexOf(step.node_id) - 1]
+      : undefined;
+  const previousNode = previousNodeId
+    ? graph.data?.byId.get(previousNodeId)
+    : undefined;
   const exploreNode = exploreNodeId
     ? graph.data?.byId.get(exploreNodeId)
     : undefined;
@@ -183,6 +208,64 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
         .filter((n): n is GraphNode => !!n),
     [routeData, graph.data],
   );
+  // Indoor spots stand at the entrance they hang off: the map draws and
+  // pins measured nodes only, and puts indoor ones on their entrance.
+  const parts = useMemo(
+    () => (graph.data ? routeParts(routeNodes, graph.data) : []),
+    [routeNodes, graph.data],
+  );
+  const drawn = useMemo(() => parts.flat(), [parts]);
+  const doors = useMemo(() => gapDoors(parts), [parts]);
+  // The camera frames everything the route covers, indoor spots on their
+  // door; a route inside one building is that door (given twice: the scene
+  // frames routes of two nodes or more).
+  const frameIds = useMemo(() => {
+    const ids = routeMapIds(routeNodes);
+    return ids.length === 1 ? [ids[0]!, ids[0]!] : ids;
+  }, [routeNodes]);
+  const mapNodes = useMemo(
+    () => graph.data?.nodes.filter((n) => !isIndoorSpot(n)) ?? [],
+    [graph.data],
+  );
+  const toNode = to ? graph.data?.byId.get(to.id) : undefined;
+  // The map's node for each: indoor spots sit on their entrance.
+  const stepMapId = stepNode ? (stepNode.anchor ?? stepNode.id) : undefined;
+  const panoMapId = panoNode ? (panoNode.anchor ?? panoNode.id) : undefined;
+  const destinationMapId = toNode ? (toNode.anchor ?? toNode.id) : to?.id;
+  const destinationLabel =
+    to && toNode && isIndoorSpot(toNode)
+      ? t('Indoor.pin', {
+          place: to.name,
+          where:
+            whereText(
+              toNode,
+              locale,
+              toNode.label.tr,
+              toNode.label.en,
+              to.name,
+            ) ?? t('Indoor.marker'),
+        })
+      : to?.name;
+  // Indoors the 360° view faces the tour's hotspot towards the next spot.
+  const panoYaw =
+    stepNode &&
+    graph.data &&
+    [stepNode, nextNode, previousNode].some((n) => isIndoorSpot(n))
+      ? viewYaw(graph.data, stepNode, nextNode, previousNode)
+      : undefined;
+  const stepText = useStepText();
+  // The 360° header's floor, never one the step's own label contradicts.
+  const stepFloorText = (s: NonNullable<typeof step>): string[] => {
+    const floor = shownFloor(
+      s.floor,
+      s.place?.tr ?? '',
+      s.place?.en ?? '',
+      s.turn === 'arrive' ? (to?.name ?? '') : '',
+    );
+    return floor === undefined
+      ? []
+      : [sentenceCase(formatFloor(floor, locale), locale)];
+  };
 
   const nodeLabel = useCallback(
     (node: GraphNode) => (locale === 'en' ? node.label.en : node.label.tr),
@@ -194,20 +277,16 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
           index: activeStep,
           count: steps.length,
           icon: <StepIcon turn={step.turn} className="size-4" />,
-          instruction:
-            step.turn === 'arrive'
-              ? t('Turns.arrive', { place: to?.name ?? '' })
-              : step.turn === 'start'
-                ? t('Turns.start', {
-                    direction: t(
-                      `Compass.${String(compassIndex(step.bearing_deg)) as '0'}`,
-                    ),
-                  })
-                : t(`Turns.${step.turn}`),
-          distance:
-            step.distance_m > 0
-              ? formatDistance(step.distance_m, locale)
-              : undefined,
+          instruction: stepText(step, to?.name ?? ''),
+          // Indoors say where instead of an estimate (passages keep a ≈ one).
+          distance: stepDistance(
+            step,
+            (m) => formatDistance(m, locale),
+            (d) => t('Route.approxDistance', { distance: d }),
+          ),
+          detail: isIndoorStep(step)
+            ? [t('Indoor.marker'), ...stepFloorText(step)].join(' · ')
+            : undefined,
         }
       : undefined;
 
@@ -362,8 +441,9 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
                 buildings={buildings.data ?? []}
                 greenery={greenery.data}
                 ground={ground.data}
-                routeNodeIds={routeData?.node_ids}
-                activeNodeId={stepNode?.id}
+                routeNodeIds={routeData ? frameIds : undefined}
+                routeParts={parts.map((part) => part.map((n) => n.id))}
+                activeNodeId={stepMapId}
                 exploreNodeId={exploreNode?.id}
                 sky={sky}
                 condition={condition}
@@ -390,12 +470,13 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
           {graph.data && ready && (
             <div inert={panoModal} className="contents">
               <MapOverlays
-                nodes={graph.data.nodes}
+                nodes={mapNodes}
                 buildings={buildings.data ?? []}
-                route={routeNodes}
-                focusNodeId={panoNode?.id}
-                destinationNodeId={to?.id}
-                destinationLabel={to?.name}
+                route={drawn}
+                doors={doors}
+                focusNodeId={panoMapId}
+                destinationNodeId={destinationMapId}
+                destinationLabel={destinationLabel}
                 labelOf={nodeLabel}
                 onOpenPano={(node) => setExploreNode(node.id)}
               />
@@ -599,6 +680,7 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
                 <PanoInset
                   node={panoNode}
                   next={stepNode ? nextNode : undefined}
+                  yaw={panoYaw}
                   title={nodeLabel(panoNode)}
                   step={panoStep}
                   night={sky.phase === 'night' || sky.phase === 'twilight'}

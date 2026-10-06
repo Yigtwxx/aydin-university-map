@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from amap_api.routing import Turn
-from amap_contracts.graph import NodeKind
+from amap_contracts.graph import LocalizedText, NodeKind
 
 
 class Health(BaseModel):
@@ -35,6 +35,11 @@ class PlaceOut(BaseModel):
     kind: NodeKind
     building: str | None
     node_ids: list[str]
+    floor: int | None = Field(
+        default=None, description="Storey of a room (kind indoor), when known"
+    )
+    area_tr: str = Field(default="", description="Tour area, e.g. Kimya - M Blok")
+    area_en: str = ""
 
 
 class NearestNode(BaseModel):
@@ -51,18 +56,50 @@ class RouteRequest(BaseModel):
 class StepOut(BaseModel):
     node_id: str
     turn: Turn
-    distance_m: float
-    bearing_deg: float
+    distance_m: float = Field(description="Walked after this step (estimate indoors)")
+    bearing_deg: float = Field(description="Compass bearing outdoors; 0 indoors")
     text_tr: str
     text_en: str
+    indoor: bool = Field(
+        default=False,
+        description="Inside a building: no compass, the distance is an estimate",
+    )
+    building: str | None = Field(
+        default=None, description="Block the step is in, enters or leaves"
+    )
+    floor: int | None = Field(
+        default=None, description="Storey at the step's spot (0 = ground)"
+    )
+    floors: int = Field(
+        default=0, description="Storeys climbed (+) or descended (-) by stairs"
+    )
+    place: LocalizedText | None = Field(
+        default=None, description="Indoor spot walked to (or started at)"
+    )
 
 
 class RouteResponse(BaseModel):
     node_ids: list[str]
     length_m: float
     duration_s: float
-    coordinates: list[tuple[float, float]] = Field(description="[lng, lat] per node")
+    coordinates: list[tuple[float, float]] = Field(
+        description=(
+            "[lng, lat] per node; indoor spots repeat their entrance's position: "
+            "draw `parts`, not this"
+        )
+    )
+    parts: list[list[tuple[float, float]]] = Field(
+        default_factory=list,
+        description=(
+            "[lng, lat] runs the map can draw: measured nodes joined by walks "
+            "outside (the line breaks at indoor spots and passages)"
+        ),
+    )
     steps: list[StepOut]
+    approximate: bool = Field(
+        default=False,
+        description="Length and duration include estimated indoor stretches",
+    )
 
 
 class WeatherOut(BaseModel):

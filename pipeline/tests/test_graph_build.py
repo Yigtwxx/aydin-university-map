@@ -119,13 +119,39 @@ def test_build_graph_edge_lengths_are_metric(built: tuple[Any, Any]) -> None:
     assert edge.cost_s == pytest.approx(8.0 / 1.3), f"Got {edge.cost_s}"
 
 
-def test_components_and_summary_report_isolated_nodes(built: tuple[Any, Any]) -> None:
-    graph, report = built
+def test_components_and_summary_report_isolated_nodes() -> None:
+    no_bridges = GraphParams(bridge_max_m=0.0)
+    graph, report = build_graph(_posed(), _scenes(), BUILDING, "test", no_bridges)
     sizes = [len(c) for c in components(graph)]
     # f joins through its detour; only the teleport target d is cut off.
     assert sizes == [6, 1], f"Got {sizes}"
     summary = summarise(graph, report)
     assert summary["dropped"]["teleport"] == 1, f"Got {summary}"
+
+
+def test_build_graph_bridges_an_island_by_a_walk_outside(
+    built: tuple[Any, Any],
+) -> None:
+    graph, report = built
+    # d's tour link is a teleport (100 m), but open ground lies between d
+    # and c (84 m): the island joins by an inferred walk, not the teleport.
+    assert report.dropped["teleport"] == ["a|d"], report.dropped
+    assert report.bridged == ["c|d"], f"Got {report.bridged}"
+    bridge = next(e for e in graph.edges if e.id == "c|d")
+    assert bridge.origin is EdgeOrigin.INFERRED, bridge.origin
+    assert [len(c) for c in components(graph)] == [7], "one network"
+    assert blocked_edges(graph, BUILDING) == [], "bridges keep clear of buildings"
+
+
+def test_build_graph_bridge_never_cuts_a_building() -> None:
+    # A long wall between "far" and the network leaves no reasonable walk
+    # round it: the island stays apart rather than cut through.
+    wall = Polygon([(-400, -30), (400, -30), (400, -28), (-400, -28)])
+    posed = {**_posed(), "far": {**_posed()["a"], "x": 0.0, "y": -60.0}}
+    scenes = {**_scenes(), "far": {**_scenes()["a"], "links": []}}
+    graph, report = build_graph(posed, scenes, wall, "test", GraphParams())
+    assert not any("far" in e for e in report.bridged), report.bridged
+    assert blocked_edges(graph, wall) == []
 
 
 @pytest.mark.parametrize(

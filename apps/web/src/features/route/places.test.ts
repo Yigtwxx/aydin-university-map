@@ -21,6 +21,8 @@ const place = (
   kind: 'entrance',
   building: null,
   node_ids: [id],
+  area_tr: '',
+  area_en: '',
   ...extra,
 });
 
@@ -79,6 +81,29 @@ describe('place categories', () => {
       'lib',
       'cafe',
     ]);
+  });
+
+  it('keeps a block garden out of the block keys', () => {
+    const garden = place('tg', 'T Blok Bahçe', 'T Block Garden', {
+      kind: 'outdoor',
+      building: 'T',
+    });
+    expect(categoryOf(garden)).toBe('outdoor');
+  });
+
+  it('files rooms apart from their block, never as block keys', () => {
+    const lab = place('lab', 'Anatomi Lab', 'Anatomy Lab', {
+      kind: 'indoor',
+      building: 'M',
+      floor: 5,
+    });
+    expect(categoryOf(lab)).toBe('rooms');
+    expect(blockEntrances([...directory, lab]).map((p) => p.id)).not.toContain(
+      'lab',
+    );
+    expect(highlightsOf([lab, ...directory]).map((p) => p.id)).not.toContain(
+      'lab',
+    );
   });
 
   it('orders block entrances by letter', () => {

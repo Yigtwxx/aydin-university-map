@@ -30,7 +30,7 @@
     "walkDistance": "{distance} yürüyüş",
     "startWalk": "360° yürüyüşü başlat",
     "suggested": "Önerilen yerler",
-    "coverage": "Rotalar kampüsün açık alanlarını ve bina girişlerini kapsar. Bina içleri sanal turdan işlendikçe eklenecek.",
+    "coverage": "Rotalar kampüsün açık alanlarını, bina girişlerini ve sanal turdaki bina içlerini kapsar. Bina içi mesafeler tahminidir.",
     "clear": "{field} alanını temizle",
     "search": "Nereye gitmek istiyorsunuz?",
     "searchLabel": "Varış yeri ara",
@@ -50,7 +50,8 @@
       "health": "Sağlık",
       "library": "Kütüphane",
       "cafe": "Kafe",
-      "outdoor": "Açık alan"
+      "outdoor": "Açık alan",
+      "rooms": "Odalar"
     },
     "type": {
       "blocks": "Bina girişi",
@@ -58,7 +59,8 @@
       "health": "Sağlık",
       "library": "Kütüphane",
       "cafe": "Kafe",
-      "outdoor": "Açık alan"
+      "outdoor": "Açık alan",
+      "rooms": "Bina içi"
     },
     "startShort": "Başlat",
     "copyLink": "Bağlantıyı kopyala",
@@ -66,7 +68,10 @@
     "linkCopiedShort": "Bağlantı kopyalandı",
     "copyFailed": "Kopyalanamadı",
     "linkCopied": "Rota bağlantısı panoya kopyalandı.",
-    "linkCopyFailed": "Bağlantı kopyalanamadı. Adres çubuğundaki bağlantıyı paylaşabilirsiniz."
+    "linkCopyFailed": "Bağlantı kopyalanamadı. Adres çubuğundaki bağlantıyı paylaşabilirsiniz.",
+    "noStepFree": "Buraya bilinen merdivensiz bir yol yok: sanal turda asansör bilgisi bulunmuyor. Merdivensiz rotayı kapatıp deneyin.",
+    "approxDistance": "≈ {distance}",
+    "indoorEstimate": "Bina içi kısımlar sanal turdan tahmin edildi."
   },
   "Pano": {
     "title": "360° görünüm",
@@ -131,7 +136,20 @@
     "right": "Sağa dönün",
     "sharp_right": "Keskin sağa",
     "u_turn": "Geri dönün",
-    "arrive": "Varış: {place}"
+    "arrive": "Varış: {place}",
+    "startAt": "Yola çıkın: {place}",
+    "enter": "{building} Blok'a girin",
+    "enterNamed": "{place} binasına girin",
+    "enterBuilding": "Binaya girin",
+    "exit": "{building} Blok'tan çıkın, {direction} yönünde yürüyün",
+    "exitNamed": "{place} binasından çıkın, {direction} yönünde yürüyün",
+    "exitBuilding": "Binadan çıkın, {direction} yönünde yürüyün",
+    "go_to": "Devam edin: {place}",
+    "stairs_up": "Merdivenle {count} kat çıkın",
+    "stairs_down": "Merdivenle {count} kat inin",
+    "through": "{building} Blok'un içinden geçin",
+    "throughNamed": "{place} binasının içinden geçin",
+    "throughBuilding": "Binanın içinden geçin"
   },
   "Compass": {
     "0": "Kuzey",
@@ -202,5 +220,9 @@
     "stage3Body": "Nereden nereye gideceğinizi seçin: rota 3B haritada çizilir, her adımı 360° görüntüyle önizlersiniz.",
     "pin": "İstanbul Aydın Üniversitesi",
     "skipDive": "Haritaya geç"
+  },
+  "Indoor": {
+    "marker": "Bina içi",
+    "pin": "{place} · {where}"
   }
 }

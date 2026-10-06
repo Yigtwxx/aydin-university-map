@@ -16,6 +16,12 @@ Nodes standing inside a footprint (SfM vs OSM disagreement) are first moved
 just outside its nearest wall (:mod:`amap_pipeline.graph.clearance`). Only
 indoor panoramas may be inside buildings.
 
+Islands of the measured network (SfM models no tour link joins) are bridged
+to the main one by the shortest reasonable walk outside, if there is one.
+
+Indoor panoramas without a pose then hang off this network through the
+tour's links (:mod:`amap_pipeline.graph.indoor`), with estimated lengths.
+
 Lengths are 3D distances between camera centres (local metres), measured
 along the detour when there is one.
 """
@@ -52,6 +58,7 @@ from amap_pipeline.graph.clearance import (
     snap_point,
     walk_around,
 )
+from amap_pipeline.graph.indoor import IndoorReport, attach_indoor, position_of
 
 _BLOCK_RE = re.compile(r"\b([A-Z](?:-[A-Z])?) Blok\b")
 DOORWAY_KINDS = frozenset({NodeKind.ENTRANCE, NodeKind.INDOOR})
@@ -72,6 +79,11 @@ class GraphParams:
     # Inferred links may bend round a building corner when that costs little.
     corner_ratio: float = 1.2
     corner_vertices: int = 2
+    # Hang indoor panoramas off the network through the tour's links.
+    indoor: bool = True
+    # An island of the measured network joins the main one by a walk outside
+    # at most this far (straight line), round buildings as tour links do.
+    bridge_max_m: float = 120.0
 
 
 @dataclass(slots=True)
@@ -83,6 +95,8 @@ class BuildReport:
     )
     snapped: dict[str, float] = field(default_factory=dict)  # node -> metres moved
     detoured: list[str] = field(default_factory=list)
+    bridged: list[str] = field(default_factory=list)  # islands joined outside
+    indoor: IndoorReport = field(default_factory=IndoorReport)
 
 
 def building_of(label: str) -> str | None:
@@ -180,6 +194,32 @@ def snap_nodes(
     return snapped
 
 
+def outdoor_line(
+    a: tuple[float, float],
+    b: tuple[float, float],
+    obstacles: Obstacles,
+    params: GraphParams,
+    bends_ok: bool = False,
+) -> list[tuple[float, float]] | None:
+    """The walk outside from a to b, round buildings; None when unreasonable.
+
+    A detour may be ``max_detour_ratio`` longer (or ``max_detour_extra_m``
+    for short links); a long link that has to bend at all is a teleport to
+    another block's door unless ``bends_ok`` (island bridges look for walks).
+    """
+    straight = math.dist(a, b)
+    path = walk_around(a, b, obstacles)
+    allowed = max(
+        straight * params.max_detour_ratio, straight + params.max_detour_extra_m
+    )
+    bends = len(path or []) > 2
+    if path is None or path_length(path) > allowed:
+        return None
+    if bends and not bends_ok and straight > params.max_detour_link_m:
+        return None
+    return path
+
+
 def make_edges(
     nodes: list[Node],
     tour_links: Iterable[tuple[str, str]],
@@ -207,16 +247,15 @@ def make_edges(
             report.dropped["teleport"].append(key)
             continue
         if NodeKind.INDOOR in (a.kind, b.kind):
-            # Indoor panoramas are inside by definition (indoor routing).
-            edges[key] = _edge(a, b, EdgeOrigin.TOUR)
+            # Indoor panoramas are inside by definition: a walk through the
+            # building, never a line to draw outside.
+            edges[key] = _edge(a, b, EdgeOrigin.TOUR).model_copy(
+                update={"passage": True}
+            )
             report.tour_links_kept += 1
             continue
-        path = walk_around(_xy(a), _xy(b), obstacles)
-        allowed = max(
-            straight * params.max_detour_ratio, straight + params.max_detour_extra_m
-        )
-        too_long = len(path or []) > 2 and straight > params.max_detour_link_m
-        if path is None or too_long or path_length(path) > allowed:
+        path = outdoor_line(_xy(a), _xy(b), obstacles, params)
+        if path is None:
             report.dropped["crosses_building"].append(key)
             continue
         if len(path) > 2:
@@ -255,18 +294,120 @@ def make_edges(
 
 
 def blocked_edges(graph: Graph, footprints: BaseGeometry) -> list[str]:
-    """Edges whose walking line cuts a building (must be empty to publish)."""
+    """Edges whose walking line cuts a building (must be empty to publish).
+
+    Exempt: passages (walks through a building, never drawn) and links
+    within one position (an indoor spot and its door). Every other line,
+    doors at borrowed positions included, must keep clear of buildings.
+    """
     obstacles = Obstacles.of(footprints)
     by_id = {n.id: n for n in graph.nodes}
     blocked: list[str] = []
     for edge in graph.edges:
         a, b = by_id[edge.source], by_id[edge.target]
-        if NodeKind.INDOOR in (a.kind, b.kind):
+        if edge.passage or position_of(a) == position_of(b):
             continue
         line = edge.path_enu or [_xy(a), _xy(b)]
         if any(obstacles.crosses(p, q) for p, q in pairwise(line)):
             blocked.append(edge.id)
     return blocked
+
+
+def bridge_islands(
+    nodes: list[Node],
+    edges: list[Edge],
+    footprints: BaseGeometry,
+    params: GraphParams = GraphParams(),  # noqa: B008 - frozen dataclass
+    report: BuildReport | None = None,
+) -> list[Edge]:
+    """Join islands of the measured network to the main one, walking outside.
+
+    An SfM model no tour link joins to the rest (the T Blok garden) is
+    reachable only through a building otherwise. Each island gets the
+    shortest walk round buildings from one of its spots to the main network,
+    tried over the nearest pairs within ``bridge_max_m``; none if no walk
+    is reasonable (the outdoor link rules).
+    """
+    obstacles = Obstacles.of(footprints)
+    walkers = {
+        n.id: n for n in nodes if n.kind in (NodeKind.OUTDOOR, NodeKind.ENTRANCE)
+    }
+    root = {n.id: n.id for n in nodes}
+
+    def find(n: str) -> str:
+        while root[n] != n:
+            root[n] = root[root[n]]
+            n = root[n]
+        return n
+
+    for edge in edges:
+        a, b = sorted((find(edge.source), find(edge.target)))
+        root[b] = a
+    groups: dict[str, list[str]] = {}
+    for n in sorted(root):
+        groups.setdefault(find(n), []).append(n)
+    ordered = sorted(groups.values(), key=lambda g: (-len(g), g[0]))
+    if not ordered:
+        return []
+    main = set(ordered[0])
+    bridges: list[Edge] = []
+    for island in ordered[1:]:
+        pairs = sorted(
+            (math.dist(_xy(walkers[a]), _xy(walkers[b])), a, b)
+            for a in island
+            if a in walkers
+            for b in sorted(main)
+            if b in walkers
+        )
+        best: tuple[float, str, str, list[tuple[float, float]]] | None = None
+        for straight, a, b in pairs[:24]:
+            if straight > params.bridge_max_m:
+                break
+            line = outdoor_line(
+                _xy(walkers[a]), _xy(walkers[b]), obstacles, params, bends_ok=True
+            )
+            if line is not None and (best is None or path_length(line) < best[0]):
+                best = (path_length(line), a, b, line)
+        if best is None:
+            continue
+        _, a, b, line = best
+        bridge = _edge(walkers[a], walkers[b], EdgeOrigin.INFERRED, line)
+        bridges.append(bridge)
+        main |= set(island)
+        if report is not None:
+            report.bridged.append(bridge.id)
+    return bridges
+
+
+def step_free_conflicts(graph: Graph) -> list[str]:
+    """Step-free stretches that reach two known floors (must be empty).
+
+    Without its stairs edges the graph falls apart into pieces; a piece with
+    two different known storeys would let a "step-free" route change floor.
+    """
+    by_id = {n.id: n for n in graph.nodes}
+    root = {n.id: n.id for n in graph.nodes}
+
+    def find(n: str) -> str:
+        while root[n] != n:
+            root[n] = root[root[n]]
+            n = root[n]
+        return n
+
+    for edge in graph.edges:
+        if edge.kind is EdgeKind.STAIRS:
+            continue
+        a, b = sorted((find(edge.source), find(edge.target)))
+        root[b] = a
+    floors: dict[str, set[int]] = {}
+    for node in graph.nodes:
+        if node.level is not None:
+            floors.setdefault(find(node.id), set()).add(node.level)
+    return sorted(
+        f"{by_id[r].label.tr} ({r}): floors {sorted(levels)}"
+        for r, levels in floors.items()
+        if len(levels) > 1
+    )
 
 
 def components(graph: Graph) -> list[list[str]]:
@@ -300,9 +441,28 @@ def build_graph(
     params: GraphParams = GraphParams(),  # noqa: B008 - frozen dataclass
 ) -> tuple[Graph, BuildReport]:
     report = BuildReport()
-    nodes = snap_nodes(make_nodes(posed, scenes), Obstacles.of(footprints), report)
+    obstacles = Obstacles.of(footprints)
+    nodes = snap_nodes(make_nodes(posed, scenes), obstacles, report)
     tour_links = [(a, b) for a in posed for b in scenes[a]["links"]]
     edges, report = make_edges(nodes, tour_links, footprints, params, report)
+    edges = sorted(
+        [*edges, *bridge_islands(nodes, edges, footprints, params, report)],
+        key=lambda e: e.id,
+    )
+
+    def walkable(a: Node, b: Node) -> list[tuple[float, float]] | None:
+        """Two doors at different positions: a walk outside, as tour links."""
+        if math.dist(a.enu, b.enu) > params.max_link_m:
+            return None
+        return outdoor_line(_xy(a), _xy(b), obstacles, params)
+
+    if params.indoor:
+        nodes, indoor_edges, report.indoor = attach_indoor(nodes, scenes, walkable)
+        reached = {e.id for e in indoor_edges}
+        report.dropped["unposed"] = [
+            k for k in report.dropped["unposed"] if k not in reached
+        ]
+        edges = sorted([*edges, *indoor_edges], key=lambda e: e.id)
     meta = GraphMeta(
         generated_at=datetime.now(UTC),
         run_id=run_id,
@@ -314,7 +474,12 @@ def build_graph(
 
 def summarise(graph: Graph, report: BuildReport) -> dict[str, Any]:
     comps = components(graph)
-    lengths = [e.length_m for e in graph.edges]
+    # Edge statistics of the measured network; indoor lengths are estimates.
+    lengths = [
+        e.length_m for e in graph.edges if e.length_source is not LengthSource.ESTIMATE
+    ]
+    indoor_nodes = [n for n in graph.nodes if n.approximate]
+    indoor_edges = [e for e in graph.edges if e.length_source is LengthSource.ESTIMATE]
     return {
         "nodes": len(graph.nodes),
         "edges": len(graph.edges),
@@ -327,4 +492,19 @@ def summarise(graph: Graph, report: BuildReport) -> dict[str, Any]:
         "median_edge_m": round(float(np.median(lengths)), 2) if lengths else None,
         "max_edge_m": round(max(lengths), 2) if lengths else None,
         "total_length_m": round(math.fsum(lengths), 1),
+        "indoor": {
+            "nodes": len(indoor_nodes),
+            "entrances": sum(n.kind is NodeKind.ENTRANCE for n in indoor_nodes),
+            "edges": len(indoor_edges),
+            "stairs": sum(e.kind is EdgeKind.STAIRS for e in indoor_edges),
+            "with_floor": sum(n.floor is not None for n in indoor_nodes),
+            "with_building": sum(n.building is not None for n in indoor_nodes),
+            "floors": report.indoor.floors,
+            "unreachable": len(report.indoor.unreachable),
+            "passages": sum(e.passage for e in graph.edges),
+            "menu_jumps": len(report.indoor.menu_jumps),
+            "door_walks": len(report.indoor.door_walks),
+        },
+        "bridges": len(report.bridged),
+        "step_free_conflicts": len(step_free_conflicts(graph)),
     }

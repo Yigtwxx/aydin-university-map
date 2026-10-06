@@ -1,7 +1,7 @@
 """Load the walking graph (contracts GeoJSON) into NetworkX once per process."""
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import httpx
@@ -10,11 +10,35 @@ import networkx as nx
 from amap_contracts.graph import Graph, Node
 
 
+def _indoor_clusters(graph: Graph, nodes: dict[str, Node]) -> dict[str, int]:
+    """Approximate (indoor) node -> id of the indoor network it belongs to.
+
+    Two indoor spots are in one cluster when indoor links join them without
+    stepping onto a measured node: the inside of one building (or of blocks
+    the tour joins indoors).
+    """
+    root = {n.id: n.id for n in graph.nodes if n.approximate}
+
+    def find(node_id: str) -> str:
+        while root[node_id] != node_id:
+            root[node_id] = root[root[node_id]]
+            node_id = root[node_id]
+        return node_id
+
+    for edge in graph.edges:
+        if nodes[edge.source].approximate and nodes[edge.target].approximate:
+            a, b = sorted((find(edge.source), find(edge.target)))
+            root[b] = a
+    ids: dict[str, int] = {}
+    return {n: ids.setdefault(find(n), len(ids)) for n in sorted(root)}
+
+
 @dataclass(frozen=True, slots=True)
 class GraphStore:
     graph: Graph
     nx_graph: nx.Graph
     nodes: dict[str, Node]
+    indoor_cluster: dict[str, int] = field(default_factory=dict)
 
     @classmethod
     def from_graph(cls, graph: Graph) -> "GraphStore":
@@ -31,8 +55,16 @@ class GraphStore:
                 kind=edge.kind.value,
                 source=edge.source,
                 path_enu=edge.path_enu,
+                length_source=edge.length_source.value,
+                passage=edge.passage,
             )
-        return cls(graph=graph, nx_graph=g, nodes={n.id: n for n in graph.nodes})
+        nodes = {n.id: n for n in graph.nodes}
+        return cls(
+            graph=graph,
+            nx_graph=g,
+            nodes=nodes,
+            indoor_cluster=_indoor_clusters(graph, nodes),
+        )
 
 
 def load_graph(source: str) -> GraphStore:

@@ -27,7 +27,7 @@
     "/graph": {
       "get": {
         "summary": "Graph",
-        "description": "The walking graph as GeoJSON (nodes and edges).",
+        "description": "The walking graph as GeoJSON (nodes and edges); ETag-cached.",
         "operationId": "graph_graph_get",
         "responses": {
           "200": {
@@ -41,6 +41,9 @@
                 }
               }
             }
+          },
+          "304": {
+            "description": "Not modified (If-None-Match)"
           }
         }
       }
@@ -48,7 +51,7 @@
     "/places": {
       "get": {
         "summary": "Places",
-        "description": "Word-prefix search; with a database, typos fall back to trigrams.",
+        "description": "Word-prefix search; with a database, typos fall back to trigrams.\n\nWithout ``q``: the places the map shows (open areas and entrances at\nmeasured spots); rooms and doors known only from the tour are found\nby searching.",
         "operationId": "places_places_get",
         "parameters": [
           {
@@ -95,6 +98,9 @@
                 }
               }
             }
+          },
+          "304": {
+            "description": "Not modified (If-None-Match)"
           },
           "422": {
             "description": "Validation Error",
@@ -167,7 +173,7 @@
     "/nodes/nearest": {
       "get": {
         "summary": "Nearest",
-        "description": "Nearest outdoor/entrance panorama to a map click (equirectangular metres).",
+        "description": "Nearest outdoor/entrance panorama to a map click (equirectangular metres).\n\nIndoor spots stand at borrowed positions and are never the answer.",
         "operationId": "nearest_nodes_nearest_get",
         "parameters": [
           {
@@ -477,6 +483,24 @@
         ],
         "title": "Health"
       },
+      "LocalizedText": {
+        "properties": {
+          "tr": {
+            "type": "string",
+            "title": "Tr"
+          },
+          "en": {
+            "type": "string",
+            "title": "En"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tr",
+          "en"
+        ],
+        "title": "LocalizedText"
+      },
       "NearestNode": {
         "properties": {
           "node_id": {
@@ -539,6 +563,29 @@
             },
             "type": "array",
             "title": "Node Ids"
+          },
+          "floor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floor",
+            "description": "Storey of a room (kind indoor), when known"
+          },
+          "area_tr": {
+            "type": "string",
+            "title": "Area Tr",
+            "description": "Tour area, e.g. Kimya - M Blok",
+            "default": ""
+          },
+          "area_en": {
+            "type": "string",
+            "title": "Area En",
+            "default": ""
           }
         },
         "type": "object",
@@ -610,7 +657,28 @@
             },
             "type": "array",
             "title": "Coordinates",
-            "description": "[lng, lat] per node"
+            "description": "[lng, lat] per node; indoor spots repeat their entrance's position: draw `parts`, not this"
+          },
+          "parts": {
+            "items": {
+              "items": {
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 2,
+                "minItems": 2
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Parts",
+            "description": "[lng, lat] runs the map can draw: measured nodes joined by walks outside (the line breaks at indoor spots and passages)"
           },
           "steps": {
             "items": {
@@ -618,6 +686,12 @@
             },
             "type": "array",
             "title": "Steps"
+          },
+          "approximate": {
+            "type": "boolean",
+            "title": "Approximate",
+            "description": "Length and duration include estimated indoor stretches",
+            "default": false
           }
         },
         "type": "object",
@@ -641,11 +715,13 @@
           },
           "distance_m": {
             "type": "number",
-            "title": "Distance M"
+            "title": "Distance M",
+            "description": "Walked after this step (estimate indoors)"
           },
           "bearing_deg": {
             "type": "number",
-            "title": "Bearing Deg"
+            "title": "Bearing Deg",
+            "description": "Compass bearing outdoors; 0 indoors"
           },
           "text_tr": {
             "type": "string",
@@ -654,6 +730,53 @@
           "text_en": {
             "type": "string",
             "title": "Text En"
+          },
+          "indoor": {
+            "type": "boolean",
+            "title": "Indoor",
+            "description": "Inside a building: no compass, the distance is an estimate",
+            "default": false
+          },
+          "building": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Building",
+            "description": "Block the step is in, enters or leaves"
+          },
+          "floor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floor",
+            "description": "Storey at the step's spot (0 = ground)"
+          },
+          "floors": {
+            "type": "integer",
+            "title": "Floors",
+            "description": "Storeys climbed (+) or descended (-) by stairs",
+            "default": 0
+          },
+          "place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Indoor spot walked to (or started at)"
           }
         },
         "type": "object",
@@ -679,7 +802,13 @@
           "right",
           "sharp_right",
           "u_turn",
-          "arrive"
+          "arrive",
+          "enter",
+          "exit",
+          "go_to",
+          "stairs_up",
+          "stairs_down",
+          "through"
         ],
         "title": "Turn"
       },

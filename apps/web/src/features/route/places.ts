@@ -1,12 +1,12 @@
 import type { Place } from '@/features/campus/queries';
 
 /**
- * Quick-filter categories, derived from the place directory itself: building
- * entrances carry a block letter, the rest are told apart by their names
- * (Turkish and English, so either locale's data works).
+ * Quick-filter categories, derived from the place directory itself: rooms are
+ * indoors, building entrances carry a block letter, the rest are told apart
+ * by their names (Turkish and English, so either locale's data works).
  */
 export type PlaceCategory =
-  'blocks' | 'gates' | 'health' | 'library' | 'cafe' | 'outdoor';
+  'blocks' | 'gates' | 'health' | 'library' | 'cafe' | 'outdoor' | 'rooms';
 
 export const CATEGORY_ORDER: readonly PlaceCategory[] = [
   'blocks',
@@ -15,6 +15,7 @@ export const CATEGORY_ORDER: readonly PlaceCategory[] = [
   'library',
   'cafe',
   'outdoor',
+  'rooms',
 ];
 
 const NAME_RULES: [PlaceCategory, RegExp][] = [
@@ -24,7 +25,9 @@ const NAME_RULES: [PlaceCategory, RegExp][] = [
 ];
 
 export function categoryOf(place: Place): PlaceCategory {
-  if (place.building) return 'blocks';
+  if (place.kind === 'indoor') return 'rooms';
+  // A block's garden names the block too, but only doors are block keys.
+  if (place.building && place.kind === 'entrance') return 'blocks';
   const names = `${place.name_tr} ${place.name_en}`;
   for (const [category, pattern] of NAME_RULES)
     if (pattern.test(names)) return category;
@@ -53,13 +56,19 @@ export function highlightsOf(places: Place[], limit = 4): Place[] {
   );
   const picked: Place[] = [];
   for (const category of CATEGORY_ORDER) {
-    if (category === 'blocks' || category === 'outdoor') continue;
+    if (category === 'blocks' || category === 'outdoor' || category === 'rooms')
+      continue;
     const best = byCoverage.find((p) => categoryOf(p) === category);
     if (best) picked.push(best);
   }
   for (const place of byCoverage) {
     if (picked.length >= limit) break;
-    if (!picked.includes(place) && categoryOf(place) !== 'blocks')
+    const category = categoryOf(place);
+    if (
+      !picked.includes(place) &&
+      category !== 'blocks' &&
+      category !== 'rooms'
+    )
       picked.push(place);
   }
   return picked.slice(0, limit);

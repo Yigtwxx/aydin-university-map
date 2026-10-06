@@ -83,13 +83,14 @@ def load_outputs(conn: psycopg.Connection, out_dir: Path) -> LoadCounts:
             cur.executemany(
                 "insert into amap.nodes (id, kind, building, floor, label_tr, "
                 "label_en, area_tr, area_en, heading_deg, pose_source, enu, geom) "
-                "values (%s, %s, %s, null, %s, %s, %s, %s, %s, %s, %s, "
+                "values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
                 "extensions.st_geomfromtext(%s, 4326))",
                 [
                     (
                         n.id,
                         n.kind.value,
                         n.building,
+                        n.floor,
                         n.label.tr,
                         n.label.en,
                         n.area.tr,

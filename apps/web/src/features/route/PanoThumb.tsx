@@ -10,13 +10,19 @@ export type CubeFace = 'f' | 'r' | 'b' | 'l';
 
 const FACES: readonly CubeFace[] = ['f', 'r', 'b', 'l'];
 
+/** The side cube face that looks closest to a viewer yaw (radians from the front). */
+export function faceForYaw(yaw: number): CubeFace {
+  const turn = 2 * Math.PI;
+  const quarter = (((yaw % turn) + turn) % turn) / (Math.PI / 2);
+  return FACES[Math.round(quarter) % 4] ?? 'f';
+}
+
 /** The side cube face that looks closest to a compass bearing. */
 export function faceTowards(
   bearingDegrees: number,
   headingDegrees: number,
 ): CubeFace {
-  const quarter = yawForBearing(bearingDegrees, headingDegrees) / (Math.PI / 2);
-  return FACES[Math.round(quarter) % 4] ?? 'f';
+  return faceForYaw(yawForBearing(bearingDegrees, headingDegrees));
 }
 
 /**

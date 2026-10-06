@@ -68,6 +68,11 @@ interface SceneProps {
   greenery?: GreeneryData;
   ground?: Ground;
   routeNodeIds?: string[];
+  /**
+   * The runs of the route to draw (node ids each); the line breaks between
+   * them. Without it the whole route is one line.
+   */
+  routeParts?: string[][];
   /** Node of the route step being previewed in 360°. */
   activeNodeId?: string;
   /** Node shown in 360° while exploring without a route. */
@@ -113,6 +118,7 @@ function SceneContents({
   greenery,
   ground,
   routeNodeIds,
+  routeParts,
   activeNodeId,
   exploreNodeId,
   sky,
@@ -150,6 +156,19 @@ function SceneContents({
     [graph, routeNodeIds],
   );
   const hasRoute = route.length > 1;
+  const ribbons = useMemo(
+    () =>
+      routeParts
+        ? routeParts.map((part) =>
+            part
+              .map((id) => graph.byId.get(id))
+              .filter((n): n is GraphNode => !!n),
+          )
+        : hasRoute
+          ? [route]
+          : [],
+    [graph, routeParts, route, hasRoute],
+  );
   const precipitation = condition ? precipitationOf(condition) : undefined;
 
   // Share the controls with the DOM map controls and report the heading.
@@ -301,14 +320,15 @@ function SceneContents({
           }}
         />
       )}
-      {hasRoute && (
+      {ribbons.map((part) => (
         <RouteRibbon
+          key={part.map((n) => n.id).join()}
           graph={graph}
-          nodes={route}
+          nodes={part}
           reducedMotion={reducedMotion}
           onTop={Boolean(photoreal)}
         />
-      )}
+      ))}
       <OverlayProjector />
       {precipitation && !reducedMotion && (
         <Precipitation kind={precipitation} />
