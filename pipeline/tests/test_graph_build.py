@@ -1,11 +1,12 @@
 from typing import Any
 
 import pytest
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Point, Polygon
 
 from amap_contracts.graph import EdgeKind, EdgeOrigin
 from amap_pipeline.graph.build import (
     GraphParams,
+    blocked_edges,
     build_graph,
     building_of,
     components,
@@ -19,7 +20,7 @@ POSITIONS = {
     "b": (8.0, 0.0, "outdoor"),
     "c": (16.0, 0.0, "outdoor"),
     "d": (100.0, 0.0, "outdoor"),  # teleport target
-    "e": (8.0, -10.0, "entrance"),  # inside the building edge: doorway pano
+    "e": (8.0, -7.0, "entrance"),  # a metre inside the north wall (SfM vs OSM)
     "f": (8.0, -20.0, "outdoor"),  # behind the building
     "g": (4.0, 4.0, "outdoor"),  # not linked in the tour
 }
@@ -63,15 +64,39 @@ def built() -> tuple[Any, Any]:
 def test_build_graph_keeps_walkable_tour_links(built: tuple[Any, Any]) -> None:
     graph, _ = built
     tour = {e.id for e in graph.edges if e.origin is EdgeOrigin.TOUR}
-    assert tour == {"a|b", "b|c", "b|e"}, f"Got {tour}"
+    assert tour == {"a|b", "b|c", "b|e", "b|f"}, f"Got {tour}"
 
 
-def test_build_graph_drops_teleports_and_building_crossings(
-    built: tuple[Any, Any],
-) -> None:
+def test_build_graph_drops_teleports(built: tuple[Any, Any]) -> None:
     _, report = built
     assert report.dropped["teleport"] == ["a|d"], f"Got {report.dropped}"
-    assert report.dropped["crosses_building"] == ["b|f"], f"Got {report.dropped}"
+
+
+def test_build_graph_walks_around_buildings(built: tuple[Any, Any]) -> None:
+    graph, report = built
+    edge = next(e for e in graph.edges if e.id == "b|f")
+    assert "b|f" in report.detoured, f"Got {report.detoured}"
+    assert edge.path_enu is not None and len(edge.path_enu) > 2
+    assert edge.path_enu[0] == (8.0, 0.0) and edge.path_enu[-1] == (8.0, -20.0)
+    line = LineString(edge.path_enu)
+    assert line.intersection(BUILDING).length < 0.01, "Detour cuts the building"
+    assert edge.length_m == pytest.approx(line.length, rel=1e-3)
+    assert blocked_edges(graph, BUILDING) == []
+
+
+def test_build_graph_drops_unreasonable_detours() -> None:
+    params = GraphParams(max_detour_ratio=1.1, max_detour_extra_m=0.0)
+    graph, report = build_graph(_posed(), _scenes(), BUILDING, "test", params)
+    assert "b|f" in report.dropped["crosses_building"], f"Got {report.dropped}"
+    assert "b|f" not in {e.id for e in graph.edges}
+
+
+def test_build_graph_moves_nodes_out_of_buildings(built: tuple[Any, Any]) -> None:
+    graph, report = built
+    entrance = next(n for n in graph.nodes if n.id == "e")
+    assert set(report.snapped) == {"e"}, f"Got {report.snapped}"
+    assert not BUILDING.contains(Point(entrance.enu[0], entrance.enu[1]))
+    assert BUILDING.exterior.distance(Point(entrance.enu[0], entrance.enu[1])) < 1.5
 
 
 def test_build_graph_doorway_link_is_entrance_kind(built: tuple[Any, Any]) -> None:
@@ -97,7 +122,8 @@ def test_build_graph_edge_lengths_are_metric(built: tuple[Any, Any]) -> None:
 def test_components_and_summary_report_isolated_nodes(built: tuple[Any, Any]) -> None:
     graph, report = built
     sizes = [len(c) for c in components(graph)]
-    assert sizes[0] == 5 and sorted(sizes[1:]) == [1, 1], f"Got {sizes}"
+    # f joins through its detour; only the teleport target d is cut off.
+    assert sizes == [6, 1], f"Got {sizes}"
     summary = summarise(graph, report)
     assert summary["dropped"]["teleport"] == 1, f"Got {summary}"
 

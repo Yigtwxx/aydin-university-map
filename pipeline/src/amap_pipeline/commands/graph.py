@@ -10,12 +10,18 @@ from amap_contracts.graph import Graph
 from amap_pipeline import paths
 from amap_pipeline.geo.align import footprint_union
 from amap_pipeline.geo.osm import (
-    CAMPUS_OSM_BBOX,
+    WIDE_OSM_BBOX,
     LocalProjector,
     fetch_buildings_raw,
     parse_buildings,
 )
-from amap_pipeline.graph.build import GraphParams, build_graph, components, summarise
+from amap_pipeline.graph.build import (
+    GraphParams,
+    blocked_edges,
+    build_graph,
+    components,
+    summarise,
+)
 
 app = typer.Typer(help="Walking graph commands.", no_args_is_help=True)
 
@@ -71,7 +77,7 @@ def graph_export(
         list[str], typer.Option("--run", help="Georeferenced SfM run (repeatable).")
     ],
     max_link_m: Annotated[float, typer.Option(help="Longer links are teleports.")] = 60,
-    infer_radius_m: Annotated[float, typer.Option(help="Line-of-sight radius.")] = 12,
+    infer_radius_m: Annotated[float, typer.Option(help="Line-of-sight radius.")] = 35,
     keep_islands: Annotated[
         bool, typer.Option(help="Keep components cut off from the main network.")
     ] = False,
@@ -92,31 +98,44 @@ def graph_export(
         s["name"]: s
         for s in json.loads((paths.derived_dir() / "scenes.json").read_text("utf-8"))
     }
+    projector = LocalProjector()
+    # The same footprints the map draws (amap export buildings).
     buildings = parse_buildings(
         fetch_buildings_raw(
-            CAMPUS_OSM_BBOX, paths.data_dir() / "osm" / "buildings.json"
+            WIDE_OSM_BBOX, paths.data_dir() / "osm" / "buildings_wide.json"
         ),
-        LocalProjector(),
+        projector,
     )
+    footprints = footprint_union([b.outline for b in buildings])
     graph, report = build_graph(
         posed,
         scenes,
-        footprint_union([b.outline for b in buildings]),
+        footprints,
         run_id="+".join(runs),
         params=GraphParams(max_link_m=max_link_m, infer_radius_m=infer_radius_m),
     )
     islands: list[list[str]] = []
     if not keep_islands:
         graph, islands = largest_component(graph)
+    blocked = blocked_edges(graph, footprints)
+    if blocked:
+        raise typer.BadParameter(f"edges cut through buildings: {blocked}")
     out_dir = paths.data_dir() / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "graph.geojson").write_text(
-        json.dumps(graph.to_geojson(), ensure_ascii=False) + "\n", "utf-8"
+        json.dumps(graph.to_geojson(projector.to_wgs84), ensure_ascii=False) + "\n",
+        "utf-8",
     )
     summary = summarise(graph, report)
     (out_dir / "graph_report.json").write_text(
         json.dumps(
-            {"summary": summary, "dropped": report.dropped, "islands": islands},
+            {
+                "summary": summary,
+                "dropped": report.dropped,
+                "snapped": report.snapped,
+                "detoured": report.detoured,
+                "islands": islands,
+            },
             indent=2,
         )
         + "\n",

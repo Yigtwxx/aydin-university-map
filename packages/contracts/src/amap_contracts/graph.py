@@ -6,6 +6,7 @@ true north) of panorama yaw 0, i.e. the centre of the front cube face, so a
 hotspot at krpano ``ath`` points to ``(ath + heading_deg) % 360``.
 """
 
+from collections.abc import Callable
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
@@ -85,6 +86,9 @@ class Edge(BaseModel):
     cost_s: float = Field(gt=0.0)
     length_source: LengthSource
     bidirectional: bool = True
+    # Walking line in local metres [east, north] from source to target, when
+    # it bends around buildings; None = the straight segment between nodes.
+    path_enu: list[tuple[float, float]] | None = None
 
 
 class GraphMeta(BaseModel):
@@ -105,8 +109,19 @@ class Graph(BaseModel):
     nodes: list[Node]
     edges: list[Edge]
 
-    def to_geojson(self) -> dict[str, Any]:
+    def to_geojson(
+        self, to_lnglat: Callable[[float, float], tuple[float, float]] | None = None
+    ) -> dict[str, Any]:
+        """GeoJSON; ``to_lnglat`` (local metres -> lng, lat) draws bent edges."""
         coords = {n.id: (n.lng, n.lat, n.alt_m) for n in self.nodes}
+
+        def line(e: Edge) -> list[list[float]]:
+            ends = [list(coords[e.source]), list(coords[e.target])]
+            if e.path_enu is None or to_lnglat is None or len(e.path_enu) < 3:
+                return ends
+            inner = [list(to_lnglat(x, y)) for x, y in e.path_enu[1:-1]]
+            return [ends[0], *inner, ends[1]]
+
         features: list[dict[str, Any]] = [
             {
                 "type": "Feature",
@@ -120,10 +135,7 @@ class Graph(BaseModel):
             {
                 "type": "Feature",
                 "id": e.id,
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": [list(coords[e.source]), list(coords[e.target])],
-                },
+                "geometry": {"type": "LineString", "coordinates": line(e)},
                 "properties": {"feature": "edge", **e.model_dump(mode="json")},
             }
             for e in self.edges

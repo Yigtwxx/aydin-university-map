@@ -29,6 +29,8 @@ class GraphStore:
                 length_m=edge.length_m,
                 cost_s=edge.cost_s,
                 kind=edge.kind.value,
+                source=edge.source,
+                path_enu=edge.path_enu,
             )
         return cls(graph=graph, nx_graph=g, nodes={n.id: n for n in graph.nodes})
 
