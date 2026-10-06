@@ -147,7 +147,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=cfg.cors_origin_list,
         allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "X-Amap-Locale"],
         expose_headers=["x-vercel-ai-ui-message-stream"],
     )
 
@@ -309,6 +309,7 @@ def create_app(
             store=store,
             places=request.app.state.places,
             knowledge=request.app.state.knowledge,
+            lang="en" if request.headers.get("x-amap-locale") == "en" else "tr",
         )
         return await VercelAIAdapter.dispatch_request(
             request,

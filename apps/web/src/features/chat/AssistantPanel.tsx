@@ -47,8 +47,12 @@ export function AssistantPanel({
   const locale = useLocale();
   const { setFrom, setTo } = useRouteStore();
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: `${apiBaseUrl}/chat` }),
-    [],
+    () =>
+      new DefaultChatTransport({
+        api: `${apiBaseUrl}/chat`,
+        headers: { 'X-Amap-Locale': locale },
+      }),
+    [locale],
   );
   const { messages, sendMessage, status, error, stop } = useChat({ transport });
   const [input, setInput] = useState('');

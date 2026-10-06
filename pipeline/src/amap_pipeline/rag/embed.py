@@ -67,9 +67,11 @@ def embed_documents(
         reraise=True,
     )
     def call(texts: list[str]) -> list[list[float]]:
+        # One Content per text: the multimodal model embeds a plain list of
+        # strings as the parts of a single input and returns one vector.
         result = client.models.embed_content(
             model=EMBEDDING_MODEL,
-            contents=texts,  # pyright: ignore[reportArgumentType]
+            contents=[types.Content(parts=[types.Part(text=t)]) for t in texts],
             config=config,
         )
         return [list(e.values or []) for e in result.embeddings or []]

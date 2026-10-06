@@ -35,6 +35,7 @@ class AssistantDeps:
     store: GraphStore
     places: list[Place]
     knowledge: Knowledge | None
+    lang: Literal["tr", "en"] = "tr"  # the visitor's interface language
 
 
 def keep_recent(messages: list[ModelMessage]) -> list[ModelMessage]:
@@ -107,6 +108,19 @@ def build_agent(model: Model) -> Agent[AssistantDeps, str]:
         capabilities=[ProcessHistory(processor=keep_recent)],
         name="campus-assistant",
     )
+
+    @agent.instructions
+    def language(ctx: RunContext[AssistantDeps]) -> str:
+        # Sources are mostly Turkish; without this the model drifts into them.
+        if ctx.deps.lang == "en":
+            return (
+                "The visitor's interface is in English: answer in English, "
+                "translating Turkish source text, unless they write in Turkish."
+            )
+        return (
+            "Ziyaretçinin arayüzü Türkçe: kullanıcı başka bir dilde yazmadıkça "
+            "Türkçe yanıt ver."
+        )
 
     @agent.tool(name="search_places")
     def search_places_tool(
