@@ -11,11 +11,12 @@ import json
 import os
 import re
 import tempfile
+import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFile
 
 FACES: tuple[str, ...] = ("f", "r", "b", "l", "u", "d")
 # Faces vary per scene (most 1300 px, some 966 px); staging resizes them for SfM.
@@ -35,6 +36,7 @@ class StoredTile:
     sha256: str
     size_bytes: int
     face_px: int
+    repaired: bool = False
 
 
 def validate_key(scene: str, face: str) -> None:
@@ -44,18 +46,33 @@ def validate_key(scene: str, face: str) -> None:
         raise TileError(f"invalid face {face!r}")
 
 
-def check_jpeg(data: bytes, min_size: int) -> int:
-    """Return the edge length of a complete, square JPEG face or raise TileError."""
+@dataclass(frozen=True, slots=True)
+class JpegInfo:
+    face_px: int
+    truncated: bool  # the source file itself ends without an EOI marker
+
+
+_SOI, _EOI = b"\xff\xd8", b"\xff\xd9"
+# Pillow's truncated-image switch is process-global; the sink is multi-threaded.
+_TRUNCATED_LOCK = threading.Lock()
+
+
+def check_jpeg(data: bytes, min_size: int) -> JpegInfo:
+    """Validate a square JPEG face; source-truncated files are reported, not rejected.
+
+    Transfer integrity is guaranteed by the SHA-256 check, so a missing EOI
+    marker means the tour's own file is truncated (seen once in 2,544 faces).
+    """
     if len(data) > MAX_TILE_BYTES:
         raise TileError(f"tile too large ({len(data)} bytes)")
-    if not (
-        data.startswith(b"\xff\xd8") and data.rstrip(b"\x00").endswith(b"\xff\xd9")
-    ):
-        raise TileError("not a complete JPEG (missing SOI/EOI marker)")
+    if not data.startswith(_SOI):
+        raise TileError("not a JPEG (missing SOI marker)")
+    truncated = not data.rstrip(b"\x00").endswith(_EOI)
     try:
         with Image.open(io.BytesIO(data)) as img:
-            img.load()
             size = img.size
+            if not truncated:
+                img.load()
     except Exception as exc:  # Pillow raises many error types for bad data
         raise TileError(f"JPEG does not decode: {exc}") from exc
     width, height = size
@@ -63,7 +80,24 @@ def check_jpeg(data: bytes, min_size: int) -> int:
         raise TileError(f"face is not square: {size}")
     if width < min_size:
         raise TileError(f"face too small: {width}px < {min_size}px")
-    return width
+    return JpegInfo(width, truncated)
+
+
+def repair_truncated(data: bytes) -> bytes:
+    """Decode a source-truncated JPEG (missing area becomes grey) and re-encode it."""
+    with _TRUNCATED_LOCK:
+        previous = ImageFile.LOAD_TRUNCATED_IMAGES
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
+        try:
+            with Image.open(io.BytesIO(data)) as img:
+                rgb = img.convert("RGB")
+        except Exception as exc:
+            raise TileError(f"truncated JPEG cannot be repaired: {exc}") from exc
+        finally:
+            ImageFile.LOAD_TRUNCATED_IMAGES = previous
+    out = io.BytesIO()
+    rgb.save(out, format="JPEG", quality=95)
+    return out.getvalue()
 
 
 class TileStore:
@@ -89,7 +123,9 @@ class TileStore:
         digest = hashlib.sha256(data).hexdigest()
         if digest != sha256_hex.strip().lower():
             raise TileError("sha256 mismatch")
-        face_px = check_jpeg(data, self.min_face_size)
+        info = check_jpeg(data, self.min_face_size)
+        if info.truncated:
+            data = repair_truncated(data)
         target.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=target.parent, suffix=".part")
         try:
@@ -99,7 +135,7 @@ class TileStore:
         except BaseException:
             Path(tmp).unlink(missing_ok=True)
             raise
-        tile = StoredTile(scene, face, digest, len(data), face_px)
+        tile = StoredTile(scene, face, digest, len(data), info.face_px, info.truncated)
         self._append_manifest(tile)
         return tile
 
@@ -110,6 +146,7 @@ class TileStore:
             "sha256": tile.sha256,
             "bytes": tile.size_bytes,
             "face_px": tile.face_px,
+            "repaired_truncated_source": tile.repaired,
             "received_at": datetime.now(UTC).isoformat(timespec="seconds"),
         }
         with self.manifest.open("a", encoding="utf-8") as fh:
@@ -140,7 +177,8 @@ def verify(store: TileStore, scenes: list[str]) -> VerifyReport:
                 scene_ok = False
                 continue
             try:
-                check_jpeg(path.read_bytes(), store.min_face_size)
+                if check_jpeg(path.read_bytes(), store.min_face_size).truncated:
+                    raise TileError("stored file is truncated")
             except TileError as exc:
                 corrupt.append((scene, face, str(exc)))
                 scene_ok = False

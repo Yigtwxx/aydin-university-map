@@ -3,6 +3,7 @@ import io
 import json
 from collections.abc import Callable
 
+import numpy as np
 import pytest
 from PIL import Image
 
@@ -42,7 +43,7 @@ def test_tile_store_save_sha_mismatch_raises_tile_error(
 @pytest.mark.parametrize(
     ("kind", "match"),
     [
-        ("garbage", "SOI/EOI"),
+        ("garbage", "SOI"),
         ("truncated", "decode"),
         ("too_small", "too small"),
         ("not_square", "not square"),
@@ -110,3 +111,25 @@ def test_tile_store_save_larger_face_records_its_size(
     data = jpeg_factory(size=32)
     tile = tile_store.save("scene_1", "f", data, _sha(data))
     assert tile.face_px == 32, f"Expected 32 px, got {tile.face_px}"
+
+
+def _noisy_jpeg(size: int = 64) -> bytes:
+    rng = np.random.default_rng(3)
+    pixels = rng.integers(0, 255, size=(size, size, 3), dtype=np.uint8)
+    buffer = io.BytesIO()
+    Image.fromarray(pixels).save(buffer, format="JPEG", quality=90)
+    return buffer.getvalue()
+
+
+def test_tile_store_save_source_truncated_jpeg_is_repaired_and_flagged(
+    tile_store: TileStore,
+) -> None:
+    complete = _noisy_jpeg()
+    truncated = complete[: len(complete) * 2 // 3]  # no EOI, like the tour's file
+    tile = tile_store.save("scene_1", "u", truncated, _sha(truncated))
+    stored = (tile_store.tiles_dir / "scene_1" / "u.jpg").read_bytes()
+    assert tile.repaired is True, f"Expected a repaired tile, got {tile}"
+    assert stored.endswith(b"\xff\xd9"), "Repaired file must be a complete JPEG"
+    record = json.loads(tile_store.manifest.read_text().splitlines()[-1])
+    assert record["repaired_truncated_source"] is True, f"Got {record}"
+    assert record["sha256"] == _sha(truncated), "Manifest keeps the source hash"
