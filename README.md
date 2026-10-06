@@ -11,7 +11,7 @@ cinsinden bir yürüyüş grafı kuruluyor ve en kısa yürüme rotaları hesapl
 photogrammetry from the panoramas of the university's 360° virtual tour, with a metric
 walking graph and shortest walking routes.
 
-> **Durum / Status:** erken geliştirme (Faz 0: iskelet). Early development (phase 0: skeleton).
+> **Durum / Status:** Faz 1: SfM spike tamamlandı ([ADR-0003](docs/adr/0003-sfm-spike.md)). Phase 1: SfM spike done.
 
 ---
 
@@ -52,9 +52,9 @@ Tasarımın tamamı: [`docs/superpowers/specs/2026-10-06-campus-map-design.md`](
 
 | Faz | İçerik | Durum |
 |---|---|---|
-| 0 | Repo, araçlar, CI, tur metadata modülü | 🚧 |
-| 1 | Spike: panoramaları dışa aktarma, rig testi, 35 panoramada SfM | ⏳ |
-| 2 | Tüm Florya: georeferans, 3D modeller, yürüyüş grafı | ⏳ |
+| 0 | Repo, araçlar, CI, tur metadata modülü | ✅ |
+| 1 | Spike: panoramaları dışa aktarma, rig testi, 35 panoramada SfM | ✅ |
+| 2 | Tüm Florya: georeferans, 3D modeller, yürüyüş grafı | 🚧 |
 | 3 | FastAPI: rota, arama, hava durumu | ⏳ |
 | 4 | Web: 3D harita, rota, 360° tur, canlı ortam | ⏳ |
 | 5 | Yapay zekâ asistanı (RAG) | ⏳ |

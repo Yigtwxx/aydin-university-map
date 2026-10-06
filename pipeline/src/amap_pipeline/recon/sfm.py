@@ -1,0 +1,295 @@
+"""Structure-from-Motion over cube-face panoramas with pycolmap (CPU, no training).
+
+Each panorama is one rig frame of up to 6 pinhole sensors (see ``cubemap``).
+Image pairs come from the tour's walkable links, which keeps matching fast and
+avoids false matches between look-alike places on the campus.
+
+Workspace layout (``data/recon/<run>/``)::
+
+    images/<face>/<scene>.jpg     staged faces (symlink or resized copy)
+    masks/<face>/<scene>.jpg.png  feature masks (black = ignore)
+    rig_config.json  pairs.txt  database.db  sparse/<model>/  report.json
+"""
+
+import json
+import os
+import shutil
+import time
+import tomllib
+from collections import deque
+from collections.abc import Mapping, Sequence
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+from PIL import Image, ImageDraw
+
+from amap_pipeline.recon.cubemap import FACES, TRANSFORMS, rig_config
+
+
+@dataclass(frozen=True, slots=True)
+class SfmConfig:
+    set: str
+    run: str
+    faces: tuple[str, ...] = ("f", "r", "b", "l", "d")
+    face_px: int = 1300
+    pair_hops: int = 2
+    nadir_mask_radius: float = 0.18
+    max_num_features: int = 8192
+    estimate_affine_shape: bool = False
+    domain_size_pooling: bool = False
+    mapper: str = "incremental"
+    transforms: dict[str, str] = field(
+        default_factory=lambda: dict.fromkeys(FACES, "id")
+    )
+
+    @classmethod
+    def from_toml(cls, path: Path) -> "SfmConfig":
+        raw = tomllib.loads(path.read_text(encoding="utf-8"))["sfm"]
+        if "faces" in raw:
+            raw["faces"] = tuple(raw["faces"])
+        cfg = cls(**raw)
+        unknown = set(cfg.faces) - set(FACES)
+        if unknown or "f" not in cfg.faces:
+            raise ValueError(f"faces must include 'f' and be a subset of {FACES}")
+        if cfg.mapper not in {"incremental", "global"}:
+            raise ValueError(f"unknown mapper {cfg.mapper!r}")
+        return cfg
+
+
+def image_name(face: str, scene: str) -> str:
+    return f"{face}/{scene}.jpg"
+
+
+def scene_of(name: str) -> str:
+    """``"r/scene_1.jpg"`` -> ``"scene_1"``."""
+    return name.split("/", 1)[1].removesuffix(".jpg")
+
+
+def stage_images(
+    scenes: Sequence[str], tiles_dir: Path, images_dir: Path, cfg: SfmConfig
+) -> list[str]:
+    """Place faces under ``images/<face>/``; resize/transform only when needed."""
+    names: list[str] = []
+    for scene in scenes:
+        for face in cfg.faces:
+            src = tiles_dir / scene / f"{face}.jpg"
+            dst = images_dir / image_name(face, scene)
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if dst.exists() or dst.is_symlink():
+                dst.unlink()
+            transform = cfg.transforms.get(face, "id")
+            with Image.open(src) as img:
+                needs_resize = img.size != (cfg.face_px, cfg.face_px)
+                if transform == "id" and not needs_resize:
+                    os.symlink(src.resolve(), dst)
+                else:
+                    _write_normalised(img, dst, cfg.face_px, transform)
+            names.append(image_name(face, scene))
+    return names
+
+
+def _write_normalised(img: Image.Image, dst: Path, size: int, transform: str) -> None:
+    rgb = img.convert("RGB")
+    if rgb.size != (size, size):
+        rgb = rgb.resize((size, size), Image.Resampling.LANCZOS)
+    if transform != "id":
+        array = TRANSFORMS[transform](np.asarray(rgb, dtype=np.float64))
+        rgb = Image.fromarray(np.ascontiguousarray(array).astype(np.uint8))
+    rgb.save(dst, quality=95)
+
+
+def write_masks(scenes: Sequence[str], masks_dir: Path, cfg: SfmConfig) -> list[Path]:
+    """Mask the patched nadir (centre of the down face); other faces stay open."""
+    written: list[Path] = []
+    size = cfg.face_px
+    radius = cfg.nadir_mask_radius * size
+    open_mask = Image.new("L", (size, size), 255)
+    nadir_mask = open_mask.copy()
+    ImageDraw.Draw(nadir_mask).ellipse(
+        (size / 2 - radius, size / 2 - radius, size / 2 + radius, size / 2 + radius),
+        fill=0,
+    )
+    for scene in scenes:
+        for face in cfg.faces:
+            path = masks_dir / f"{image_name(face, scene)}.png"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            (nadir_mask if face == "d" else open_mask).save(path)
+            written.append(path)
+    return written
+
+
+def scene_pairs(
+    scenes: Sequence[str], adjacency: Mapping[str, set[str]], hops: int
+) -> list[tuple[str, str]]:
+    """Unordered scene pairs within ``hops`` links, inside the scene set only."""
+    members = set(scenes)
+    pairs: set[tuple[str, str]] = set()
+    for start in scenes:
+        depth = {start: 0}
+        queue = deque([start])
+        while queue:
+            node = queue.popleft()
+            if depth[node] == hops:
+                continue
+            for nxt in adjacency.get(node, set()) & members:
+                if nxt not in depth:
+                    depth[nxt] = depth[node] + 1
+                    queue.append(nxt)
+        for other in depth:
+            if other != start:
+                a, b = sorted((start, other))
+                pairs.add((a, b))
+    return sorted(pairs)
+
+
+def write_pairs(
+    path: Path, pairs: Sequence[tuple[str, str]], faces: Sequence[str]
+) -> int:
+    lines = [
+        f"{image_name(fa, a)} {image_name(fb, b)}"
+        for a, b in pairs
+        for fa in faces
+        for fb in faces
+    ]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return len(lines)
+
+
+def write_workspace_rig(path: Path, cfg: SfmConfig) -> None:
+    """Rig config restricted to the faces actually used in this run."""
+    config = rig_config(cfg.face_px)
+    cameras = config[0]["cameras"]
+    assert isinstance(cameras, list)
+    config[0]["cameras"] = [c for c in cameras if c["image_prefix"][0] in cfg.faces]
+    path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+
+
+@dataclass(slots=True)
+class StageTimer:
+    seconds: dict[str, float] = field(default_factory=dict)
+    _start: float = field(default_factory=time.perf_counter)
+
+    def lap(self, name: str) -> None:
+        now = time.perf_counter()
+        self.seconds[name] = round(now - self._start, 1)
+        self._start = now
+
+
+def summarise_models(models: Mapping[int, Any], cfg: SfmConfig) -> list[dict[str, Any]]:
+    """Per-model registration stats (works on pycolmap Reconstruction objects)."""
+    summaries: list[dict[str, Any]] = []
+    for index, rec in sorted(models.items()):
+        faces_per_scene: dict[str, int] = {}
+        for image_id in rec.reg_image_ids():
+            scene = scene_of(rec.image(image_id).name)
+            faces_per_scene[scene] = faces_per_scene.get(scene, 0) + 1
+        full = sorted(s for s, n in faces_per_scene.items() if n == len(cfg.faces))
+        summaries.append(
+            {
+                "model": index,
+                "reg_frames": rec.num_reg_frames(),
+                "reg_images": rec.num_reg_images(),
+                "points3D": rec.num_points3D(),
+                "mean_reproj_px": round(rec.compute_mean_reprojection_error(), 3),
+                "mean_track_length": round(rec.compute_mean_track_length(), 2),
+                "scenes": sorted(faces_per_scene),
+                "scenes_all_faces": full,
+            }
+        )
+    summaries.sort(key=lambda m: -m["reg_frames"])
+    return summaries
+
+
+def run_sfm(
+    cfg: SfmConfig,
+    scenes: Sequence[str],
+    adjacency: Mapping[str, set[str]],
+    tiles_dir: Path,
+    workspace: Path,
+) -> dict[str, Any]:
+    """Run the full sparse reconstruction and return (and write) a report."""
+    import pycolmap
+
+    timer = StageTimer()
+    images_dir, masks_dir = workspace / "images", workspace / "masks"
+    database = workspace / "database.db"
+    sparse = workspace / "sparse"
+    database.unlink(missing_ok=True)
+    shutil.rmtree(sparse, ignore_errors=True)
+    sparse.mkdir(parents=True)
+
+    names = stage_images(scenes, tiles_dir, images_dir, cfg)
+    write_masks(scenes, masks_dir, cfg)
+    pairs = scene_pairs(scenes, adjacency, cfg.pair_hops)
+    num_image_pairs = write_pairs(workspace / "pairs.txt", pairs, cfg.faces)
+    write_workspace_rig(workspace / "rig_config.json", cfg)
+    timer.lap("stage")
+
+    focal = cfg.face_px / 2.0
+    reader = pycolmap.ImageReaderOptions()
+    reader.camera_model = "SIMPLE_PINHOLE"
+    reader.camera_params = f"{focal},{focal},{focal}"
+    reader.mask_path = str(masks_dir)
+    extraction = pycolmap.FeatureExtractionOptions()
+    extraction.sift.max_num_features = cfg.max_num_features
+    extraction.sift.estimate_affine_shape = cfg.estimate_affine_shape
+    extraction.sift.domain_size_pooling = cfg.domain_size_pooling
+    pycolmap.extract_features(
+        database,
+        images_dir,
+        image_names=names,
+        camera_mode=pycolmap.CameraMode.PER_FOLDER,
+        reader_options=reader,
+        extraction_options=extraction,
+    )
+    timer.lap("extract")
+
+    db = pycolmap.Database.open(database)
+    try:
+        pycolmap.apply_rig_config(
+            pycolmap.read_rig_config(workspace / "rig_config.json"), db
+        )
+    finally:
+        db.close()
+    timer.lap("rig")
+
+    matching = pycolmap.FeatureMatchingOptions()
+    matching.rig_verification = True
+    matching.skip_image_pairs_in_same_frame = True
+    pairing = pycolmap.ImportedPairingOptions()
+    pairing.match_list_path = str(workspace / "pairs.txt")
+    pycolmap.match_image_pairs(
+        database, matching_options=matching, pairing_options=pairing
+    )
+    timer.lap("match")
+
+    if cfg.mapper == "global":
+        models = pycolmap.global_mapping(database, images_dir, sparse)
+    else:
+        options = pycolmap.IncrementalPipelineOptions()
+        options.ba_refine_sensor_from_rig = False
+        options.ba_refine_focal_length = False
+        options.ba_refine_principal_point = False
+        options.ba_refine_extra_params = False
+        models = pycolmap.incremental_mapping(database, images_dir, sparse, options)
+    timer.lap("map")
+
+    summaries = summarise_models(models, cfg)
+    largest = summaries[0] if summaries else None
+    report: dict[str, Any] = {
+        "config": asdict(cfg),
+        "scenes": len(scenes),
+        "scene_pairs": len(pairs),
+        "image_pairs": num_image_pairs,
+        "models": summaries,
+        "largest_model_scenes_all_faces": len(largest["scenes_all_faces"])
+        if largest
+        else 0,
+        "seconds": timer.seconds,
+    }
+    (workspace / "report.json").write_text(
+        json.dumps(report, indent=2) + "\n", encoding="utf-8"
+    )
+    return report

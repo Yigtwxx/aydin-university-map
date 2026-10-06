@@ -1,0 +1,13 @@
+# Phase 1 SfM spike: 35 connected outdoor panoramas around the "Kampüs" hub.
+[sfm]
+set = "spike35"
+run = "spike35_v1"
+# The up face is mostly sky outdoors; dropping it saves ~30% of matching.
+faces = ["f", "r", "b", "l", "d"]
+face_px = 1300
+pair_hops = 2
+nadir_mask_radius = 0.18
+max_num_features = 8192
+estimate_affine_shape = false
+domain_size_pooling = false
+mapper = "incremental"

@@ -9,7 +9,7 @@ Requirements: [uv](https://docs.astral.sh/uv/) (Python 3.12 is installed by uv),
 Git. The web app (Node 24 + pnpm) arrives in a later phase.
 
 ```bash
-uv sync --all-packages      # create .venv with all workspace packages
+uv sync --all-packages --all-extras   # .venv with all packages (+ pycolmap)
 uvx pre-commit install      # ruff, gitleaks, repo guard on every commit
 ```
 

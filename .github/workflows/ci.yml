@@ -39,7 +39,7 @@ jobs:
         with:
           enable-cache: true
       - name: Install workspace
-        run: uv sync --all-packages --frozen
+        run: uv sync --all-packages --all-extras --frozen
       - name: Ruff lint
         run: uv run ruff check .
       - name: Ruff format
