@@ -1,7 +1,7 @@
 """``amap export``: produce web assets under data/out/."""
 
 import json
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 
@@ -12,6 +12,7 @@ from amap_pipeline.export.assets import (
     greenery_json,
     ground_json,
     massing,
+    region_json,
     write_massing,
 )
 from amap_pipeline.geo.osm import (
@@ -23,6 +24,19 @@ from amap_pipeline.geo.osm import (
     parse_buildings,
     parse_greenery,
     parse_ground,
+)
+from amap_pipeline.geo.region import (
+    LAND_BBOX,
+    ROADS_BBOX,
+    SEA_BBOX,
+    fetch_aeroway_raw,
+    fetch_coastline_raw,
+    fetch_land_raw,
+    fetch_roads_raw,
+    parse_aeroways,
+    parse_land,
+    parse_roads,
+    parse_sea,
 )
 
 app = typer.Typer(help="Web asset export commands.", no_args_is_help=True)
@@ -96,4 +110,54 @@ def export_ground(
     write_massing(out, data)
     typer.echo(
         f"wrote {len(data['ways'])} ways and {len(data['areas'])} areas -> {out}"
+    )
+
+
+@app.command("region")
+def export_region(
+    land_tolerance_m: Annotated[
+        float, typer.Option(help="Land simplification.")
+    ] = 120.0,
+    sea_tolerance_m: Annotated[float, typer.Option(help="Sea simplification.")] = 4.0,
+    road_tolerance_m: Annotated[
+        float, typer.Option(help="Road simplification.")
+    ] = 16.0,
+) -> None:
+    """Write data/out/region.json (land, near-shore sea, trunk roads, runways)."""
+    data_dir = paths.data_dir()
+    projector = LocalProjector()
+    land = parse_land(
+        fetch_land_raw(data_dir / "natural_earth" / "ne_10m_land.geojson"),
+        projector,
+        LAND_BBOX,
+        land_tolerance_m,
+    )
+    sea = parse_sea(
+        fetch_coastline_raw(SEA_BBOX, data_dir / "osm" / "coastline_florya.json"),
+        projector,
+        SEA_BBOX,
+        sea_tolerance_m,
+    )
+    roads = parse_roads(
+        fetch_roads_raw(ROADS_BBOX, data_dir / "osm" / "roads_region.json"),
+        projector,
+        road_tolerance_m,
+    )
+    runways, aerodromes = parse_aeroways(
+        fetch_aeroway_raw(ROADS_BBOX, data_dir / "osm" / "aeroway_region.json"),
+        projector,
+    )
+    campus: list[dict[str, Any]] = []
+    ground_path = data_dir / "out" / "ground.json"
+    if ground_path.is_file():
+        ground = json.loads(ground_path.read_text("utf-8"))
+        campus = [a for a in ground.get("areas", []) if a.get("kind") == "campus"]
+    data = region_json(land, sea, roads, runways, aerodromes, campus)
+    out = data_dir / "out" / "region.json"
+    write_massing(out, data)
+    typer.echo(
+        f"wrote {len(data['land'])} land, {len(data['sea_near'])} sea, "
+        f"{len(data['roads'])} roads, {len(data['runways'])} runways, "
+        f"{len(data['aerodromes'])} aerodromes, {len(campus)} campus "
+        f"({out.stat().st_size / 1024:.0f} KB) -> {out}"
     )

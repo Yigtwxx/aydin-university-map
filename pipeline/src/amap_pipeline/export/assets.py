@@ -14,10 +14,19 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image
-from shapely.geometry import LineString, MultiLineString, Point
+from shapely.geometry import LineString, MultiLineString, Point, Polygon
 
 from amap_pipeline.acquire.store import FACES
 from amap_pipeline.geo.osm import Building, Greenery, Ground
+from amap_pipeline.geo.region import (
+    ATTRIBUTION as REGION_ATTRIBUTION,
+)
+from amap_pipeline.geo.region import (
+    Aerodrome,
+    RegionRoad,
+    Runway,
+    polygon_records,
+)
 
 LEVEL_HEIGHT_M = 3.2
 DEFAULT_LEVELS = 3
@@ -173,4 +182,35 @@ def ground_json(ground: Ground, radius_m: float = 600.0) -> dict[str, Any]:
         "attribution": "© OpenStreetMap contributors (ODbL)",
         "ways": ways,
         "areas": areas,
+    }
+
+
+def _round_line(line: LineString) -> list[list[float]]:
+    return [[round(x, 1), round(y, 1)] for x, y in line.coords]
+
+
+def region_json(
+    land: Sequence[Polygon],
+    sea_near: Sequence[Polygon],
+    roads: Sequence[RegionRoad],
+    runways: Sequence[Runway],
+    aerodromes: Sequence[Aerodrome],
+    campus: Sequence[dict[str, Any]],
+) -> dict[str, Any]:
+    """Regional base map for the landing fly-in, in local metres (1 decimal)."""
+    return {
+        "crs": "local-enu",
+        "attribution": REGION_ATTRIBUTION,
+        "land": polygon_records(land),
+        "sea_near": polygon_records(sea_near),
+        "roads": [
+            {"kind": r.kind, "name": r.name, "line": _round_line(r.line)} for r in roads
+        ],
+        "runways": [
+            {"width_m": w.width_m, "line": _round_line(w.line)} for w in runways
+        ],
+        "aerodromes": [
+            {"name": a.name, **polygon_records([a.outline])[0]} for a in aerodromes
+        ],
+        "campus": list(campus),
     }
