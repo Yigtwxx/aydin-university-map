@@ -96,24 +96,31 @@ export function usePlaces(query: string) {
       });
       if (error || !data)
         throw new RouteError('unavailable', 'places not available');
-      return data;
+      // openapi-fetch widens the [east, north] pin to number[]; same payload.
+      return data as Place[];
     },
     enabled: q.length > 0,
     placeholderData: keepPreviousData,
   });
 }
 
-/** Every routable place, for suggestions before the visitor types. */
+/** Directory entries the API returns at most (its `limit` bound). */
+const DIRECTORY_LIMIT = 50;
+
+/**
+ * Every place the map shows, for suggestions before the visitor types and
+ * for the map's business pins (every business or service with a pin).
+ */
 export function usePlaceDirectory() {
   return useQuery<Place[]>({
     queryKey: ['places', '*'],
     queryFn: async () => {
       const { data, error } = await api.GET('/places', {
-        params: { query: { q: '', limit: 24 } },
+        params: { query: { q: '', limit: DIRECTORY_LIMIT } },
       });
       if (error || !data)
         throw new RouteError('unavailable', 'places not available');
-      return data;
+      return data as Place[];
     },
     staleTime: Infinity,
   });

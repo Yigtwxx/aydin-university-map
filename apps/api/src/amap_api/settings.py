@@ -11,6 +11,8 @@ class Settings(BaseSettings):
 
     # Path or http(s) URL of graph.geojson (pipeline output, served as an asset).
     graph_source: str = Field(default="data/out/graph.geojson")
+    # Path or URL of pois.json; empty = next to graph_source. Missing = no POIs.
+    pois_source: str = ""
     # Comma-separated list, e.g. "http://localhost:3000,https://x.vercel.app".
     cors_origins: str = "http://localhost:3000"
     asset_base_url: str = ""
@@ -25,6 +27,13 @@ class Settings(BaseSettings):
     amap_api_database_url: str = ""
     # "" = Groq/Gemini; "offline" = deterministic test model (E2E, no keys).
     amap_assistant_model: str = ""
+
+    @property
+    def pois_location(self) -> str:
+        if self.pois_source:
+            return self.pois_source
+        base, _, _ = self.graph_source.rpartition("/")
+        return f"{base}/pois.json" if base else "pois.json"
 
     @property
     def cors_origin_list(self) -> list[str]:

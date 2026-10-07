@@ -30,12 +30,15 @@ import {
 } from '@/components/ui/popover';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
+  type Place,
   useBuildings,
   useCampusGraph,
   useGreenery,
   useGround,
+  usePlaceDirectory,
   useRoute,
 } from '@/features/campus/queries';
+import type { Credit } from '@/features/campus/GoogleTiles';
 import type { GraphNode } from '@/features/campus/types';
 import {
   useNow,
@@ -60,6 +63,7 @@ import {
   viewYaw,
   whereText,
 } from '@/features/route/indoor';
+import { isPinnedPoi, pinnedSpots, SAME_SPOT_M } from '@/features/route/places';
 import { RouteUrlSync } from '@/features/route/RouteUrlSync';
 import { StepIcon } from '@/features/route/StepIcon';
 import {
@@ -81,7 +85,7 @@ import { useCameraStore } from './cameraStore';
 import { MapControls } from './MapControls';
 import { MapOverlays } from './MapOverlays';
 import { PanelShell } from './PanelShell';
-import type { Credit } from '@/features/landing/GoogleTiles';
+import { usePoiWhere } from './PoiLayer';
 import { coveredHeight, type SheetSnap, snapHeights } from './sheet';
 
 // WebGL only exists in the browser.
@@ -90,8 +94,8 @@ const CampusScene = dynamic(
   { ssr: false },
 );
 // Not needed for the first paint, and heavy: the 360° viewer
-// (photo-sphere-viewer), the assistant (AI SDK) and the landing dive (Lenis,
-// the earth scene). Each loads as its own chunk.
+// (photo-sphere-viewer) and the assistant (AI SDK). Each loads as its own
+// chunk.
 const PanoInset = dynamic(
   () => import('@/features/pano/PanoInset').then((m) => m.PanoInset),
   { ssr: false },
@@ -99,9 +103,6 @@ const PanoInset = dynamic(
 const AssistantPanel = dynamic(
   () => import('@/features/chat/AssistantPanel').then((m) => m.AssistantPanel),
   { ssr: false },
-);
-const IntroDive = dynamic(() =>
-  import('@/features/landing/IntroDive').then((m) => m.IntroDive),
 );
 
 const EASE = [0.2, 0.7, 0.2, 1] as const;
@@ -146,11 +147,10 @@ function markOpeningSeen() {
 }
 
 /**
- * `intro`: what plays before the map. 'assemble' builds the campus out of a
- * dot map (CampusScene); 'dive' is the scroll dive over İstanbul, kept for
- * the pre-rendered Earth Studio version.
+ * `opening`: build the campus out of a dot map (CampusScene) before the map's
+ * chrome comes in.
  */
-export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
+export function MapApp({ opening = false }: { opening?: boolean }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const reducedMotion = useReducedMotion() ?? false;
@@ -169,17 +169,20 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
   const sky = useSky(now);
   useThemeFromSky(sky.phase);
 
+  const directory = usePlaceDirectory();
+  const poiWhere = usePoiWhere();
   const {
     from,
     to,
     avoidStairs,
     activeStep,
     exploreNodeId,
+    setTo,
     setActiveStep,
     setExploreNode,
   } = useRouteStore();
   const route = useRoute(from?.id, to?.id, avoidStairs);
-  // In the store, so `?panel=assistant` (e.g. a link from the landing page)
+  // In the store, so `?panel=assistant` (e.g. a shared link)
   // opens the assistant and the tab survives a language switch.
   const panelTab = useRouteStore((s) => s.panel);
   const setPanelTab = useRouteStore((s) => s.setPanel);
@@ -218,7 +221,37 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
     [routeNodes, graph.data],
   );
   const drawn = useMemo(() => parts.flat(), [parts]);
-  const doors = useMemo(() => gapDoors(parts), [parts]);
+  // A business is pinned where its pin stands (its storefront, or its
+  // building's door), not on its panorama's node (indoors only a borrowed
+  // position).
+  const toPlace = useMemo(
+    () => (to ? directory.data?.find((p) => p.id === to.id) : undefined),
+    [to, directory.data],
+  );
+  const destinationEnu =
+    toPlace && isPinnedPoi(toPlace) ? toPlace.pin_enu : undefined;
+  const routeExtent = useMemo(
+    () => (toPlace && isPinnedPoi(toPlace) ? [toPlace.pin_enu] : undefined),
+    [toPlace],
+  );
+  // Walking into such a business, the line ends at the door it goes in by;
+  // when that is not where the destination pin stands, it gets the door
+  // marker.
+  const lastDrawn = drawn[drawn.length - 1];
+  const entryDoor =
+    destinationEnu &&
+    lastDrawn &&
+    isIndoorSpot(routeNodes[routeNodes.length - 1]) &&
+    Math.hypot(
+      lastDrawn.enu[0] - destinationEnu[0],
+      lastDrawn.enu[1] - destinationEnu[1],
+    ) >= SAME_SPOT_M
+      ? lastDrawn
+      : undefined;
+  const doors = useMemo(() => {
+    const gaps = gapDoors(parts);
+    return entryDoor && !gaps.includes(entryDoor) ? [...gaps, entryDoor] : gaps;
+  }, [parts, entryDoor]);
   // The camera frames everything the route covers, indoor spots on their
   // door; a route inside one building is that door (given twice: the scene
   // frames routes of two nodes or more).
@@ -230,25 +263,38 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
     () => graph.data?.nodes.filter((n) => !isIndoorSpot(n)) ?? [],
     [graph.data],
   );
+  // A business's own indoor panoramas are shown at its pin.
+  const pinOfSpot = useMemo(
+    () =>
+      pinnedSpots(directory.data ?? [], (id) =>
+        isIndoorSpot(graph.data?.byId.get(id)),
+      ),
+    [directory.data, graph.data],
+  );
   const toNode = to ? graph.data?.byId.get(to.id) : undefined;
   // The map's node for each: indoor spots sit on their entrance.
   const stepMapId = stepNode ? (stepNode.anchor ?? stepNode.id) : undefined;
   const panoMapId = panoNode ? (panoNode.anchor ?? panoNode.id) : undefined;
   const destinationMapId = toNode ? (toNode.anchor ?? toNode.id) : to?.id;
+  // Indoors the pin says where. A business's pin says where it stands:
+  // honestly at its building's door until its storefront is measured.
+  const destinationWhere =
+    destinationEnu && toPlace
+      ? poiWhere(toPlace)
+      : to && toNode && isIndoorSpot(toNode)
+        ? (whereText(
+            toNode,
+            locale,
+            toNode.label.tr,
+            toNode.label.en,
+            to.name,
+          ) ?? t('Indoor.marker'))
+        : undefined;
   const destinationLabel =
-    to && toNode && isIndoorSpot(toNode)
-      ? t('Indoor.pin', {
-          place: to.name,
-          where:
-            whereText(
-              toNode,
-              locale,
-              toNode.label.tr,
-              toNode.label.en,
-              to.name,
-            ) ?? t('Indoor.marker'),
-        })
+    to && destinationWhere
+      ? t('Indoor.pin', { place: to.name, where: destinationWhere })
       : to?.name;
+  const panoPin = panoNode ? pinOfSpot.get(panoNode.id) : undefined;
   // Indoors the 360° view faces the tour's hotspot towards the next spot.
   const panoYaw =
     stepNode &&
@@ -334,20 +380,18 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
       setActiveStep(undefined);
   }, [routeData, activeStep, setActiveStep]);
 
-  // The intro plays over the map first (/), unless motion is reduced:
-  // 'dive' -> 'reveal' (the chrome comes in) -> 'done' (intro unmounted).
+  // The opening plays over the map first (/), unless motion is reduced:
+  // 'playing' -> 'reveal' (the chrome comes in) -> 'done'.
   // The client decides alone: before the data loads both look the same.
-  const [introPhase, setIntroPhase] = useState<'dive' | 'reveal' | 'done'>(
-    () =>
-      intro && !(intro === 'assemble' && openingSkipped()) ? 'dive' : 'done',
+  const [introPhase, setIntroPhase] = useState<'playing' | 'reveal' | 'done'>(
+    () => (opening && !openingSkipped() ? 'playing' : 'done'),
   );
-  const diving = introPhase === 'dive' && !reducedMotion;
-  const introShown = introPhase !== 'done' && !reducedMotion;
+  const playing = introPhase === 'playing' && !reducedMotion;
+  const assembling = introPhase !== 'done' && !reducedMotion;
   const reveal = useCallback(() => {
     setIntroPhase('reveal');
-    if (intro === 'assemble') markOpeningSeen();
-  }, [intro]);
-  const assembling = intro === 'assemble' && introShown;
+    markOpeningSeen();
+  }, []);
   // Last resort: the panel comes in this long after the data, whatever the
   // scene does (the opening itself ends after about 3 s).
   useEffect(() => {
@@ -362,12 +406,12 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
   const [credits, setCredits] = useState<Credit[]>();
   const finishIntro = useCallback(() => setIntroPhase('done'), []);
   const dataReady = Boolean(graph.data && buildings.data);
-  // The map's own chrome (panel, controls, labels) waits for the dive.
-  const ready = dataReady && !diving;
+  // The map's own chrome (panel, controls, labels) waits for the opening.
+  const ready = dataReady && !playing;
   // Once the map is idle, warm the lazy chunks so the first 360° view or chat
   // opens at once.
   useEffect(() => {
-    if (!ready || introShown) return;
+    if (!ready || assembling) return;
     const warm = () => {
       void import('@/features/pano/PanoInset');
       void import('@/features/chat/AssistantPanel');
@@ -378,7 +422,7 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
     }
     const id = window.setTimeout(warm, 1500);
     return () => window.clearTimeout(id);
-  }, [ready, introShown]);
+  }, [ready, assembling]);
   const viewport = useViewport();
   const desktop = viewport.width >= DESKTOP_PX;
   const heights = useMemo(
@@ -404,14 +448,14 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
   const panoHeight = Math.min(480, viewport.height * 0.58);
   const insets = useMemo(
     () =>
-      // Under the dive the view is centred on the whole screen, exactly as
-      // the dive's last frame; the panel's offset eases in afterwards.
-      diving
+      // During the opening the view is centred on the whole screen; the
+      // panel's offset eases in afterwards.
+      playing
         ? { left: 0, bottom: 0 }
         : desktop
           ? { left: PANEL_EDGE_PX, bottom: panoNode ? panoHeight + 32 : 0 }
           : { left: 0, bottom: sheetCover },
-    [diving, desktop, panoNode, panoHeight, sheetCover],
+    [playing, desktop, panoNode, panoHeight, sheetCover],
   );
   const controlsHidden =
     !desktop && viewport.height - sheetCover < MOBILE_CONTROLS_BOTTOM_PX;
@@ -437,6 +481,24 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
   );
   if (panelTab === 'assistant' && !assistantMounted) setAssistantMounted(true);
   const selectTab = (tab: PanelTab) => setPanelTab(tab);
+  // A business pin on the map: the destination, as if picked in the search.
+  const pickPlace = (place: Place) => {
+    selectTab('directions');
+    setTo({
+      id: place.id,
+      name: locale === 'en' ? place.name_en : place.name_tr,
+    });
+    // Phones: the sheet rises to show it and the start still to pick.
+    if (!desktop && snap === 'peek') setSnap('half');
+    // On to the start field, as from the search: keyboard and mouse only
+    // (on a touch screen it would pop the keyboard up).
+    if (!from && window.matchMedia('(pointer: fine)').matches)
+      requestAnimationFrame(() =>
+        document
+          .querySelector<HTMLElement>('#panel-directions [role="combobox"]')
+          ?.focus(),
+      );
+  };
   const condition =
     preview.condition ??
     (weather.data ? conditionOf(weather.data.weather_code) : undefined);
@@ -481,14 +543,14 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
                 ground={ground.data}
                 routeNodeIds={routeData ? frameIds : undefined}
                 routeParts={parts.map((part) => part.map((n) => n.id))}
+                routeExtent={routeData ? routeExtent : undefined}
                 activeNodeId={stepMapId}
                 exploreNodeId={exploreNode?.id}
+                focusEnu={panoPin}
                 sky={sky}
                 condition={condition}
                 insets={insets}
                 reducedMotion={reducedMotion}
-                paused={diving && intro === 'dive'}
-                holdIntro={diving && intro === 'dive'}
                 assemble={
                   assembling
                     ? { onReveal: reveal, onDone: finishIntro }
@@ -502,12 +564,9 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
               />
             )}
           </div>
-          {introShown && intro === 'dive' && (
-            <IntroDive onReveal={reveal} onDone={finishIntro} />
-          )}
 
           <AnimatePresence>
-            {!dataReady && !graph.isError && !(diving && intro === 'dive') && (
+            {!dataReady && !graph.isError && (
               <motion.div
                 key="splash"
                 className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-stone"
@@ -745,10 +804,15 @@ export function MapApp({ intro }: { intro?: 'dive' | 'assemble' }) {
                 route={drawn}
                 doors={doors}
                 focusNodeId={panoMapId}
+                focusEnu={panoPin}
                 destinationNodeId={destinationMapId}
+                destinationPlaceId={to?.id}
+                destinationEnu={destinationEnu}
                 destinationLabel={destinationLabel}
+                places={directory.data}
                 labelOf={nodeLabel}
                 onOpenPano={(node) => setExploreNode(node.id)}
+                onPickPlace={pickPlace}
               />
             </div>
           )}

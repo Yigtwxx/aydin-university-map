@@ -68,6 +68,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/places/{place_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Place By Id
+         * @description One place by id: a node id or a business's ``poi:<slug>``.
+         */
+        get: operations["place_by_id_places__place_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/buildings": {
         parameters: {
             query?: never;
@@ -243,6 +263,11 @@ export interface components {
          * @enum {string}
          */
         NodeKind: "outdoor" | "entrance" | "indoor";
+        /**
+         * PinSource
+         * @enum {string}
+         */
+        PinSource: "storefront" | "entrance" | "manual";
         /** PlaceOut */
         PlaceOut: {
             /**
@@ -275,17 +300,38 @@ export interface components {
              * @default
              */
             area_en: string;
+            /** @description Set for businesses and services (POIs) */
+            category?: components["schemas"]["PoiCategory"] | null;
+            /** Brand */
+            brand?: string | null;
+            /** Aliases */
+            aliases?: string[];
+            /**
+             * Pin Enu
+             * @description Storefront in local metres (east, north) where measured
+             */
+            pin_enu?: [
+                number,
+                number
+            ] | null;
+            /** @description storefront (surveyed), entrance (its building's door), manual */
+            pin_source?: components["schemas"]["PinSource"] | null;
         };
+        /**
+         * PoiCategory
+         * @enum {string}
+         */
+        PoiCategory: "food" | "cafe" | "shop" | "health" | "library" | "student_services" | "atm" | "sports" | "parking" | "service";
         /** RouteRequest */
         RouteRequest: {
             /**
              * Source
-             * @description Start node id (a place id is a node id)
+             * @description Start node id or place id (poi:<slug>)
              */
             source: string;
             /**
              * Target
-             * @description Destination node id
+             * @description Destination node id or place id (poi:<slug>)
              */
             target: string;
             /**
@@ -502,6 +548,46 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    place_by_id_places__place_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                place_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaceOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
             };
             /** @description Validation Error */
             422: {

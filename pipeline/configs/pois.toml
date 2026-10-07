@@ -1,0 +1,245 @@
+# Businesses and services on campus. Read by `amap export pois`.
+#
+# node:     the tour panorama of the place (route target). own_panorama = false
+#           when that panorama is just a nearby spot (the POI becomes its own
+#           place, `poi:<id>`, instead of renaming the panorama's place).
+# landmark: the survey tie point at the storefront (configs/survey/*.toml);
+#           once measured, the map pin stands there.
+# verified: checked with ordinary web search (store locators, official pages,
+#           recent reviews). The tour is years old: closed places stay listed
+#           here so their tour labels are kept out of search.
+
+# --- eat and drink -----------------------------------------------------------
+
+[[poi]]
+id = "starbucks"
+name = { tr = "Starbucks", en = "Starbucks" }
+category = "cafe"
+brand = "Starbucks"
+aliases = ["starbucks coffee", "kahve"]
+node = "scene_428533"
+landmark = "poi.starbucks"
+verified = { checked = 2026-10-07, status = "open", source = "https://www.starbucks.com.tr/magazalar" }
+
+[[poi]]
+id = "espressolab"
+name = { tr = "Espresso Lab", en = "Espresso Lab" }
+category = "cafe"
+brand = "Espresso Lab"
+aliases = ["espressolab", "kahve"]
+node = "scene_428554"
+landmark = "poi.espressolab"
+building = "C"
+verified = { checked = 2026-10-07, status = "open", source = "https://espressolab.com/kurumsal/magazalar/aydin-universitesi" }
+
+[[poi]]
+id = "burger-king"
+name = { tr = "Burger King", en = "Burger King" }
+category = "food"
+brand = "Burger King"
+aliases = ["bk", "hamburger", "burger"]
+node = "scene_428553"
+landmark = "poi.burger-king"
+building = "C"
+# Not in Burger King's own store locator any more; a map listing still shows it.
+verified = { checked = 2026-10-07, status = "unknown", source = "https://www.burgerking.com.tr/restoranlar-subeler/istanbul-avrupa/kucukcekmece" }
+
+[[poi]]
+id = "kasap-doner"
+name = { tr = "Kasap Döner", en = "Kasap Döner" }
+category = "food"
+brand = "Kasap Döner"
+node = "scene_428555"
+verified = { checked = 2026-10-07, status = "closed", source = "https://yandex.com.tr/maps/org/kasap_doner/85898482904/" }
+
+[[poi]]
+id = "the-coffee-factory-j"
+name = { tr = "The Coffee Factory (J Blok)", en = "The Coffee Factory (J Block)" }
+category = "cafe"
+brand = "The Coffee Factory"
+aliases = ["j blok kafeterya", "coffee factory", "kantin"]
+node = "scene_428531"
+landmark = "poi.the-coffee-factory-j"
+building = "J"
+verified = { checked = 2026-10-07, status = "open", source = "https://www.instagram.com/p/CjAsxuwIi-W" }
+
+[[poi]]
+id = "t-blok-yemekhane"
+name = { tr = "Yemekhane ve Kantin (T Blok)", en = "Dining Hall and Canteen (T Block)" }
+category = "food"
+aliases = ["yemekhane", "kantin", "t blok kantin", "refectory"]
+node = "scene_428757"
+building = "T"
+floor = 4
+verified = { checked = 2026-10-07, status = "open", source = "https://www.iaumed.org.tr/2020/12/09/basli-basina-yeni-bir-universite-t-blok" }
+
+[[poi]]
+id = "yurt-restoran"
+name = { tr = "Yurt Restoran ve Kafe", en = "Dormitory Restaurant and Cafe" }
+category = "food"
+aliases = ["big mammas", "big mamma's", "kantin kafeterya", "yurt kafe"]
+node = "scene_428484"
+verified = { checked = 2026-10-07, status = "open", source = "https://www.aydinuniversitesikizogrenciyurdu.com" }
+
+[[poi]]
+id = "big-mammas"
+name = { tr = "Big Mamma's", en = "Big Mamma's" }
+category = "cafe"
+brand = "Big Mamma's"
+aliases = ["big mammas"]
+node = "scene_428337"
+landmark = "poi.big-mammas"
+# The tour shows it beside D Blok; no current source places one there.
+verified = { checked = 2026-10-07, status = "unknown", source = "https://yandex.com/maps/org/big_mamma_s/126915292319/" }
+
+[[poi]]
+id = "coffee-shop-lavazza"
+name = { tr = "Coffee Shop", en = "Coffee Shop" }
+category = "cafe"
+brand = "Lavazza"
+aliases = ["lavazza", "cam köşk", "kahve"]
+node = "scene_428548"
+landmark = "poi.coffee-shop-lavazza"
+verified = { checked = 2026-10-07, status = "unknown", source = "https://yandex.com.tr/maps/org/lavazza_best_coffee_shop/162831251790/" }
+
+[[poi]]
+id = "kampus-marmaris"
+name = { tr = "Kampüs Marmaris", en = "Kampüs Marmaris" }
+category = "food"
+aliases = ["marmaris cafe"]
+node = "scene_428546"
+landmark = "poi.kampus-marmaris"
+verified = { checked = 2026-10-07, status = "unknown", source = "https://yandex.com.tr/maps/org/kampus_marmaris/187846382279/" }
+
+[[poi]]
+id = "hastane-kafeterya"
+name = { tr = "Hastane Kafeteryası", en = "Hospital Cafeteria" }
+category = "food"
+aliases = ["medical park kafe"]
+node = "scene_428448"
+verified = { checked = 2026-10-07, status = "open", source = "https://us-uk.bookimed.com/clinic/vm-medical-park-florya-hospital" }
+
+# --- shops -------------------------------------------------------------------
+
+[[poi]]
+id = "iau-store"
+name = { tr = "IAU Store", en = "IAU Store" }
+category = "shop"
+aliases = ["kırtasiye", "book store", "tao store", "iau store coffee"]
+node = "scene_428361"
+landmark = "poi.iau-store"
+# Opened 2018; its social account has been silent since 2022.
+verified = { checked = 2026-10-07, status = "unknown", source = "https://www.instagram.com/iaustorecoffee/" }
+
+# --- health ------------------------------------------------------------------
+
+[[poi]]
+id = "saglik-merkezi"
+name = { tr = "Sağlık Merkezi (Revir)", en = "Health Centre (Infirmary)" }
+category = "health"
+aliases = ["revir", "sağlık merkezi", "infirmary", "doktor"]
+node = "scene_428547"
+landmark = "poi.saglik-merkezi"
+building = "D"
+floor = 0
+verified = { checked = 2026-10-07, status = "open", source = "https://sks.aydin.edu.tr/saglik/revir/" }
+
+[[poi]]
+id = "vm-medical-park"
+name = { tr = "VM Medical Park Florya Hastanesi", en = "VM Medical Park Florya Hospital" }
+category = "health"
+brand = "Medical Park"
+aliases = ["hastane", "tıp fakültesi hastanesi", "hospital", "acil"]
+node = "scene_428460"
+landmark = "poi.vm-medical-park"
+verified = { checked = 2026-10-07, status = "open", source = "https://us-uk.bookimed.com/clinic/vm-medical-park-florya-hospital" }
+
+# --- library and student services --------------------------------------------
+
+[[poi]]
+id = "kutuphane"
+name = { tr = "Kütüphane (Bilgi Merkezi)", en = "Library (Information Centre)" }
+category = "library"
+aliases = ["kütüphane", "bilgi merkezi", "library", "p blok kütüphane"]
+node = "scene_428249"
+landmark = "poi.kutuphane"
+verified = { checked = 2026-10-07, status = "open", source = "https://www.instagram.com/reel/DAdcFoPRNEl" }
+
+[[poi]]
+id = "ogrenci-isleri"
+name = { tr = "Öğrenci İşleri", en = "Student Affairs" }
+category = "student_services"
+aliases = ["öğrenci işleri", "kayıt", "student affairs", "registrar"]
+node = "scene_428759"
+building = "T"
+floor = 0
+verified = { checked = 2026-10-07, status = "open", source = "https://www.aydin.edu.tr/tr-tr/iau-hakkinda/yonetim/genelsekreterlik/ogrenciisleri/Pages/Hakk%C4%B1m%C4%B1zda.aspx" }
+
+# The tour's old Student Affairs office: moved to T Blok, kept out of search.
+[[poi]]
+id = "ogrenci-isleri-eski"
+name = { tr = "Öğrenci İşleri (eski yer)", en = "Student Affairs (former office)" }
+category = "student_services"
+node = "scene_428363"
+verified = { checked = 2026-10-07, status = "closed", source = "https://www.aydin.edu.tr/tr-tr/iau-hakkinda/yonetim/genelsekreterlik/ogrenciisleri/Pages/Hakk%C4%B1m%C4%B1zda.aspx" }
+
+# --- sports ------------------------------------------------------------------
+
+[[poi]]
+id = "fitness-a"
+name = { tr = "Fitness Salonu (A Blok)", en = "Fitness Centre (A Block)" }
+category = "sports"
+aliases = ["spor salonu", "gym", "fitness"]
+node = "scene_428478"
+building = "A"
+verified = { checked = 2026-10-07, status = "open", source = "https://sks.aydin.edu.tr/spor/fitness-salonu-kullanim-talimati/" }
+
+[[poi]]
+id = "spor-salonu"
+name = { tr = "Spor Salonu", en = "Gym" }
+category = "sports"
+aliases = ["fitness center", "spor"]
+node = "scene_428307"
+verified = { checked = 2026-10-07, status = "open", source = "https://sks.aydin.edu.tr/spor/fitness-salonu-kullanim-talimati/" }
+
+# --- services ----------------------------------------------------------------
+
+[[poi]]
+id = "incubation-istanbul"
+name = { tr = "Incubation İstanbul · Biocube", en = "Incubation İstanbul · Biocube" }
+category = "service"
+aliases = ["incubation", "biocube", "kuluçka merkezi"]
+node = "scene_428315"
+landmark = "poi.incubation-istanbul"
+building = "D"
+verified = { checked = 2026-10-07, status = "open", source = "https://biocube.ist" }
+
+[[poi]]
+id = "lidium-kuafor"
+name = { tr = "Lidium Kuaför", en = "Lidium Hair Salon" }
+category = "service"
+aliases = ["kuaför", "berber", "saç bakımı", "güzellik"]
+node = "scene_428336"
+own_panorama = false
+building = "D"
+floor = 4
+verified = { checked = 2026-10-07, status = "open", source = "https://www.instagram.com/p/Cnomq_QNVU-" }
+
+[[poi]]
+id = "brightlab"
+name = { tr = "BrightLab Siber Güvenlik Merkezi", en = "BrightLab Cyber Security Center" }
+category = "service"
+aliases = ["brightlab", "siber güvenlik"]
+node = "scene_428563"
+own_panorama = false
+landmark = "poi.brightlab"
+building = "D"
+verified = { checked = 2026-10-07, status = "unknown", source = "https://www.aydin.edu.tr/tr-tr/arastirma/arastirmamerkezleri/siberguvenlik/Pages/default.aspx" }
+
+[[poi]]
+id = "aziz-sancar-technocenter"
+name = { tr = "Prof. Dr. Aziz Sancar Technocenter", en = "Prof. Dr. Aziz Sancar Technocenter" }
+category = "service"
+aliases = ["technocenter", "teknoloji merkezi", "aziz sancar"]
+node = "scene_428222"
+verified = { checked = 2026-10-07, status = "open", source = "https://www.aydin.edu.tr/en-us/arastirma/teknolojimerkezleri/Pages/aziz-sancar-teknoloji-merkezi.aspx" }

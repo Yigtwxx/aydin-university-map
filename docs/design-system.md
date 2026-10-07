@@ -78,10 +78,23 @@ refraction adapted from React Bits' GlassSurface). Every glass surface has a
 
 | Material | Use | Look |
 |---|---|---|
-| `thick` | the panel, the weather sheet: anything with body text | 82% white (84% night ink), 40 px blur, no refraction |
+| `thick` | the panel: anything with body text | 82% white (84% night ink), 40 px blur, no refraction |
 | `regular` | map controls, status pill, language switch | 66% white, 24 px blur, faint refractive edge (Chromium) |
 | `solid` | menus that open over other glass (place search) | 94% white, so the layers never mix |
 | `tint` | controls over 360° photos | 36% ink, white content, refractive edge, photo scrims behind |
+
+**Weather sheet** (`WeatherSky.tsx`, `skyTheme.ts`): instead of glass, the
+sky the map shows (weather × time of day, previews included) with white text
+and a light rim. The sun and moon stay out of frame top right, behind the
+weather icon; only their glow (and faint, slowly turning light shafts) reach
+in. Cloud and fog are tileable Perlin textures drawn once per visit
+(`skyNoise.ts`, `skyTextures.ts`), lit from above and drifting in layers at
+different speeds; rain and snow fall on a canvas in three depths, the rain
+slanted by the live wind (`precipitationField.ts`, `Precipitation.tsx`).
+Everything stops under reduced motion. Every sky keeps 90% white text at
+4.5:1, and full white text at 4.5:1 under the thickest cloud or fog
+(`SKY_OVERLAY_PEAK`, tested). The status pill itself shows only the icon,
+temperature and clock; the weather in words is in the sheet.
 
 Safari and Firefox get the same tint and edge light without refraction, so
 nothing depends on the effect. Popups set `bg-(--glass-bg)` (not
@@ -115,6 +128,24 @@ badges); chips, pills and dots are round.
   - Start: white dot in a route-blue ring. Destination: brick pin with its
     name on a white chip, shown as soon as it is chosen. The spot open in 360°
     pulses in route blue.
+  - Businesses and services (POIs, `features/map/PoiLayer.tsx`): a white
+    capsule on a short tail whose tip stands on the pin, so the door's 360°
+    dot stays visible below. It holds one round glyph per business at that
+    spot (within 2 m), each a button that makes the business the
+    destination.
+    - Zoom: up close the capsule carries the business names. Further out
+      only the glyphs remain, and when two capsules would touch, the nearer
+      one stays. The campus overview shows none. Names give way while a
+      route or a destination is shown.
+    - Colours (`POI_COLORS` in `features/route/placeIcons.tsx`): one per
+      kind of errand, the same by day and by night. Eat and drink orange
+      `#e0701a`, shop violet `#8257e6`, health rose `#d93a6c`, library teal
+      `#0f8c82`, sports green `#2f9a57`, other services slate `#5e6b80`.
+      They avoid the route blue, destination brick and campus ochre. The
+      glyph is white at 3:1 contrast or better.
+    - A business whose storefront is not surveyed yet stands at its
+      building's door (`pin_source: "entrance"`). Its tooltip and accessible
+      name say so ("Bina girişi"), and the marker looks the same.
 - **Framing:** the projection is offset so the camera target sits in the
   middle of the uncovered screen (right of the panel and above the 360° view
   on desktop; above the bottom sheet at its current snap on mobile, easing

@@ -2,8 +2,7 @@
 
 import { DoorOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useLayoutEffect, useMemo, useRef } from 'react';
-import { Vector3 } from 'three';
+import { useMemo } from 'react';
 
 import {
   Tooltip,
@@ -11,57 +10,24 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { FanMark } from '@/components/brand/FanMark';
-import { anchors } from '@/features/campus/anchors';
 import { enuToWorld } from '@/features/campus/coords';
 import { openRing } from '@/features/campus/geometry';
+import type { Place } from '@/features/campus/queries';
 import type { Building, GraphNode } from '@/features/campus/types';
 
 import { blockChips } from './blockChips';
 import { useCameraStore, type ZoomTier } from './cameraStore';
-
-/** A DOM element that the scene's projector keeps over a 3D point. */
-function MapAnchor({
-  id,
-  position,
-  layer = 0,
-  children,
-}: {
-  id: string;
-  position: [number, number, number];
-  /** Stacking order among anchors: pins over labels over plain spots. */
-  layer?: number;
-  children: ReactNode;
-}) {
-  const element = useRef<HTMLDivElement>(null);
-  const [x, y, z] = position;
-  useLayoutEffect(() => {
-    if (!element.current) return;
-    anchors.set(id, {
-      element: element.current,
-      position: new Vector3(x, y, z),
-    });
-    return () => {
-      anchors.delete(id);
-    };
-  }, [id, x, y, z]);
-  return (
-    <div
-      ref={element}
-      // The projector fades occluded anchors through opacity; ease it.
-      className="absolute top-0 left-0 transition-opacity duration-200 ease-out-soft will-change-transform"
-      // Off-screen until the projector places it on the next frame.
-      style={{ transform: 'translate3d(-200px, -200px, 0)', zIndex: layer }}
-    >
-      {children}
-    </div>
-  );
-}
+import { MapAnchor } from './MapAnchor';
+import { PoiLayer } from './PoiLayer';
 
 /** Outdoor spots further than this from any entrance keep their bare name. */
 const NEAR_DOOR_M = 90;
 
 const atNode = (node: GraphNode, up = 0.6) =>
   enuToWorld(node.enu[0], node.enu[1], up);
+
+const atEnu = (enu: readonly [number, number]) =>
+  enuToWorld(enu[0], enu[1], 0.6);
 
 /**
  * A door where the drawn route stops to go inside (or through a building)
@@ -93,9 +59,15 @@ function StartPin({ node }: { node: GraphNode }) {
   );
 }
 
-function DestinationPin({ node, label }: { node: GraphNode; label: string }) {
+function DestinationPin({
+  position,
+  label,
+}: {
+  position: [number, number, number];
+  label: string;
+}) {
   return (
-    <MapAnchor id="pin-end" position={atNode(node)} layer={4}>
+    <MapAnchor id="pin-end" position={position} layer={4}>
       {/* The pin's tip sits on the node: shift up by its height, left by half its width. */}
       <div
         aria-hidden
@@ -125,9 +97,9 @@ function DestinationPin({ node, label }: { node: GraphNode; label: string }) {
   );
 }
 
-function FocusPulse({ node }: { node: GraphNode }) {
+function FocusPulse({ position }: { position: [number, number, number] }) {
   return (
-    <MapAnchor id="pin-focus" position={atNode(node)} layer={4}>
+    <MapAnchor id="pin-focus" position={position} layer={4}>
       <span
         aria-hidden
         className="relative flex size-6 -translate-1/2 items-center justify-center"
@@ -371,24 +343,50 @@ interface OverlayProps {
   doors?: GraphNode[];
   /** Node shown in 360° (a route step or an explored spot). */
   focusNodeId?: string;
+  /**
+   * Where the 360° spot really is when its node only borrows a position (a
+   * business's own indoor panorama, at its storefront), ENU metres.
+   */
+  focusEnu?: readonly [number, number];
   /** The chosen destination; pinned even before a route exists. */
   destinationNodeId?: string;
+  /** Its place id; a business there drops its own pin for the destination's. */
+  destinationPlaceId?: string;
+  /**
+   * The destination's storefront (a business with a measured pin), ENU
+   * metres: the pin stands there instead of on the node.
+   */
+  destinationEnu?: readonly [number, number];
   destinationLabel?: string;
+  /** The place directory: its businesses and services get pins. */
+  places?: readonly Place[];
   labelOf: (node: GraphNode) => string;
   onOpenPano: (node: GraphNode) => void;
+  /** A business pin was picked: make it the destination. */
+  onPickPlace: (place: Place) => void;
 }
 
-/** Everything drawn over the 3D map: labels, route pins and 360° spots. */
+const NO_PLACES: readonly Place[] = [];
+
+/**
+ * Everything drawn over the 3D map: labels, route pins, business pins and
+ * 360° spots.
+ */
 export function MapOverlays({
   nodes,
   buildings,
   route,
   doors = [],
   focusNodeId,
+  focusEnu,
   destinationNodeId,
+  destinationPlaceId,
+  destinationEnu,
   destinationLabel,
+  places = NO_PLACES,
   labelOf,
   onOpenPano,
+  onPickPlace,
 }: OverlayProps) {
   const tier = useCameraStore((s) => s.tier);
   const hasRoute = route.length > 1;
@@ -411,6 +409,15 @@ export function MapOverlays({
     [hasRoute, route, focusNodeId, destinationNodeId],
   );
 
+  const quiet = hasRoute || Boolean(destinationNodeId);
+  // A business's storefront, else the node (a business of its own, `poi:`
+  // id, has no node before its route arrives).
+  const destination = destinationEnu
+    ? atEnu(destinationEnu)
+    : end
+      ? atNode(end)
+      : undefined;
+
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       <CampusLabel buildings={buildings} tier={tier} />
@@ -419,9 +426,16 @@ export function MapOverlays({
         nodes={nodes}
         tier={tier}
         hidden={hidden}
-        quiet={hasRoute || Boolean(destinationNodeId)}
+        quiet={quiet}
         labelOf={labelOf}
         onOpen={onOpenPano}
+      />
+      <PoiLayer
+        places={places}
+        tier={tier}
+        quiet={quiet}
+        hiddenId={destinationPlaceId}
+        onPick={onPickPlace}
       />
       {doors
         .filter((n) => n.id !== focus?.id)
@@ -429,10 +443,15 @@ export function MapOverlays({
           <DoorPin key={n.id} node={n} />
         ))}
       {start && start.id !== focus?.id && <StartPin node={start} />}
-      {end && (
-        <DestinationPin node={end} label={destinationLabel ?? labelOf(end)} />
+      {destination && (
+        <DestinationPin
+          position={destination}
+          label={destinationLabel ?? (end ? labelOf(end) : '')}
+        />
       )}
-      {focus && <FocusPulse node={focus} />}
+      {focus && (
+        <FocusPulse position={focusEnu ? atEnu(focusEnu) : atNode(focus)} />
+      )}
     </div>
   );
 }

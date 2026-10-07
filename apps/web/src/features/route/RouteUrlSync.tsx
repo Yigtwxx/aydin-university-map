@@ -8,7 +8,7 @@ import { useCampusGraph, usePlaceDirectory } from '@/features/campus/queries';
 import { getPathname, usePathname } from '@/i18n/navigation';
 
 import { useRouteStore } from './store';
-import { placeName } from './urlState';
+import { isKnownPlace, placeName } from './urlState';
 import { createRouteUrlSync, type UrlWrite } from './urlSync';
 
 /**
@@ -28,17 +28,22 @@ export function RouteUrlSync() {
   const [sync] = useState(() => createRouteUrlSync(useRouteStore));
 
   const nodes = graph.data?.byId;
+  const places = directory.data;
   const nameOf = useCallback(
-    (id: string) => placeName(id, locale, directory.data, nodes),
-    [locale, directory.data, nodes],
+    (id: string) => placeName(id, locale, places, nodes),
+    [locale, places, nodes],
   );
-  // Only places the graph knows are restored; ids are never routed blindly.
+  // Only places the map knows are restored: graph nodes, and the directory's
+  // businesses that are not nodes (`poi:` ids). So a link waits for both,
+  // unless the directory failed.
+  const directorySettled = !directory.isPending;
   const resolve = useMemo(
     () =>
-      nodes
-        ? (id: string) => (nodes.has(id) ? (nameOf(id) ?? id) : undefined)
+      nodes && directorySettled
+        ? (id: string) =>
+            isKnownPlace(id, places, nodes) ? (nameOf(id) ?? id) : undefined
         : undefined,
-    [nodes, nameOf],
+    [nodes, places, directorySettled, nameOf],
   );
 
   // The native history API is what Next.js syncs `useSearchParams` with, and

@@ -79,8 +79,9 @@ function declutter(visible: { element: HTMLElement; depth: number }[]): void {
       if (!hidden) placed.push(box);
     }
   }
-  // Block chips (`data-yield`) that would sit on each other: the nearer one
-  // stays; zooming in brings the others back.
+  // Block chips and business pins (`data-yield`) that would sit on each
+  // other: the nearer one stays; zooming in brings the others back. A pin
+  // that gives way is out of reach too (no click, no tab stop).
   const chips: Placed[] = [];
   for (const { element } of ranked) {
     for (const chip of element.querySelectorAll<HTMLElement>('[data-yield]')) {
@@ -88,6 +89,7 @@ function declutter(visible: { element: HTMLElement; depth: number }[]): void {
       if (!box) continue;
       const hidden = chips.some((p) => overlaps(p, box));
       chip.style.opacity = hidden ? '0' : '';
+      chip.inert = hidden;
       if (!hidden) chips.push(box);
     }
   }
@@ -107,6 +109,10 @@ export function OverlayProjector() {
   const lastCount = useRef(-1);
 
   useFrame(({ camera }) => {
+    // camera-controls moves the camera earlier this frame but leaves its
+    // matrices to the renderer; project with last frame's and the markers
+    // trail the scene by a frame whenever the view moves.
+    camera.updateMatrixWorld();
     // Occlusion only changes when the camera or the set of anchors does.
     const moved =
       !lastView.current.equals(camera.matrixWorld) ||

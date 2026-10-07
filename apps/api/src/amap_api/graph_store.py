@@ -8,6 +8,7 @@ import httpx
 import networkx as nx
 
 from amap_contracts.graph import Graph, Node
+from amap_contracts.pois import Poi, PoiCollection
 
 
 def _indoor_clusters(graph: Graph, nodes: dict[str, Node]) -> dict[str, int]:
@@ -76,3 +77,19 @@ def load_graph(source: str) -> GraphStore:
     else:
         data = json.loads(Path(source).read_text(encoding="utf-8"))
     return GraphStore.from_graph(Graph.from_geojson(data))
+
+
+def load_pois(source: str) -> list[Poi]:
+    """Read ``pois.json`` (path or URL); a missing file means no POIs."""
+    if source.startswith(("http://", "https://")):
+        response = httpx.get(source, timeout=30.0, follow_redirects=True)
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
+        text = response.text
+    else:
+        path = Path(source)
+        if not path.is_file():
+            return []
+        text = path.read_text(encoding="utf-8")
+    return PoiCollection.model_validate_json(text).pois

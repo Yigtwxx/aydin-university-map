@@ -7,12 +7,16 @@ Outdoors a place is every panorama sharing a label (entrances represent their
 building). Indoors the same label names different rooms in different blocks
 ("Derslik"), so rooms are grouped by label, block and floor, and their search
 key also holds the block and the area ("Kimya - M Blok").
+
+Points of interest (``amap_contracts.pois``) enrich the place their panorama
+is, or become places of their own (``poi:<slug>``).
 """
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from amap_contracts.graph import Node, NodeKind
+from amap_contracts.pois import Poi
 from amap_contracts.text import search_key
 
 # Areas that say nothing about where a room is.
@@ -40,6 +44,16 @@ class Place:
     floor: int | None = None
     area_tr: str = ""
     area_en: str = ""
+    category: str | None = None  # a PoiCategory value
+    brand: str | None = None
+    aliases: tuple[str, ...] = ()
+    pin_enu: tuple[float, float] | None = None  # storefront, local metres
+    pin_source: str | None = None  # a PinSource value
+    closed: bool = False  # in the tour, gone today: never a search result
+
+    @property
+    def is_poi(self) -> bool:
+        return self.category is not None
 
 
 def _room_key(node: Node) -> str:
@@ -50,9 +64,71 @@ def _room_key(node: Node) -> str:
     return search_key(" ".join(parts))
 
 
-def build_places(nodes: Iterable[Node]) -> list[Place]:
-    """Group panoramas into places; entrances represent their building."""
+def build_places(nodes: Iterable[Node], pois: Iterable[Poi] = ()) -> list[Place]:
+    """Group panoramas into places, then attach the points of interest."""
     by_id = {node.id: node for node in nodes}
+    return _attach_pois(_label_places(by_id), by_id, pois)
+
+
+def _attach_pois(
+    places: list[Place], nodes: dict[str, Node], pois: Iterable[Poi]
+) -> list[Place]:
+    owner = {node_id: i for i, p in enumerate(places) for node_id in p.node_ids}
+    enriched: set[int] = set()
+    extra: list[Place] = []
+    for poi in pois:
+        index = owner.get(poi.node_id or "") if poi.own_panorama else None
+        if index is not None and index not in enriched:
+            enriched.add(index)
+            place = places[index]
+            places[index] = replace(
+                place,
+                name_tr=poi.name.tr,
+                name_en=poi.name.en,
+                building=poi.building or place.building,
+                floor=poi.floor if poi.floor is not None else place.floor,
+                category=poi.category.value,
+                brand=poi.brand,
+                aliases=poi.aliases,
+                pin_enu=poi.pin_enu,
+                pin_source=poi.pin_source.value if poi.pin_source else None,
+                closed=not poi.listed,
+                key=_poi_key(poi, place.key),
+            )
+            continue
+        node = nodes.get(poi.node_id or "")
+        if node is None:
+            continue  # nothing to route to
+        extra.append(
+            Place(
+                id=poi.place_id,
+                name_tr=poi.name.tr,
+                name_en=poi.name.en,
+                kind=node.kind,
+                building=poi.building or node.building,
+                node_ids=(node.id,),
+                key=_poi_key(poi, ""),
+                floor=poi.floor,
+                area_tr=node.area.tr,
+                area_en=node.area.en,
+                category=poi.category.value,
+                brand=poi.brand,
+                aliases=poi.aliases,
+                pin_enu=poi.pin_enu,
+                pin_source=poi.pin_source.value if poi.pin_source else None,
+                closed=not poi.listed,
+            )
+        )
+    return [*places, *extra]
+
+
+def _poi_key(poi: Poi, base: str) -> str:
+    words = [poi.name.tr, poi.name.en, poi.brand or "", *poi.aliases, base]
+    return search_key(" ".join(w for w in words if w))
+
+
+def _label_places(by_id: dict[str, Node]) -> list[Place]:
+    """Group panoramas into places; entrances represent their building."""
     groups: dict[tuple[str, str], list[str]] = {}
     for node in by_id.values():
         scope = (
@@ -120,7 +196,7 @@ def search_places(places: list[Place], query: str, limit: int = 10) -> list[Plac
             return (2, -sum(_word_matches(w, name) for w in words))
         return None
 
-    scored = [(r, p) for p in places if (r := rank(p)) is not None]
+    scored = [(r, p) for p in places if not p.closed and (r := rank(p)) is not None]
     scored.sort(
         key=lambda rp: (
             rp[0],

@@ -30,7 +30,7 @@ from amap_api.assistant.knowledge import Knowledge
 from amap_api.assistant.testing import offline_model
 from amap_api.db import Database
 from amap_api.directions import instruction
-from amap_api.graph_store import GraphStore, load_graph
+from amap_api.graph_store import GraphStore, load_graph, load_pois
 from amap_api.http_cache import CachedJson
 from amap_api.places import Place, build_places, search_places
 from amap_api.rate_limit import TokenBucket
@@ -50,6 +50,7 @@ from amap_api.settings import Settings, get_settings
 from amap_api.weather import WeatherService, WeatherUnavailableError
 from amap_contracts import search_key
 from amap_contracts.graph import NodeKind
+from amap_contracts.pois import POI_PLACE_PREFIX, PinSource, PoiCategory
 
 log = logging.getLogger("amap_api")
 os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
@@ -118,17 +119,37 @@ def create_app(
                     "walking graph not loaded from %s: %s", cfg.graph_source, exc
                 )
         app.state.store = loaded
-        app.state.places = build_places(loaded) if loaded else []
+        pois = []
+        if loaded:
+            try:
+                pois = load_pois(cfg.pois_location)
+            except (OSError, httpx.HTTPError, ValueError) as exc:
+                log.warning("POIs not loaded from %s: %s", cfg.pois_location, exc)
+        app.state.places = build_places(loaded, pois) if loaded else []
+        app.state.place_nodes = {
+            p.id: p.node_ids[0]
+            for p in app.state.places
+            if p.id.startswith(POI_PLACE_PREFIX) and p.node_ids
+        }
         # 1.1 MB of GeoJSON: serialised once, compressed per request.
         app.state.graph_json = (
             CachedJson.of(loaded.graph.to_geojson()) if loaded else None
         )
+        # The map lists open areas and doors at measured spots, and every
+        # business or service with a pin (wherever its own panorama is).
         app.state.directory = [
             place_out(p)
             for p in app.state.places
             if loaded
-            and p.kind is not NodeKind.INDOOR
-            and not loaded.nodes[p.id].approximate
+            and not p.closed
+            and (
+                (p.is_poi and p.pin_enu is not None)
+                or (
+                    p.kind is not NodeKind.INDOOR
+                    and p.id in loaded.nodes
+                    and not loaded.nodes[p.id].approximate
+                )
+            )
         ]
         app.state.http = httpx.AsyncClient()
         app.state.weather = WeatherService(app.state.http, ttl_s=cfg.weather_ttl_s)
@@ -179,6 +200,11 @@ def create_app(
             floor=place.floor,
             area_tr=place.area_tr,
             area_en=place.area_en,
+            category=PoiCategory(place.category) if place.category else None,
+            brand=place.brand,
+            aliases=list(place.aliases),
+            pin_enu=place.pin_enu,
+            pin_source=PinSource(place.pin_source) if place.pin_source else None,
         )
 
     @app.get("/health", response_model=Health)
@@ -220,7 +246,7 @@ def create_app(
     async def places(
         request: Request,
         q: Annotated[str | None, Query(max_length=100)] = None,
-        limit: Annotated[int, Query(ge=1, le=50)] = 10,
+        limit: Annotated[int, Query(ge=1, le=500)] = 10,
     ) -> list[PlaceOut] | Response:
         """Word-prefix search; with a database, typos fall back to trigrams.
 
@@ -243,8 +269,23 @@ def create_app(
             except Exception as exc:
                 log.warning("trigram search failed: %s", type(exc).__name__)
                 ids = []
-            found = [by_id[i] for i in ids if i in by_id]
+            found = [by_id[i] for i in ids if i in by_id and not by_id[i].closed]
         return [place_out(p) for p in found]
+
+    @app.get(
+        "/places/{place_id}",
+        response_model=PlaceOut,
+        responses={404: {"model": ErrorOut}},
+    )
+    def place_by_id(request: Request, place_id: str) -> PlaceOut:
+        """One place by id: a node id or a business's ``poi:<slug>``."""
+        found = next(
+            (p for p in request.app.state.places if p.id == place_id and not p.closed),
+            None,
+        )
+        if found is None:
+            raise HTTPException(404, f"unknown place {place_id}")
+        return place_out(found)
 
     @app.get(
         "/buildings",
@@ -289,14 +330,18 @@ def create_app(
         response_model=RouteResponse,
         responses={404: {"model": ErrorOut}, 422: {"model": ErrorOut}},
     )
-    def route(body: RouteRequest, store: StoreDep) -> RouteResponse:
+    def route(request: Request, body: RouteRequest, store: StoreDep) -> RouteResponse:
+        # A POI place (poi:<slug>) routes to the panorama it hangs off.
+        place_nodes: dict[str, str] = getattr(request.app.state, "place_nodes", {})
+        source = place_nodes.get(body.source, body.source)
+        target = place_nodes.get(body.target, body.target)
         try:
-            found = shortest_route(store, body.source, body.target, body.avoid_stairs)
+            found = shortest_route(store, source, target, body.avoid_stairs)
         except KeyError as exc:
             raise HTTPException(404, f"unknown node {exc.args[0]}") from exc
         except NoRouteError as exc:
             raise HTTPException(422, str(exc)) from exc
-        dest = store.nodes[body.target]
+        dest = store.nodes[target]
         steps = []
         for step in found.steps:
             tr, en = instruction(step, dest.label.tr, dest.label.en)

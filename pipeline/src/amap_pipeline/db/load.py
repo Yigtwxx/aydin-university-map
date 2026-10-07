@@ -16,6 +16,7 @@ from shapely.geometry import LineString, Point, Polygon
 
 from amap_contracts.graph import Graph
 from amap_contracts.places import build_places
+from amap_contracts.pois import PoiCollection
 from amap_pipeline.geo.osm import LocalProjector
 
 _BLOCK_CODE = re.compile(r"(?:^|\s)([A-ZÇĞİÖŞÜ](?:-[A-ZÇĞİÖŞÜ])?)\s+(?:Binası|Blok)")
@@ -47,7 +48,9 @@ def building_rows(
         rows.append(
             (
                 str(b["id"]),
-                building_code(b.get("name")) if b.get("campus") else None,
+                (b.get("code") or building_code(b.get("name")))
+                if b.get("campus")
+                else None,
                 b.get("name"),
                 bool(b.get("campus")),
                 float(b["height_m"]),
@@ -65,7 +68,13 @@ def load_outputs(conn: psycopg.Connection, out_dir: Path) -> LoadCounts:
     )
     buildings = json.loads((out_dir / "buildings.json").read_text("utf-8"))["buildings"]
     by_id = {n.id: n for n in graph.nodes}
-    places = build_places(graph.nodes)
+    pois_path = out_dir / "pois.json"
+    pois = (
+        PoiCollection.model_validate_json(pois_path.read_text("utf-8")).pois
+        if pois_path.is_file()
+        else []
+    )
+    places = build_places(graph.nodes, pois)
     b_rows = building_rows(buildings, LocalProjector())
 
     with conn.transaction():
@@ -138,7 +147,8 @@ def load_outputs(conn: psycopg.Connection, out_dir: Path) -> LoadCounts:
             )
             cur.executemany(
                 "insert into amap.places (id, name_tr, name_en, kind, building, "
-                "node_ids, search_key) values (%s, %s, %s, %s, %s, %s, %s)",
+                "node_ids, aliases, search_key, category, closed) "
+                "values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 [
                     (
                         p.id,
@@ -147,7 +157,10 @@ def load_outputs(conn: psycopg.Connection, out_dir: Path) -> LoadCounts:
                         p.kind.value,
                         p.building,
                         list(p.node_ids),
+                        list(p.aliases),
                         p.key,
+                        p.category,
+                        p.closed,
                     )
                     for p in places
                 ],

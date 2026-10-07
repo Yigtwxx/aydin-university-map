@@ -117,6 +117,19 @@ export function shareUrl(href: string, route: RouteParams): string {
 }
 
 /**
+ * Whether a shared link's id names a place the map knows: a graph node, or a
+ * place the directory lists (a business of its own, `poi:<slug>`, is not a
+ * node). Ids are never routed blindly.
+ */
+export function isKnownPlace(
+  id: string,
+  places: readonly Place[] | undefined,
+  nodes: ReadonlyMap<string, GraphNode> | undefined,
+): boolean {
+  return Boolean(nodes?.has(id) || places?.some((p) => p.id === id));
+}
+
+/**
  * Display name of a route end in `locale`: the place directory first (the
  * names the search shows), else the graph node's own label.
  */

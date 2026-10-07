@@ -15,7 +15,6 @@ import {
 import { MeshBVH } from 'three-mesh-bvh';
 
 import type { Sky } from '@/features/environment/hooks';
-import { type Credit, GoogleTiles } from '@/features/landing/GoogleTiles';
 import {
   type Condition,
   precipitationOf,
@@ -32,6 +31,7 @@ import { resetIntroClock } from './opening';
 import { palette } from './constants';
 import { enuToWorld } from './coords';
 import { facadeUniforms, patchFacade } from './facadeMaterial';
+import { type Credit, GoogleTiles } from './GoogleTiles';
 import { Greenery } from './Greenery';
 import { GroundLayer } from './GroundLayer';
 import { IntroGradeEffect } from './openingGrade';
@@ -73,10 +73,20 @@ interface SceneProps {
    * them. Without it the whole route is one line.
    */
   routeParts?: string[][];
+  /**
+   * More ENU points the route's framing keeps in view (a destination
+   * business's storefront, a few metres off the route's last node).
+   */
+  routeExtent?: readonly [number, number][];
   /** Node of the route step being previewed in 360°. */
   activeNodeId?: string;
   /** Node shown in 360° while exploring without a route. */
   exploreNodeId?: string;
+  /**
+   * Where the focused spot really is when its node only borrows a position
+   * (a business's own indoor panorama, at its storefront), ENU metres.
+   */
+  focusEnu?: readonly [number, number];
   sky: Sky;
   condition?: Condition;
   reducedMotion: boolean;
@@ -85,10 +95,6 @@ interface SceneProps {
    * (Cesium ion token); the route, pins and labels stay on top.
    */
   photoreal?: { token: string; onCredits: (credits: Credit[]) => void };
-  /** Render on demand only (the landing dive covers the map). */
-  paused?: boolean;
-  /** Keep the opening camera until the landing hands over. */
-  holdIntro?: boolean;
   /**
    * Play the opening (opening.ts) from the dot map into the campus. Read at
    * mount; the callbacks fire when the chrome may come in and at the end.
@@ -101,9 +107,6 @@ export function CampusScene(props: SceneProps) {
     <Canvas
       shadows="percentage"
       dpr={[1, 2]}
-      // Paused under the landing dive: one frame at mount compiles every
-      // shader and uploads the massing, so taking over later costs nothing.
-      frameloop={props.paused ? 'demand' : 'always'}
       camera={{ fov: 34, near: 2, far: 5200, position: INTRO_POSITION }}
       gl={{ antialias: false, powerPreference: 'high-performance' }}
     >
@@ -119,14 +122,15 @@ function SceneContents({
   ground,
   routeNodeIds,
   routeParts,
+  routeExtent,
   activeNodeId,
   exploreNodeId,
+  focusEnu,
   sky,
   condition,
   insets,
   reducedMotion,
   photoreal,
-  holdIntro = false,
   assemble,
 }: SceneProps) {
   const controls = useRef<CameraControls>(null);
@@ -140,7 +144,7 @@ function SceneContents({
   }, [assemble]);
   const [playsOpening] = useState(() => Boolean(assemble));
   useLayoutEffect(() => resetIntroClock(playsOpening), [playsOpening]);
-  const waiting = holdIntro || (assembling && !glided);
+  const waiting = assembling && !glided;
   // The free view's shape, read when framing (not a dependency: dragging the
   // sheet must not refit the camera).
   const size = useThree((s) => s.size);
@@ -260,7 +264,8 @@ function SceneContents({
       const index = route.findIndex((n) => n.id === focus.id);
       const ahead =
         index >= 0 ? (route[index + 1] ?? route[index - 1]) : undefined;
-      const [x, , z] = enuToWorld(focus.enu[0], focus.enu[1]);
+      const [fe, fn] = focusEnu ?? focus.enu;
+      const [x, , z] = enuToWorld(fe, fn);
       let dx = 0;
       let dz = -1;
       if (ahead) {
@@ -286,7 +291,7 @@ function SceneContents({
       hasRoute,
       view.current.aspect,
       view.current.fov,
-      hasRoute ? [] : campusCorners,
+      hasRoute ? [...(routeExtent ?? [])] : campusCorners,
     );
     void ctl.setLookAt(
       centre.x + distance * OVERVIEW[0],
@@ -301,8 +306,10 @@ function SceneContents({
     graph,
     route,
     hasRoute,
+    routeExtent,
     activeNodeId,
     exploreNodeId,
+    focusEnu,
     reducedMotion,
     fitRequest,
     waiting,

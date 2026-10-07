@@ -8,7 +8,8 @@ import { useMemo, useState } from 'react';
 import { type Place, usePlaceDirectory } from '@/features/campus/queries';
 
 import { PanoThumb } from './PanoThumb';
-import { CATEGORY_ICONS, PlaceGlyph } from './PlaceSearch';
+import { CATEGORY_ICONS, PoiBadge } from './placeIcons';
+import { PlaceGlyph } from './PlaceSearch';
 import {
   blockEntrances,
   categoryOf,
@@ -138,13 +139,23 @@ function TileGrid({
               fallback={<PlaceGlyph place={place} className="size-10" />}
               className="aspect-[16/10] w-full rounded-card group-hover:[&_img]:scale-[1.04]"
             >
-              {place.building && (
-                <span
-                  aria-hidden
-                  className="absolute bottom-1.5 left-1.5 flex h-5.5 min-w-5.5 items-center justify-center rounded-[6px] bg-ochre px-1 text-xs font-semibold text-ochre-ink shadow-thumb"
-                >
-                  {place.building}
-                </span>
+              {/* The badge the place wears on the map: a business's pin
+                  face, else its block letter. */}
+              {place.category ? (
+                <PoiBadge
+                  category={place.category}
+                  className="absolute bottom-1.5 left-1.5 size-5.5 shadow-thumb ring-[1.5px] ring-white"
+                  iconClassName="size-3"
+                />
+              ) : (
+                place.building && (
+                  <span
+                    aria-hidden
+                    className="absolute bottom-1.5 left-1.5 flex h-5.5 min-w-5.5 items-center justify-center rounded-[6px] bg-ochre px-1 text-xs font-semibold text-ochre-ink shadow-thumb"
+                  >
+                    {place.building}
+                  </span>
+                )
               )}
             </PanoThumb>
             <span className="truncate px-0.5 text-md font-medium tracking-heading">

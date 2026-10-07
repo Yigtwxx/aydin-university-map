@@ -1,16 +1,7 @@
 'use client';
 
 import { cn } from 'cn';
-import {
-  BookOpen,
-  Coffee,
-  Cross,
-  DoorClosed,
-  DoorOpen,
-  type LucideIcon,
-  Search,
-  Trees,
-} from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type Ref, useCallback, useId, useMemo, useRef, useState } from 'react';
 
@@ -29,7 +20,8 @@ import type { Locale } from '@/lib/format';
 
 import { whereText } from './indoor';
 import { PanoThumb } from './PanoThumb';
-import { categoryOf, type PlaceCategory, sceneOf } from './places';
+import { CATEGORY_ICONS, PoiBadge } from './placeIcons';
+import { categoryOf, sceneOf } from './places';
 import type { PlaceRef } from './store';
 
 /** The API rejects longer queries (422). */
@@ -93,7 +85,15 @@ export function PlaceSearch({
   else if (query.trim()) emptyText = t('noResults');
 
   // Rooms share names across blocks ("Derslik"): say where each one is.
+  // A business says what it is, and where when it is inside a block.
   const subtitleOf = (place: Place) => {
+    if (place.category)
+      return [
+        t(`poi.${place.category}`),
+        whereText(place, locale, place.name_tr, place.name_en),
+      ]
+        .filter(Boolean)
+        .join(' · ');
     const category = categoryOf(place);
     if (category !== 'rooms') return t(`type.${category}`);
     const area = locale === 'en' ? place.area_en : place.area_tr;
@@ -223,19 +223,10 @@ export function PlaceSearch({
   );
 }
 
-export const CATEGORY_ICONS: Record<
-  Exclude<PlaceCategory, 'blocks'>,
-  LucideIcon
-> = {
-  gates: DoorOpen,
-  health: Cross,
-  library: BookOpen,
-  cafe: Coffee,
-  outdoor: Trees,
-  rooms: DoorClosed,
-};
-
-/** Block letter on ochre (like the map labels), or the category's icon. */
+/**
+ * A business's badge (like its map pin), a block letter on ochre (like the
+ * map labels), or the category's icon.
+ */
 export function PlaceGlyph({
   place,
   className,
@@ -243,6 +234,14 @@ export function PlaceGlyph({
   place: Place;
   className?: string;
 }) {
+  if (place.category)
+    return (
+      <PoiBadge
+        category={place.category}
+        className={cn('size-8', className)}
+        iconClassName="size-4.5"
+      />
+    );
   if (place.building)
     return (
       <span

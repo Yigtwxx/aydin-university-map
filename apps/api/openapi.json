@@ -77,7 +77,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 50,
+              "maximum": 500,
               "minimum": 1,
               "default": 10,
               "title": "Limit"
@@ -101,6 +101,56 @@
           },
           "304": {
             "description": "Not modified (If-None-Match)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/places/{place_id}": {
+      "get": {
+        "summary": "Place By Id",
+        "description": "One place by id: a node id or a business's ``poi:<slug>``.",
+        "operationId": "place_by_id_places__place_id__get",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Place Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
           },
           "422": {
             "description": "Validation Error",
@@ -528,6 +578,15 @@
         ],
         "title": "NodeKind"
       },
+      "PinSource": {
+        "type": "string",
+        "enum": [
+          "storefront",
+          "entrance",
+          "manual"
+        ],
+        "title": "PinSource"
+      },
       "PlaceOut": {
         "properties": {
           "id": {
@@ -586,6 +645,68 @@
             "type": "string",
             "title": "Area En",
             "default": ""
+          },
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PoiCategory"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set for businesses and services (POIs)"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Aliases"
+          },
+          "pin_enu": {
+            "anyOf": [
+              {
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 2,
+                "minItems": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pin Enu",
+            "description": "Storefront in local metres (east, north) where measured"
+          },
+          "pin_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PinSource"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "storefront (surveyed), entrance (its building's door), manual"
           }
         },
         "type": "object",
@@ -599,17 +720,33 @@
         ],
         "title": "PlaceOut"
       },
+      "PoiCategory": {
+        "type": "string",
+        "enum": [
+          "food",
+          "cafe",
+          "shop",
+          "health",
+          "library",
+          "student_services",
+          "atm",
+          "sports",
+          "parking",
+          "service"
+        ],
+        "title": "PoiCategory"
+      },
       "RouteRequest": {
         "properties": {
           "source": {
             "type": "string",
             "title": "Source",
-            "description": "Start node id (a place id is a node id)"
+            "description": "Start node id or place id (poi:<slug>)"
           },
           "target": {
             "type": "string",
             "title": "Target",
-            "description": "Destination node id"
+            "description": "Destination node id or place id (poi:<slug>)"
           },
           "avoid_stairs": {
             "type": "boolean",

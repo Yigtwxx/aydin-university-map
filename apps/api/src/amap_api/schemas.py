@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from amap_api.routing import Turn
 from amap_contracts.graph import LocalizedText, NodeKind
+from amap_contracts.pois import PinSource, PoiCategory
 
 
 class Health(BaseModel):
@@ -40,6 +41,19 @@ class PlaceOut(BaseModel):
     )
     area_tr: str = Field(default="", description="Tour area, e.g. Kimya - M Blok")
     area_en: str = ""
+    category: PoiCategory | None = Field(
+        default=None, description="Set for businesses and services (POIs)"
+    )
+    brand: str | None = None
+    aliases: list[str] = Field(default_factory=list)
+    pin_enu: tuple[float, float] | None = Field(
+        default=None,
+        description="Storefront in local metres (east, north) where measured",
+    )
+    pin_source: PinSource | None = Field(
+        default=None,
+        description="storefront (surveyed), entrance (its building's door), manual",
+    )
 
 
 class NearestNode(BaseModel):
@@ -48,8 +62,8 @@ class NearestNode(BaseModel):
 
 
 class RouteRequest(BaseModel):
-    source: str = Field(description="Start node id (a place id is a node id)")
-    target: str = Field(description="Destination node id")
+    source: str = Field(description="Start node id or place id (poi:<slug>)")
+    target: str = Field(description="Destination node id or place id (poi:<slug>)")
     avoid_stairs: bool = False
 
 

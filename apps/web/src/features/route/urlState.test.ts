@@ -5,6 +5,7 @@ import type { GraphNode } from '@/features/campus/types';
 
 import {
   parseRouteParams,
+  isKnownPlace,
   placeName,
   routeParamsOf,
   sameRoute,
@@ -162,5 +163,24 @@ describe('placeName', () => {
     expect(placeName('n1', 'en', places, nodes)).toBe('Campus');
     expect(placeName('n1', 'tr', undefined, nodes)).toBe('Kampüs');
     expect(placeName('zz', 'tr', places, nodes)).toBeUndefined();
+  });
+});
+
+describe('isKnownPlace', () => {
+  const places = [
+    { id: 'n1', name_tr: 'Kampüs', name_en: 'Campus' },
+    { id: 'poi:atm', name_tr: 'ATM', name_en: 'ATM' },
+  ] as Place[];
+  const nodes = new Map([['n1', { id: 'n1' } as GraphNode]]);
+
+  it('knows graph nodes and the directory’s businesses without a node', () => {
+    expect(isKnownPlace('n1', places, nodes)).toBe(true);
+    expect(isKnownPlace('poi:atm', places, nodes)).toBe(true);
+    expect(isKnownPlace('poi:gone', places, nodes)).toBe(false);
+  });
+
+  it('knows only nodes while the directory is missing', () => {
+    expect(isKnownPlace('n1', undefined, nodes)).toBe(true);
+    expect(isKnownPlace('poi:atm', undefined, nodes)).toBe(false);
   });
 });
