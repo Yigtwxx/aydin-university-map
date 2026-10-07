@@ -1,0 +1,125 @@
+# Area r4: lane along D Blok's south side, D's south-west yard, E and F blocks. Sightings measured with amap look.
+
+[scenes.scene_428547]
+pose = "free"
+note = "foot of the stairs; D south wall 3.8 m north (hoarding base depression); shop#2 = stair-wall corner at 210.7 matched the unfitted OSM overlay; 18 m east of the old pose"
+init = [-19.8, 5.1, 253.6]
+prior_sigma_m = 3.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 186.06, snapped = true },
+  { lm = "F#1", ath = 346.5 },
+  { lm = "shop#2", ath = 210.68, snapped = true },
+  { lm = "r4.hoarding.e_end", ath = 134.4 },
+  { lm = "r4.cafe.frame.e", ath = 342.75 },
+  { lm = "poi.saglik-merkezi", ath = 164.0, snapped = true },
+  { lm = "poi.kampus-marmaris", ath = 347.0 },
+]
+
+[scenes.scene_428546]
+pose = "free"
+note = "in the lane in front of the Kampus Marmaris cafe (front 3 m south); about 18 m west of 428547 (stair foot depression); 9 m east of the old pose"
+init = [-36.3, -1.0, 70.0]
+prior_sigma_m = 3.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 1.3 },
+  { lm = "F#1", ath = 174.5 },
+  { lm = "r4.hoarding.e_end", ath = 347.7 },
+  { lm = "r4.cafe.frame.e", ath = 38.65, snapped = true },
+  { lm = "poi.saglik-merkezi", ath = 351.5 },
+  { lm = "poi.kampus-marmaris", ath = 107.09 },
+  { lm = "r4.poster1.w", ath = 152.24, snapped = true },
+  { lm = "r4.poster1.e", ath = 143.77 },
+]
+
+[scenes.scene_428545]
+pose = "free"
+note = "lane west end, 4-5 m from F NE corner and 4-5 m from D wall; tour arrows to 428546/428563/428542 agree within 3 deg"
+init = [-58.5, -9.7, 136.0]
+prior_sigma_m = 3.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 295.04, snapped = true },
+  { lm = "F#1", ath = 58.85, snapped = true },
+  { lm = "F#0", ath = 105.0 },
+  { lm = "r4.poster1.w", ath = 330.54, snapped = true },
+  { lm = "r4.poster1.e", ath = 320.99, snapped = true },
+  { lm = "r4.d.poster.w", ath = 209.31, snapped = true },
+  { lm = "r4.d.poster.e", ath = 226.91, snapped = true },
+]
+
+[scenes.scene_428542]
+pose = "free"
+note = "in the F-E lane at F door (mid-length of F east wall, ~25 m from both ends); 14 m south of the old pose"
+init = [-54.7, -36.1, 338.0]
+prior_sigma_m = 6.0
+obs = [
+  { lm = "F#1", ath = 355.6 },
+  { lm = "F#2", ath = 189.2 },
+  { lm = "r4.e.sw_corner", ath = 165.3 },
+]
+
+[scenes.scene_428538]
+pose = "free"
+note = "9 m south of E glass front at the entrance steps; plaza flag over the trees is a long-range heading check; hard case (prior-held)"
+init = [-19.0, -51.0, 199.7]
+prior_sigma_m = 3.0
+obs = [
+  { lm = "r4.e.sw_corner", ath = 65.0 },
+  { lm = "r4.e.se_corner", ath = 178.15, snapped = true },
+  { lm = "r4.stair.col.a", ath = 41.2 },
+  { lm = "r3b.e.drum", ath = 90.96, sigma_deg = 0.8 },
+  { lm = "r2.flag.plaza", ath = 189.52, sigma_deg = 3.0 },
+]
+
+[scenes.scene_428540]
+pose = "free"
+note = "south yard, 12 m south of E front; E corners and F window tie"
+init = [-28.4, -59.4, 74.0]
+prior_sigma_m = 4.0
+obs = [
+  { lm = "r4.e.sw_corner", ath = 220.34, snapped = true },
+  { lm = "r4.e.glass.w", ath = 225.47, snapped = true },
+  { lm = "r4.e.se_corner", ath = 322.87, snapped = true },
+  { lm = "r3b.e.drum", ath = 296.72, sigma_deg = 0.8 },
+  { lm = "r4.f.win1.l", ath = 173.5, snapped = true },
+  { lm = "r4.f.win1.r", ath = 178.58, snapped = true },
+]
+
+[scenes.scene_428541]
+pose = "free"
+note = "lane mouth on the street side, 3 m east of F east wall, 4 m SW of E SW corner"
+init = [-43.7, -56.0, 4.0]
+prior_sigma_m = 4.0
+obs = [
+  { lm = "r4.e.sw_corner", ath = 24.46, snapped = true },
+  { lm = "r4.e.glass.w", ath = 30.99, snapped = true },
+  { lm = "r4.e.se_corner", ath = 62.32 },
+  { lm = "F#2", ath = 203.48, snapped = true },
+  { lm = "r4.stair.col.a", ath = 115.7 },
+  { lm = "r4.f.win1.l", ath = 208.19, snapped = true },
+  { lm = "r4.f.win1.r", ath = 218.96, snapped = true },
+]
+
+[scenes.scene_428563]
+pose = "free"
+note = "D SW yard, 7 m from the curved BrightLab wall; hard case: heading +-10 deg (D poster, F corner; pavilion and tour arrow disagree)"
+init = [-77.0, -9.5, 282.6]
+prior_sigma_m = 2.5
+obs = [
+  { lm = "F#1", ath = 189.0 },
+  { lm = "r4.d.poster.w", ath = 145.96, snapped = true },
+  { lm = "r4.d.poster.e", ath = 158.96, snapped = true },
+]
+
+[scenes.scene_428315]
+pose = "free"
+init = [-70.9, -7.2, 290.3]
+prior_sigma_m = 4.0
+obs = []
+note = "indoors behind D's SW door; position from the tour arrow to 428563 only"
+
+[scenes.scene_428253]
+pose = "free"
+init = [-27.0, -46.0, 326.0]
+prior_sigma_m = 10.0
+obs = []
+note = "observatory on E's roof; position from the tour link to 428538 only"
