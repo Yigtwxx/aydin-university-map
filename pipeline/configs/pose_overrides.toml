@@ -1,0 +1,113 @@
+# Panoramas the SfM model placed wrongly, set by hand. Read by
+# `amap graph export`; nodes from here carry pose_source "manual".
+# x/y: local metres from the campus origin (east, north); heading_deg: compass
+# bearing of the panorama's front face.
+#
+# Model m0 squeezed the A Blok -> J Blok walk ~40 m west, onto A's south front
+# (J's camera even landed inside A). Both pictures show 1. İnönü Caddesi's fence
+# and parked cars a few metres away; the street runs along the campus's east
+# edge. The way there: face A's door, walk right to the end of A, turn into the
+# passage; J (with the cafeteria) is on the left.
+
+# "Kampüs" at A Blok's south-east corner: the corner is behind (ath 184), the
+# street fence on the left, A's front runs off to the right.
+[poses.scene_428529]
+x = 69.5
+y = 52.5
+heading_deg = 155.0
+
+# "J Blok Girişi": between A's east end, J's cafeteria and the street gate;
+# the fire stair in the gap between A and J is just left of the front face.
+# Its link to scene_428529 then points within 2° of the tour's hotspot.
+[poses.scene_428530]
+x = 68.0
+y = 65.5
+heading_deg = 258.0
+
+# "Kampüs Girişi", the main gate: shot from 1. İnönü Caddesi looking west
+# through the gate arch, which stands just south of A's east end. The model
+# put it in the middle of the square, 44 m west. Its west kerb here is x ≈ 77.
+[poses.scene_428518]
+x = 78.0
+y = 28.0
+heading_deg = 262.0
+
+# The lane along D's south side, below the square (the user's walk: down the
+# stairs from the square; turn right for the health centre, carry on and the
+# Marmaris café is on the left). D's bannered wall is on the north side, a
+# retaining wall under E on the south. Headings follow the lane (251°/71°).
+
+# "Kampüs - Revir Giriş": foot of the stairs; Sağlık Merkezi's door is in D's
+# wall just left of the stairs (ath ~155), the lane runs off west at ath 0.
+[poses.scene_428547]
+x = -36.0
+y = 0.5
+heading_deg = 251.0
+
+# "Kampüs Marmaris Cafe": the orange kiosk on the lane's south side (right of
+# the front face); the stairs back to the square at the far end of ath 0.
+[poses.scene_428546]
+x = -46.0
+y = -4.5
+heading_deg = 71.0
+
+# "Kampüs": where the lane between E and F opens onto the lane along D.
+# Hotspots to 542 and 546 then agree within 0° and 14° (546's back: 4°).
+[poses.scene_428545]
+x = -58.0
+y = -8.0
+heading_deg = 156.0
+
+# "F Blok Giriş": F's door (sign "F BLOK", ath 270) in the narrow lane between
+# F (west) and E (east), just south of E's north-west corner; the lane runs
+# north to D (ath 0) and south towards the street (ath 180). Model m4 held this
+# whole cluster NW of D with an ambiguous yaw; its scenes are placed one by one.
+[poses.scene_428542]
+x = -57.5
+y = -23.0
+heading_deg = 340.0
+
+# E's south side, along Fabrikalar Caddesi (the hospital across it). Model m0
+# had these in the middle of the square, ~40 m north. The tour walks from E's
+# door west past the pool terrace to the lane between E and F, then north to
+# F's door (scene_428542).
+
+# "E Blok Giriş": the door of E's glass front with the blue-and-white drum
+# ("T.C. İstanbul Aydın Üniversitesi"), right of the front face; F across the
+# lane on the left, the hospital behind.
+[poses.scene_428538]
+x = -20.0
+y = -49.0
+heading_deg = 235.0
+
+# "Kampüs": south of E between the pool terrace (E's glass front beyond it)
+# and the street fence.
+[poses.scene_428540]
+x = -34.0
+y = -56.0
+heading_deg = 115.0
+
+# "Kampüs": the south mouth of the lane between F (left) and E (right), the
+# street gate behind; the lane to F's door is at ath 321.
+[poses.scene_428541]
+x = -45.0
+y = -57.0
+heading_deg = 10.0
+
+# West of D. From the lane along D, carry on past the Marmaris café and turn
+# right: a yard at D's south-west corner (BrightLab cyber security centre in
+# D's west wall). Incubation İstanbul is inside D's door here.
+
+# "D Blok Giriş": facing D's corner; the door (link to the "Giriş" corridor)
+# at ath 112, the way back to the lane at ath 193, Big Mammas Cafe at 343.
+[poses.scene_428563]
+x = -80.0
+y = -2.0
+heading_deg = 325.0
+
+# "Giriş" (area Incubation İstanbul): just inside D's west door, the corridor
+# with Incubation's glass offices; the door back out at ath 269.
+[poses.scene_428315]
+x = -76.2
+y = -1.3
+heading_deg = 351.0

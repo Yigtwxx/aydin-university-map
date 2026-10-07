@@ -185,7 +185,7 @@ def plot_topdown(
 
     img = Image.new("RGB", (size, size), (250, 250, 248))
     draw = ImageDraw.Draw(img)
-    font = _label_font(14)
+    font = label_font(14)
     for a, b in edges:
         if a in xy and b in xy:
             draw.line([to_px(xy[a]), to_px(xy[b])], fill=(170, 170, 170), width=2)
@@ -202,7 +202,7 @@ def plot_topdown(
     img.save(path)
 
 
-def _label_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+def label_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     for candidate in _FONT_CANDIDATES:
         if Path(candidate).is_file():
             return ImageFont.truetype(candidate, size)

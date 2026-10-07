@@ -76,14 +76,21 @@ export function distanceToRing(p: [number, number], ring: Ring): number {
  * Block letters on the map, from the tour itself: each block's chip stands
  * over the wing its entrance opens into, so the chip and the route's "enter
  * M Blok" agree (OSM names one footprint "B Binası" where the tour has the
- * B, G-H and M entrances). Campus buildings whose OSM letter no tour block
- * uses keep that letter.
+ * B, G-H and M entrances). A door that stands at another building while a
+ * footprint carries its own letter (a mis-posed panorama) yields to that
+ * footprint. Campus buildings whose OSM letter no tour block uses keep that
+ * letter.
  */
 export function blockChips(
   buildings: Building[],
   nodes: GraphNode[],
 ): BlockChip[] {
   const shapes = buildings.map((b) => ({ b, ring: openRing(b.outline) }));
+  const named = new Map<string, (typeof shapes)[number]>();
+  for (const s of shapes) {
+    const code = s.b.campus ? buildingCode(s.b.name) : undefined;
+    if (code && s.ring.length >= 3 && !named.has(code)) named.set(code, s);
+  }
   const doors = new Map<
     string,
     { node: GraphNode; d: number; shape?: (typeof shapes)[number] }
@@ -109,7 +116,15 @@ export function blockChips(
   const chips: BlockChip[] = [];
   for (const [code, { node, d, shape }] of doors) {
     const [e, n] = node.enu;
-    if (shape && d <= DOOR_TO_WALL_M) {
+    const own = named.get(code);
+    if (own && (shape !== own || d > DOOR_TO_WALL_M)) {
+      const [ce, cn] = centroidOf(own.ring);
+      chips.push({
+        id: `block-${code}`,
+        code,
+        position: enuToWorld(ce, cn, own.b.height_m + 2),
+      });
+    } else if (shape && d <= DOOR_TO_WALL_M) {
       const [ce, cn] = centroidOf(shape.ring);
       const len = Math.hypot(ce - e, cn - n) || 1;
       const step = Math.min(INSET_M + d, len * 0.6);

@@ -120,7 +120,7 @@ def make_nodes(
                 alt_m=float(pose["height_m"]),
                 enu=(float(pose["x"]), float(pose["y"]), float(pose["height_m"])),
                 heading_deg=float(pose["heading_deg"]) % 360.0,
-                pose_source=PoseSource.SFM,
+                pose_source=PoseSource(pose.get("pose_source", PoseSource.SFM)),
                 label=LocalizedText(tr=meta["label"]["tr"], en=meta["label"]["en"]),
                 area=LocalizedText(tr=meta["area"]["tr"], en=meta["area"]["en"]),
                 building=building_of(meta["label"]["tr"]),

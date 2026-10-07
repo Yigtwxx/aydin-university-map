@@ -87,6 +87,30 @@ describe('blockChips', () => {
     expect(chips[0]!.id).toBe('block-B');
   });
 
+  it('moves a chip whose door stands at another block to its own building', () => {
+    const a = building(
+      'way/a',
+      'İstanbul Aydın Üniversitesi A Binası',
+      square(0, 0, 40),
+    );
+    const j = building(
+      'way/j',
+      'İstanbul Aydın Üniversitesi J Binası',
+      square(100, 0, 20),
+    );
+    // The J door is posed at A's wall; A's own door stays where it is.
+    const chips = blockChips(
+      [a, j],
+      [door('a', 'A', 10, -2), door('j', 'J', 30, -2)],
+    );
+    expect(chips.map((c) => c.code)).toEqual(['A', 'J']);
+    const chipJ = chips.find((c) => c.code === 'J')!;
+    expect(chipJ.position[0]).toBeCloseTo(110);
+    expect(-chipJ.position[2]).toBeCloseTo(10);
+    const chipA = chips.find((c) => c.code === 'A')!;
+    expect(chipA.position[0]).toBeLessThan(40);
+  });
+
   it('ignores doors without a measured position', () => {
     const chips = blockChips([complex], [door('m', 'M', 82, 70, 'b')]);
     expect(chips.map((c) => c.code)).toEqual(['B']);

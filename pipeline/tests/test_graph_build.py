@@ -3,13 +3,14 @@ from typing import Any
 import pytest
 from shapely.geometry import LineString, Point, Polygon
 
-from amap_contracts.graph import EdgeKind, EdgeOrigin
+from amap_contracts.graph import EdgeKind, EdgeOrigin, PoseSource
 from amap_pipeline.graph.build import (
     GraphParams,
     blocked_edges,
     build_graph,
     building_of,
     components,
+    make_nodes,
     summarise,
 )
 
@@ -160,3 +161,11 @@ def test_build_graph_bridge_never_cuts_a_building() -> None:
 )
 def test_building_of_label_extracts_block(label: str, expected: str | None) -> None:
     assert building_of(label) == expected
+
+
+def test_make_nodes_keeps_a_manual_pose_source() -> None:
+    posed = _posed()
+    posed["b"] = {**posed["b"], "pose_source": "manual"}
+    nodes = {n.id: n for n in make_nodes(posed, _scenes())}
+    assert nodes["b"].pose_source is PoseSource.MANUAL
+    assert nodes["a"].pose_source is PoseSource.SFM

@@ -1,0 +1,28 @@
+# Corrections to the OSM building footprints, checked against the 360 tour's
+# panoramas, satellite imagery and the university's campus map.
+# Read by `amap export buildings`, `amap graph export` and `amap georef`.
+# Outlines are local metres from the campus origin: [east, north].
+
+[names]
+# Unnamed in OSM (drawn as a warehouse). The university hospital: the
+# "...HASTANESİ" facade seen south of E Blok's entrance (scene_428538), and
+# the hospital's own map pin falls inside this footprint.
+"way/1548069810" = "VM Medical Park Florya Hastanesi"
+# Unnamed in OSM. E Blok: the long block facing the square (coffee shop at
+# its north-east corner), south of the sunken lane along D; its door is in the
+# glass front on Fabrikalar Caddesi (scene_428538).
+"way/539867979" = "İstanbul Aydın Üniversitesi E Binası"
+# Unnamed in OSM. F Blok: right behind E, across a narrow north-south lane;
+# its door is on that lane (scene_428542), its north end on the lane along D.
+"way/539867978" = "İstanbul Aydın Üniversitesi F Binası"
+
+# Missing from OSM: the Coffee Shop (Lavazza), a one-storey glass pavilion on
+# the square in front of E's north-east corner (blue glass roof on satellite
+# imagery). The stairs down into the lane along D pass its west side. About
+# ±3 m, turned 19° like the neighbouring campus blocks.
+[[add]]
+id = "manual/coffee-shop"
+name = "Coffee Shop"
+levels = 1
+tags = { building = "kiosk" }
+outline = [[-20.1, -8.5], [-12.5, -5.9], [-16.1, 4.5], [-23.7, 1.9]]

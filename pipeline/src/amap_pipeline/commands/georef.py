@@ -34,6 +34,7 @@ from amap_pipeline.geo.osm import (
     parse_buildings,
     sample_outlines,
 )
+from amap_pipeline.geo.overrides import apply_building_overrides
 from amap_pipeline.recon.evaluate import (
     TRIPOD_HEIGHT_M,
     extract_poses,
@@ -269,11 +270,13 @@ def georef_model(
     walls = wall_points(levelled, prior_mpu)
 
     projector = LocalProjector()
-    buildings = parse_buildings(
-        fetch_buildings_raw(
-            CAMPUS_OSM_BBOX, paths.data_dir() / "osm" / "buildings.json"
-        ),
-        projector,
+    buildings = apply_building_overrides(
+        parse_buildings(
+            fetch_buildings_raw(
+                CAMPUS_OSM_BBOX, paths.data_dir() / "osm" / "buildings.json"
+            ),
+            projector,
+        )
     )
     outline = sample_outlines(buildings)
     r = SEARCH_RADIUS_M + 150.0

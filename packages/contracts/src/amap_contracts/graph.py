@@ -47,6 +47,11 @@ class PoseSource(StrEnum):
     POSE_GRAPH = "pose_graph"
     # Not measured: derived from linked panoramas (indoor nodes, see anchor).
     INTERPOLATED = "interpolated"
+    # Placed by hand where the SfM model put it wrong (configs/pose_overrides.toml).
+    MANUAL = "manual"
+    # Measured by the panorama survey: bearings to landmarks seen in the picture,
+    # adjusted together with every other pose (configs/survey.toml).
+    SURVEYED = "surveyed"
 
 
 class LengthSource(StrEnum):

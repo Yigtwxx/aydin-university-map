@@ -168,3 +168,12 @@ def test_edge_yaw_out_of_range_raises_validation_error(yaw: float) -> None:
             length_source=LengthSource.ESTIMATE,
             source_yaw_deg=yaw,
         )
+
+
+def test_surveyed_pose_source_round_trips(graph: Graph) -> None:
+    surveyed = graph.nodes[0].model_copy(update={"pose_source": PoseSource.SURVEYED})
+    data = graph.model_copy(update={"nodes": [surveyed, graph.nodes[1]]}).to_geojson()
+    restored = Graph.from_geojson(data)
+    assert restored.nodes[0].pose_source is PoseSource.SURVEYED, (
+        f"Got {restored.nodes[0].pose_source}"
+    )
