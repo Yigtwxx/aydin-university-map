@@ -88,7 +88,11 @@ def build_pois(
         if "pin" in entry:
             x, y = entry["pin"]
             pin, source = (float(x), float(y)), "manual"
-        elif entry.get("landmark") and str(entry["landmark"]) in landmarks:
+        elif (
+            entry.get("landmark")
+            and int(landmarks.get(str(entry["landmark"]), {}).get("sightings", 2)) >= 2
+            and str(entry["landmark"]) in landmarks
+        ):
             lm = landmarks[str(entry["landmark"])]
             pin = (round(float(lm["x"]), 2), round(float(lm["y"]), 2))
             source = "storefront"

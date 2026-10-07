@@ -143,6 +143,7 @@ class LandmarkEstimate:
     prior: tuple[float, float] | None
     free: bool
     source: str
+    sightings: int = 0  # 0: dropped or never seen; its position is a guess
 
 
 @dataclass(frozen=True, slots=True)
@@ -843,6 +844,10 @@ def solve_survey(
         )
     lms = problem.landmark_xy(params)
     lm_floor = problem.config.landmark_floor_m**2
+    seen: dict[str, int] = {}
+    for b in problem.bearings:
+        if not b.target_is_scene:
+            seen[b.target] = seen.get(b.target, 0) + 1
     landmarks: dict[str, LandmarkEstimate] = {}
     for j, name in enumerate(lay.landmarks):
         lm = survey.landmarks[name]
@@ -861,6 +866,7 @@ def solve_survey(
             prior=None if lm.source == "tie" else (lm.x, lm.y),
             free=lm.sigma_m is None,
             source=lm.source,
+            sightings=seen.get(name, 0),
         )
     models = {
         m: ModelEstimate(

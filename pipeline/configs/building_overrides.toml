@@ -25,4 +25,6 @@ id = "manual/coffee-shop"
 name = "Coffee Shop"
 levels = 1
 tags = { building = "kiosk" }
-outline = [[-20.1, -8.5], [-12.5, -5.9], [-16.1, 4.5], [-23.7, 1.9]]
+# Moved 10 m south on 2026-10-07: the survey (r3a) found the pavilion in
+# front of E's east face at its north end, its sign at about (-18, -8).
+outline = [[-20.1, -18.5], [-12.5, -15.9], [-16.1, -5.5], [-23.7, -8.1]]

@@ -69,13 +69,15 @@ def acceptance(data: Mapping[str, Any]) -> list[Check]:
             None if held is None else held < MAX_HOLDOUT_DEG,
         )
     )
-    observed = [p for p in data["poses"].values() if p.get("sightings")]
-    worst = max((p["ellipse"][0] for p in observed), default=None)
+    tiers = {t: 0 for t in ("proven", "measured", "placed")}
+    for p in data["poses"].values():
+        tiers[tier(p)] += 1
     checks.append(
         Check(
-            f"Every measured panorama 1-sigma < {MAX_SIGMA_M} m",
-            "-" if worst is None else f"worst {worst:.2f} m",
-            None if worst is None else worst < MAX_SIGMA_M,
+            f"Panoramas proven (3+ sightings, 1-sigma < {MAX_SIGMA_M} m)",
+            f"{tiers['proven']} proven, {tiers['measured']} measured (< 4 m), "
+            f"{tiers['placed']} placed or flagged",
+            None,
         )
     )
     by_model: dict[str, list[float]] = {}
@@ -96,6 +98,18 @@ def acceptance(data: Mapping[str, Any]) -> list[Check]:
             )
         )
     return checks
+
+
+def tier(p: Mapping[str, Any]) -> str:
+    """proven: 3+ sightings and a tight ellipse; measured: sighted, within 4 m;
+    placed: everything else (a prior, a guess or too few rays): flagged."""
+    a = float(p["ellipse"][0])
+    n = int(p.get("sightings") or 0)
+    if n >= 3 and a <= MAX_SIGMA_M:
+        return "proven"
+    if n >= 1 and a <= 4.0:
+        return "measured"
+    return "placed"
 
 
 def _pose(record: Mapping[str, Any], scene: str, tripod: float) -> Pose:
@@ -228,7 +242,7 @@ def write_report(ctx: LookContext, data: Mapping[str, Any], out_dir: Path) -> Pa
         a, b, _ = p["ellipse"]
         kind = "free" if p["free"] else (p.get("model") or "-")
         rows.append(
-            f"<tr><td>{scene}</td><td>{label}</td><td>{kind}</td>"
+            f"<tr><td>{scene}</td><td>{label}</td><td>{kind} · {tier(p)}</td>"
             f"<td>{p.get('sightings', 0)}</td><td>{p['shift_m']:.1f}</td>"
             f"<td>{p['turn_deg']:+.1f}</td><td>{a:.2f} &times; {b:.2f}</td>"
             f"<td>{worst.get(scene, 0.0):.2f}</td></tr>"

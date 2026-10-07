@@ -140,6 +140,7 @@ class SurveyPose:
     z: float  # camera height, only used for panoramas no model placed
     heading_deg: float
     surveyed: bool  # seen landmarks or solved freely (else: its model moved it)
+    sightings: int = 0
 
 
 def load_survey_poses(path: Path) -> dict[str, SurveyPose]:
@@ -154,6 +155,7 @@ def load_survey_poses(path: Path) -> dict[str, SurveyPose]:
             z=float(p["z"]),
             heading_deg=float(p["heading_deg"]) % 360.0,
             surveyed=bool(p["free"]) or int(p.get("sightings", 0)) > 0,
+            sightings=int(p.get("sightings", 0)),
         )
         for scene, p in data["poses"].items()
     }
@@ -164,9 +166,16 @@ def apply_survey_poses(
     survey: Mapping[str, SurveyPose],
     projector: LocalProjector,
 ) -> dict[str, dict[str, Any]]:
-    """Move every adjusted scene; add the ones the survey placed from scratch."""
+    """Move every adjusted scene; add the ones the survey measured from scratch.
+
+    A panorama no model placed joins only when it has sightings: a survey
+    guess for an indoor lobby stays out, and the lobby keeps hanging off the
+    measured door it links to.
+    """
     result = {scene: dict(record) for scene, record in posed.items()}
     for scene, pose in survey.items():
+        if scene not in result and pose.sightings == 0:
+            continue
         lng, lat = projector.to_wgs84(pose.x, pose.y)
         record = result.setdefault(scene, {"height_m": pose.z})
         record.update(

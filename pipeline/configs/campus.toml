@@ -1,0 +1,75 @@
+# Campus blocks: which footprint is which block, corrected outlines, measured
+# heights and facade recipes. Read by every command that loads footprints
+# (geo/campus.py); evidence comes from the panorama survey (configs/survey,
+# local metres east/north) and the signs on the walls.
+
+[blocks.A]
+name = { tr = "A Blok", en = "A Block" }
+osm = ["way/1550440571"]   # corners A#0-A#3 within 1 m of their sightings
+
+[blocks.B]
+name = { tr = "B Blok", en = "B Block" }
+osm = ["way/1550440570"]   # "B BLOK" by the store; east portico (r1b)
+
+[blocks.N]
+name = { tr = "N Blok", en = "N Block" }
+osm = ["way/1550440572"]
+
+[blocks.D]
+name = { tr = "D Blok", en = "D Block" }
+osm = ["way/1550439994"]   # D#0, D#1, D#3 fit; the south-west yard is wider than OSM (r4)
+
+[blocks.E]
+name = { tr = "E Blok", en = "E Block" }
+osm = ["way/539867979"]    # NE column on E#2; south corners ambiguous (r3a, r4)
+
+[blocks.F]
+name = { tr = "F Blok", en = "F Block" }
+osm = ["way/539867978"]    # F#0-F#2 within 0.4 m
+
+# OSM draws J on A's north wall; a passage with a fire stair separates them.
+# J's south-east corner is sighted at (63.4, 71.3) (r2.j.se_corner): the
+# footprint moves 6.3 m west and 1.4 m north, leaving a 3.4 m passage.
+[blocks.J]
+name = { tr = "J Blok", en = "J Block" }
+osm = ["way/539867982"]
+outline = [[38.9, 78.6], [59.0, 85.0], [63.4, 71.3], [56.9, 69.2], [43.3, 64.9]]
+
+[blocks.K]
+name = { tr = "K Blok", en = "K Block" }
+osm = ["way/539867998"]    # "K BLOK" on its east face (r3b); south end uncertain
+
+# way/508438421 draws the G and O fronts on the north deck; its G quoins are
+# sighted 5-6 m south-east of where OSM puts them (r1a, joint solve).
+[blocks.G]
+name = { tr = "G Blok", en = "G Block" }
+osm = ["way/508438421"]
+outline = [[54.4, 144.0], [64.0, 95.6], [-21.5, 68.4], [-25.1, 78.7], [-29.2, 81.8], [-33.8, 87.3], [-34.6, 92.7], [-34.3, 98.8], [-33.0, 102.2], [-36.8, 110.2], [-36.2, 115.4]]
+
+[blocks.M]
+name = { tr = "M Blok", en = "M Block" }
+osm = ["way/539867996"]    # first-floor door onto the footbridge deck (r1b)
+
+[blocks.L]
+name = { tr = "L Blok", en = "L Block" }
+osm = ["way/539868001"]    # Dentaydın (r3b, tentative)
+
+[blocks.P]
+name = { tr = "Kütüphane (P Blok)", en = "Library (P Block)" }
+osm = ["way/539868002"]    # Bilgi Merkezi on Birlik Caddesi (r3b, by address)
+
+[blocks.YURT]
+name = { tr = "Kız Öğrenci Yurdu", en = "Girls' Dormitory" }
+osm = ["way/554532562"]    # entrance on its west face (r6)
+
+[blocks.UTM]
+name = { tr = "Uçak Teknolojileri Merkezi", en = "Aviation Technology Centre" }
+osm = ["way/548582835"]    # orange-framed entrance on 1. Akasya Sokağı (r6)
+
+# The south gate's turnstile hall: four brick towers on Fabrikalar Caddesi,
+# no OSM footprint (r3b.sgate.tower.*).
+[blocks.GATE_S]
+name = { tr = "Güney Kapı", en = "South Gate" }
+outline = [[3.2, -41.8], [4.5, -45.3], [-7.2, -51.5], [-8.4, -46.9]]
+levels = 1
+height_m = 5.5

@@ -150,8 +150,9 @@ def test_apply_pose_overrides_rejects_unposed_scene() -> None:
 
 
 def test_default_pose_overrides_parse() -> None:
+    # Every hand pose moved into the survey notebooks (ADR-0010).
     overrides = load_pose_overrides(DEFAULT_POSE_OVERRIDES)
-    assert "scene_428530" in overrides, "J Blok Girişi is placed by hand"
+    assert all(0.0 <= o.heading_deg < 360.0 for o in overrides.values())
 
 
 def test_load_survey_poses_marks_evidence(tmp_path: Path) -> None:
@@ -190,7 +191,7 @@ def test_load_survey_poses_marks_evidence(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     poses = load_survey_poses(path)
-    assert poses["scene_1"] == SurveyPose(1.0, 2.0, 1.6, 10.0, True)
+    assert poses["scene_1"] == SurveyPose(1.0, 2.0, 1.6, 10.0, True, sightings=3)
     assert not poses["scene_2"].surveyed  # only its model moved it
     assert poses["scene_3"].surveyed
     assert load_survey_poses(tmp_path / "absent.json") == {}
@@ -203,7 +204,8 @@ def test_apply_survey_poses_moves_and_adds_scenes() -> None:
         posed,
         {
             "scene_1": SurveyPose(10.0, 0.0, 1.6, 90.0, True),
-            "scene_2": SurveyPose(0.0, 10.0, 2.4, 45.0, False),
+            "scene_2": SurveyPose(0.0, 10.0, 2.4, 45.0, False, sightings=3),
+            "scene_3": SurveyPose(5.0, 5.0, 2.4, 45.0, True, sightings=0),
         },
         projector,
     )
@@ -212,6 +214,7 @@ def test_apply_survey_poses_moves_and_adds_scenes() -> None:
     assert result["scene_1"]["pose_source"] == "surveyed"
     assert result["scene_2"]["height_m"] == 2.4
     assert result["scene_2"]["pose_source"] == "sfm"
+    assert "scene_3" not in result  # a guess without sightings stays out
     lng, lat = projector.to_wgs84(10.0, 0.0)
     assert (result["scene_1"]["lng"], result["scene_1"]["lat"]) == pytest.approx(
         (lng, lat)
