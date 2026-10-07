@@ -1,8 +1,8 @@
 """``amap export``: produce web assets under data/out/."""
 
 import json
-import logging
-from typing import Annotated, Any
+from pathlib import Path
+from typing import Annotated
 
 import typer
 from shapely.ops import unary_union
@@ -14,11 +14,11 @@ from amap_pipeline.export.assets import (
     greenery_json,
     ground_json,
     massing,
-    region_json,
     write_massing,
 )
+from amap_pipeline.export.furniture import build_furniture, read_furniture
+from amap_pipeline.export.pois import build_pois, read_poi_config
 from amap_pipeline.geo.context import fetch_context_raw, parse_context
-from amap_pipeline.geo.earth import MAX_WORKERS, EarthPaths, build_earth
 from amap_pipeline.geo.osm import (
     WIDE_OSM_BBOX,
     LocalProjector,
@@ -29,19 +29,7 @@ from amap_pipeline.geo.osm import (
     parse_greenery,
     parse_ground,
 )
-from amap_pipeline.geo.region import (
-    LAND_BBOX,
-    ROADS_BBOX,
-    SEA_BBOX,
-    fetch_aeroway_raw,
-    fetch_coastline_raw,
-    fetch_land_raw,
-    fetch_roads_raw,
-    parse_aeroways,
-    parse_land,
-    parse_roads,
-    parse_sea,
-)
+from amap_pipeline.geo.overrides import apply_building_overrides
 
 app = typer.Typer(help="Web asset export commands.", no_args_is_help=True)
 
@@ -58,9 +46,11 @@ def export_buildings(
     """Write data/out/buildings.json (styled OSM massing in local metres)."""
     projector = LocalProjector()
     osm_dir = paths.data_dir() / "osm"
-    buildings = parse_buildings(
-        fetch_buildings_raw(WIDE_OSM_BBOX, osm_dir / "buildings_wide.json"),
-        projector,
+    buildings = apply_building_overrides(
+        parse_buildings(
+            fetch_buildings_raw(WIDE_OSM_BBOX, osm_dir / "buildings_wide.json"),
+            projector,
+        )
     )
     context = parse_context(
         fetch_context_raw(WIDE_OSM_BBOX, osm_dir / "context_wide.json"), projector
@@ -142,73 +132,46 @@ def export_ground(
     )
 
 
-@app.command("region")
-def export_region(
-    land_tolerance_m: Annotated[
-        float, typer.Option(help="Land simplification.")
-    ] = 120.0,
-    sea_tolerance_m: Annotated[float, typer.Option(help="Sea simplification.")] = 4.0,
-    road_tolerance_m: Annotated[
-        float, typer.Option(help="Road simplification.")
-    ] = 16.0,
+@app.command("pois")
+def export_pois(
+    survey: Annotated[
+        Path | None, typer.Option(help="Solve output with storefront tie points.")
+    ] = None,
 ) -> None:
-    """Write data/out/region.json (land, near-shore sea, trunk roads, runways)."""
-    data_dir = paths.data_dir()
-    projector = LocalProjector()
-    land = parse_land(
-        fetch_land_raw(data_dir / "natural_earth" / "ne_10m_land.geojson"),
-        projector,
-        LAND_BBOX,
-        land_tolerance_m,
+    """Write data/out/pois.json from configs/pois.toml and the survey's tie points."""
+    out_dir = paths.data_dir() / "out"
+    graph = json.loads((out_dir / "graph.geojson").read_text("utf-8"))
+    nodes = {
+        f["properties"]["id"]: f["properties"]
+        for f in graph["features"]
+        if f["properties"]["feature"] == "node"
+    }
+    survey_path = survey or paths.derived_dir() / "survey.json"
+    landmarks = (
+        json.loads(survey_path.read_text("utf-8")).get("landmarks", {})
+        if survey_path.is_file()
+        else {}
     )
-    sea = parse_sea(
-        fetch_coastline_raw(SEA_BBOX, data_dir / "osm" / "coastline_florya.json"),
-        projector,
-        SEA_BBOX,
-        sea_tolerance_m,
+    collection, warnings = build_pois(read_poi_config(), landmarks, nodes)
+    for warning in warnings:
+        typer.echo(f"warning: {warning}")
+    (out_dir / "pois.json").write_text(
+        collection.model_dump_json(indent=1) + "\n", "utf-8"
     )
-    roads = parse_roads(
-        fetch_roads_raw(ROADS_BBOX, data_dir / "osm" / "roads_region.json"),
-        projector,
-        road_tolerance_m,
-    )
-    runways, aerodromes = parse_aeroways(
-        fetch_aeroway_raw(ROADS_BBOX, data_dir / "osm" / "aeroway_region.json"),
-        projector,
-    )
-    campus: list[dict[str, Any]] = []
-    ground_path = data_dir / "out" / "ground.json"
-    if ground_path.is_file():
-        ground = json.loads(ground_path.read_text("utf-8"))
-        campus = [a for a in ground.get("areas", []) if a.get("kind") == "campus"]
-    data = region_json(land, sea, roads, runways, aerodromes, campus)
-    out = data_dir / "out" / "region.json"
-    write_massing(out, data)
+    pinned = sum(1 for p in collection.pois if p.pin_enu is not None)
     typer.echo(
-        f"wrote {len(data['land'])} land, {len(data['sea_near'])} sea, "
-        f"{len(data['roads'])} roads, {len(data['runways'])} runways, "
-        f"{len(data['aerodromes'])} aerodromes, {len(campus)} campus "
-        f"({out.stat().st_size / 1024:.0f} KB) -> {out}"
+        f"{len(collection.pois)} POIs, {pinned} pinned -> {out_dir / 'pois.json'}"
     )
 
 
-@app.command("earth")
-def export_earth(
-    workers: Annotated[
-        int,
-        typer.Option(min=1, max=MAX_WORKERS, help="Concurrent tile downloads."),
-    ] = MAX_WORKERS,
-) -> None:
-    """Write data/out/earth/ (day, night, height, water textures + earth.json)."""
-    if not logging.getLogger().handlers:
-        logging.basicConfig(
-            level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
-        )
-    earth_paths = EarthPaths.under(paths.data_dir())
-    files = build_earth(earth_paths, workers=workers)
-    total = 0
-    for file in files:
-        size = file.stat().st_size
-        total += size
-        typer.echo(f"{file.name:<16} {size / 1024:>8.0f} KB")
-    typer.echo(f"{'total':<16} {total / 1024**2:>8.2f} MB -> {earth_paths.out_dir}")
+@app.command("furniture")
+def export_furniture() -> None:
+    """Write data/out/furniture.json from configs/furniture.toml."""
+    collection = build_furniture(read_furniture())
+    out = paths.data_dir() / "out" / "furniture.json"
+    out.write_text(collection.model_dump_json(indent=1) + "\n", "utf-8")
+    typer.echo(
+        f"{len(collection.stairs)} stairs, {len(collection.ramps)} ramps, "
+        f"{len(collection.railings)} railings, {len(collection.items)} items, "
+        f"{len(collection.seating)} seating groups -> {out}"
+    )

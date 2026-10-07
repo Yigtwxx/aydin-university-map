@@ -72,6 +72,9 @@ class Building:
     levels: float | None
     outline: Polygon  # local metres (x east, y north)
     tags: Mapping[str, str] = field(default_factory=dict, hash=False, compare=False)
+    # Facts from the campus registry (configs/campus.toml): block code, measured
+    # height and its source, facade recipe. Empty for every other building.
+    registry: Mapping[str, Any] = field(default_factory=dict, hash=False, compare=False)
 
 
 class LocalProjector:

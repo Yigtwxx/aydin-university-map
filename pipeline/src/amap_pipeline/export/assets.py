@@ -14,22 +14,13 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image
-from shapely.geometry import LineString, MultiLineString, Point, Polygon
+from shapely.geometry import LineString, MultiLineString, Point
 from shapely.geometry.base import BaseGeometry
 
 from amap_pipeline.acquire.store import FACES
 from amap_pipeline.geo.building_style import style_records
 from amap_pipeline.geo.context import Context
 from amap_pipeline.geo.osm import Building, Greenery, Ground
-from amap_pipeline.geo.region import (
-    ATTRIBUTION as REGION_ATTRIBUTION,
-)
-from amap_pipeline.geo.region import (
-    Aerodrome,
-    RegionRoad,
-    Runway,
-    polygon_records,
-)
 
 LEVEL_HEIGHT_M = 3.2
 DEFAULT_LEVELS = 3
@@ -69,15 +60,19 @@ def massing(
     styled_all = style_records(kept, context, streets)
     for b, styled in zip(kept, styled_all, strict=True):
         ring = [[round(x, 2), round(y, 2)] for x, y in b.outline.exterior.coords]
-        features.append(
-            {
-                "id": b.osm_id,
-                "name": b.name,
-                "campus": styled["style"] == "campus",
-                **styled,
-                "outline": ring,
-            }
-        )
+        feature: dict[str, Any] = {
+            "id": b.osm_id,
+            "name": b.name,
+            "campus": styled["style"] == "campus",
+            **styled,
+            "outline": ring,
+        }
+        # Campus registry facts (configs/campus.toml): the block code the map
+        # chips show and, once surveyed, the facade recipe.
+        for key in ("code", "facade"):
+            if b.registry.get(key):
+                feature[key] = b.registry[key]
+        features.append(feature)
     return {
         "crs": "local-enu",
         "origin": "campus origin (amap_contracts.CAMPUS_ORIGIN_LAT/LNG)",
@@ -190,35 +185,4 @@ def ground_json(ground: Ground, radius_m: float = 600.0) -> dict[str, Any]:
         "attribution": "© OpenStreetMap contributors (ODbL)",
         "ways": ways,
         "areas": areas,
-    }
-
-
-def _round_line(line: LineString) -> list[list[float]]:
-    return [[round(x, 1), round(y, 1)] for x, y in line.coords]
-
-
-def region_json(
-    land: Sequence[Polygon],
-    sea_near: Sequence[Polygon],
-    roads: Sequence[RegionRoad],
-    runways: Sequence[Runway],
-    aerodromes: Sequence[Aerodrome],
-    campus: Sequence[dict[str, Any]],
-) -> dict[str, Any]:
-    """Regional base map for the landing fly-in, in local metres (1 decimal)."""
-    return {
-        "crs": "local-enu",
-        "attribution": REGION_ATTRIBUTION,
-        "land": polygon_records(land),
-        "sea_near": polygon_records(sea_near),
-        "roads": [
-            {"kind": r.kind, "name": r.name, "line": _round_line(r.line)} for r in roads
-        ],
-        "runways": [
-            {"width_m": w.width_m, "line": _round_line(w.line)} for w in runways
-        ],
-        "aerodromes": [
-            {"name": a.name, **polygon_records([a.outline])[0]} for a in aerodromes
-        ],
-        "campus": list(campus),
     }

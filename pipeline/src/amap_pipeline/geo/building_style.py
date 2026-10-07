@@ -284,6 +284,11 @@ def has_street_shops(
 def height_of(building: Building, style: str) -> tuple[float, int, str]:
     """(height in metres, storeys, source) for ``building`` drawn as ``style``."""
     spec = SPECS[style]
+    registry = building.registry
+    if registry.get("height_m"):
+        height = float(registry["height_m"])
+        storeys = int(registry.get("levels") or max(1, round(height / spec.storey_m)))
+        return round(height, 2), storeys, str(registry.get("height_source", "registry"))
     tags = building.tags
     try:
         mapped = float(tags["height"].replace("m", "").strip())
@@ -423,5 +428,7 @@ def style_records(
             record["base_m"] = round(max(height - 0.8, 2.5), 2)
         if has_street_shops(b, style, context, streets):
             record["shops"] = True
+        if b.registry.get("base_m"):
+            record["base_m"] = float(b.registry["base_m"])
         records.append(record)
     return records
