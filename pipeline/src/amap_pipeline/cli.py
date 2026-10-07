@@ -8,10 +8,12 @@ from amap_pipeline.commands import (
     export,
     georef,
     graph,
+    look,
     publish,
     rag,
     rig,
     sfm,
+    survey,
     tiles,
     tour,
 )
@@ -28,3 +30,5 @@ app.add_typer(export.app, name="export")
 app.add_typer(db.app, name="db")
 app.add_typer(rag.app, name="rag")
 app.add_typer(publish.app, name="publish")
+app.add_typer(survey.app, name="survey")
+app.add_typer(look.app, name="look")

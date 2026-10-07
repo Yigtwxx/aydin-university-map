@@ -8,12 +8,20 @@ import typer
 
 from amap_contracts.graph import Graph
 from amap_pipeline import paths
+from amap_pipeline.export.furniture import build_furniture, read_furniture
 from amap_pipeline.geo.align import footprint_union
 from amap_pipeline.geo.osm import (
     WIDE_OSM_BBOX,
     LocalProjector,
     fetch_buildings_raw,
     parse_buildings,
+)
+from amap_pipeline.geo.overrides import (
+    apply_building_overrides,
+    apply_pose_overrides,
+    apply_survey_poses,
+    load_pose_overrides,
+    load_survey_poses,
 )
 from amap_pipeline.graph.build import (
     GraphParams,
@@ -23,6 +31,7 @@ from amap_pipeline.graph.build import (
     step_free_conflicts,
     summarise,
 )
+from amap_pipeline.graph.stairs import mark_outdoor_stairs
 
 app = typer.Typer(help="Walking graph commands.", no_args_is_help=True)
 
@@ -85,6 +94,9 @@ def graph_export(
     indoor: Annotated[
         bool, typer.Option(help="Add indoor panoramas through the tour's links.")
     ] = True,
+    survey: Annotated[
+        bool, typer.Option(help="Apply data/derived/survey.json poses if present.")
+    ] = True,
 ) -> None:
     """Merge georeferenced runs and write data/out/graph.geojson + report."""
     georefs: list[dict[str, Any]] = []
@@ -97,18 +109,26 @@ def graph_export(
                 f"scenes, ICP {georef['quality']['icp_rms_m']} m, {status}"
             )
             georefs.append(georef)
+    projector = LocalProjector()
     posed = merge_poses(georefs)
+    if survey:
+        surveyed = load_survey_poses(paths.derived_dir() / "survey.json")
+        if surveyed:
+            typer.echo(f"survey: {len(surveyed)} poses")
+        posed = apply_survey_poses(posed, surveyed, projector)
+    posed = apply_pose_overrides(posed, load_pose_overrides(), projector)
     scenes = {
         s["name"]: s
         for s in json.loads((paths.derived_dir() / "scenes.json").read_text("utf-8"))
     }
-    projector = LocalProjector()
     # The same footprints the map draws (amap export buildings).
-    buildings = parse_buildings(
-        fetch_buildings_raw(
-            WIDE_OSM_BBOX, paths.data_dir() / "osm" / "buildings_wide.json"
-        ),
-        projector,
+    buildings = apply_building_overrides(
+        parse_buildings(
+            fetch_buildings_raw(
+                WIDE_OSM_BBOX, paths.data_dir() / "osm" / "buildings_wide.json"
+            ),
+            projector,
+        )
     )
     footprints = footprint_union([b.outline for b in buildings])
     graph, report = build_graph(
@@ -120,6 +140,10 @@ def graph_export(
             max_link_m=max_link_m, infer_radius_m=infer_radius_m, indoor=indoor
         ),
     )
+    flights = build_furniture(read_furniture()).stairs
+    graph, climbing = mark_outdoor_stairs(graph, flights)
+    if climbing:
+        typer.echo(f"outdoor stairs: {len(climbing)} edges over {len(flights)} flights")
     islands: list[list[str]] = []
     if not keep_islands:
         graph, islands = largest_component(graph)

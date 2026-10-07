@@ -1,0 +1,247 @@
+# Area R2: A Blok, main gate, J Blok. Sightings measured with amap look.
+#
+# m0 squeezes this whole area: ground distances (1.6 m tripod, depression of
+# column bases) and OSM corners agree with poses ~2.24x further from (-4, 29)
+# than m0 has them, so every scene here is solved freely.
+
+[scenes.scene_428517]
+pose = "free"
+init = [62.1, 20.9, 334.0]
+prior_sigma_m = 20.0
+note = "plaza east of the monument, gate pavilions 14 m east; m0 had it 37 m too far west"
+obs = [
+  { lm = "r2.flag.plaza", ath = 283.99, snapped = true },
+  { lm = "r2.a.tower.w", ath = 332.11, snapped = true },
+  { lm = "r2.a.tower.e", ath = 346.26, snapped = true },
+  { lm = "A#2", ath = 35.11, snapped = true },
+  { lm = "r2.gate.col.n", ath = 54.96, sigma_deg = 0.5 },
+  { lm = "r2.gate.col.s", ath = 157.5, sigma_deg = 0.6 },
+  { lm = "r2.plaza.monument", ath = 282.3, sigma_deg = 1.0 },
+]
+
+[scenes.scene_428519]
+pose = "free"
+init = [66.5, 11.2, 331.2]
+prior_sigma_m = 20.0
+note = "south of 517 near the Starbucks kiosk; gate columns 15 m NE"
+obs = [
+  { lm = "r2.flag.plaza", ath = 296.42, snapped = true },
+  { lm = "r2.a.tower.w", ath = 341.22, snapped = true },
+  { lm = "r2.a.tower.e", ath = 352.81, snapped = true },
+  { lm = "A#2", ath = 30.40, snapped = true },
+  { lm = "r2.gate.col.n", ath = 34.8, sigma_deg = 0.6 },
+  { lm = "r2.gate.col.s", ath = 113.35, snapped = true },
+  { lm = "r2.plaza.monument", ath = 336.2, sigma_deg = 0.8 },
+]
+
+[scenes.scene_428520]
+pose = "free"
+init = [69.2, 1.4, 265.4]
+prior_sigma_m = 20.0
+note = "next to the Starbucks kiosk, south of the gate; A tower and A SE corner 45 m north"
+obs = [
+  { lm = "r2.a.tower.w", ath = 52.44, snapped = true },
+  { lm = "r2.a.tower.e", ath = 62.46, snapped = true },
+  { lm = "A#2", ath = 93.09, snapped = true },
+  { lm = "r2.gate.col.s", ath = 112.33, snapped = true },
+  { lm = "r2.flag.plaza", ath = 10.97, snapped = true },
+  { lm = "r2.plaza.monument", ath = 57.85, sigma_deg = 0.8 },
+]
+
+[scenes.scene_428523]
+pose = "free"
+init = [43.1, 15.5, 341.3]
+prior_sigma_m = 20.0
+note = "central plaza; sees A tower, both A ends, gate, monument, flagpole, B pilaster"
+obs = [
+  { lm = "r2.flag.plaza", ath = 278.83, snapped = true },
+  { lm = "r2.a.tower.w", ath = 355.08, snapped = true },
+  { lm = "r2.a.tower.e", ath = 13.99, snapped = true },
+  { lm = "r2.gate.col.n", ath = 74.27, snapped = true },
+  { lm = "r2.gate.col.s", ath = 115.92, snapped = true },
+  { lm = "A#2", ath = 49.73, snapped = true },
+  { lm = "A#1", ath = 313.92, snapped = true },
+  { lm = "r2.b.pilaster", ath = 290.23, sigma_deg = 0.5 },
+  { lm = "r2.plaza.monument", ath = 91.3, sigma_deg = 0.8 },
+]
+
+[scenes.scene_428524]
+pose = "free"
+init = [50.4, 17.5, 330.3]
+prior_sigma_m = 20.0
+note = "plaza in front of the gate (monument 10 m E); gate columns 24 m"
+obs = [
+  { lm = "r2.flag.plaza", ath = 288.70, snapped = true },
+  { lm = "r2.a.tower.w", ath = 352.72, snapped = true },
+  { lm = "r2.a.tower.e", ath = 11.07, snapped = true },
+  { lm = "A#2", ath = 53.77, snapped = true },
+  { lm = "r2.gate.col.n", ath = 79.55, sigma_deg = 0.5 },
+  { lm = "r2.gate.col.s", ath = 134.65, sigma_deg = 0.5 },
+  { lm = "r2.b.pilaster", ath = 298.85, sigma_deg = 0.5 },
+  { lm = "r2.plaza.monument", ath = 100.3, sigma_deg = 1.0 },
+]
+
+[scenes.scene_428525]
+pose = "free"
+init = [60.7, 38.5, 236.4]
+prior_sigma_m = 20.0
+note = "A Blok Girisi: in front of A's east part, gate pavilion NW column 10 m SW"
+obs = [
+  { lm = "r2.flag.plaza", ath = 5.45, snapped = true },
+  { lm = "r2.a.tower.w", ath = 42.70, snapped = true },
+  { lm = "r2.a.tower.e", ath = 54.64, snapped = true },
+  { lm = "A#2", ath = 145.50, snapped = true },
+  { lm = "r2.gate.col.n", ath = 247.18, sigma_deg = 0.5 },
+  { lm = "r2.plaza.monument", ath = 318.0, sigma_deg = 1.0 },
+]
+
+[scenes.scene_428526]
+pose = "free"
+init = [38.0, 39.4, 348.4]
+prior_sigma_m = 20.0
+note = "in front of A's main door (tower 8 m N), so the tower edges are very oblique"
+obs = [
+  { lm = "r2.flag.plaza", ath = 239.43, snapped = true },
+  { lm = "r2.gate.col.n", ath = 113.27, snapped = true },
+  { lm = "r2.gate.col.s", ath = 140.34, snapped = true },
+  { lm = "A#1", ath = 271.6, sigma_deg = 1.0 },
+  { lm = "r2.plaza.monument", ath = 150.0, sigma_deg = 0.8 },
+  { lm = "r2.a.tower.w", ath = 313.5, sigma_deg = 0.6 },
+  { lm = "r2.a.tower.e", ath = 36.58, sigma_deg = 0.6 },
+]
+
+[scenes.scene_428527]
+pose = "free"
+init = [35.7, 26.2, 329.2]
+prior_sigma_m = 20.0
+note = "west plaza, sees whole A south face, gate 34 m E"
+obs = [
+  { lm = "r2.flag.plaza", ath = 271.85, snapped = true },
+  { lm = "r2.gate.col.n", ath = 109.15, snapped = true },
+  { lm = "r2.gate.col.s", ath = 142.2, snapped = true },
+  { lm = "A#1", ath = 314.26, snapped = true },
+  { lm = "r2.b.pilaster", ath = 286.78, snapped = true },
+  { lm = "r2.a.tower.w", ath = 15.82, snapped = true },
+  { lm = "r2.a.tower.e", ath = 44.31, snapped = true },
+]
+
+[scenes.scene_428528]
+pose = "free"
+init = [37.1, 19.9, 304.0]
+prior_sigma_m = 20.0
+note = "west plaza near 523; tower seen obliquely (0.5 deg residuals)"
+obs = [
+  { lm = "r2.flag.plaza", ath = 307.39, snapped = true },
+  { lm = "r2.gate.col.n", ath = 123.40, snapped = true },
+  { lm = "r2.gate.col.s", ath = 158.94, snapped = true },
+  { lm = "A#1", ath = 349.12, snapped = true },
+  { lm = "r2.plaza.monument", ath = 147.5, sigma_deg = 1.0 },
+  { lm = "r2.a.tower.w", ath = 41.27, snapped = true },
+  { lm = "r2.a.tower.e", ath = 64.44, snapped = true },
+]
+
+[scenes.scene_428522]
+pose = "free"
+init = [47.0, 4.2, 326.7]
+prior_sigma_m = 20.0
+note = "south-west plaza; gate columns added to stop it sliding along the NW-only rays"
+obs = [
+  { lm = "r2.flag.plaza", ath = 308.87, snapped = true },
+  { lm = "A#1", ath = 338.03, snapped = true },
+  { lm = "r2.a.tower.w", ath = 11.06, snapped = true },
+  { lm = "r2.a.tower.e", ath = 25.35, sigma_deg = 0.6 },
+  { lm = "r2.gate.col.n", ath = 70.2, sigma_deg = 0.6 },
+  { lm = "r2.gate.col.s", ath = 106.6, sigma_deg = 0.8 },
+]
+
+[scenes.scene_428500]
+pose = "free"
+init = [29.5, 16.5, 251.7]
+prior_sigma_m = 20.0
+note = "cafe terrace by the flagpole (8 m), B Blok store and A's west end"
+obs = [
+  { lm = "r2.flag.plaza", ath = 0.34, snapped = true },
+  { lm = "A#1", ath = 52.48, sigma_deg = 0.6 },
+  { lm = "r2.b.pilaster", ath = 18.25, sigma_deg = 0.6 },
+  { lm = "r2.a.tower.w", ath = 111.73, snapped = true },
+  { lm = "r2.a.tower.e", ath = 128.45, snapped = true },
+]
+
+[scenes.scene_428501]
+pose = "free"
+init = [24.0, 14.1, 236.2]
+prior_sigma_m = 20.0
+note = "cafe terrace by the flagpole, B Blok store 26 m NW"
+obs = [
+  { lm = "r2.flag.plaza", ath = 18.35, snapped = true },
+  { lm = "A#1", ath = 79.46, sigma_deg = 0.6 },
+  { lm = "r2.b.pilaster", ath = 39.68, snapped = true },
+  { lm = "r2.a.tower.w", ath = 137.59, snapped = true },
+  { lm = "r2.a.tower.e", ath = 150.83, snapped = true },
+]
+
+[scenes.scene_428552]
+pose = "free"
+init = [21.4, 19.7, 338.7]
+prior_sigma_m = 20.0
+note = "plaza between B and A west end, flagpole 20 m W"
+obs = [
+  { lm = "r2.flag.plaza", ath = 258.6, snapped = true },
+  { lm = "A#1", ath = 330.56, sigma_deg = 0.6 },
+  { lm = "r2.b.pilaster", ath = 284.2, snapped = true },
+  { lm = "r2.a.tower.w", ath = 44.10, snapped = true },
+  { lm = "r2.a.tower.e", ath = 56.57, sigma_deg = 0.6 },
+]
+
+[scenes.scene_428529]
+pose = "free"
+init = [69.5, 52.5, 155.0]
+prior_sigma_m = 40.0
+note = "street-side lawn between A's east end and the fence; A's SE corner 2 m away (sigma 2), gate north pavilion 14 m S"
+obs = [
+  { lm = "r2.flag.plaza", ath = 99.35, snapped = true },
+  { lm = "r2.plaza.monument", ath = 65.5, sigma_deg = 0.8 },
+  { lm = "r2.gate.col.n", ath = 44.55, snapped = true },
+  { lm = "A#2", ath = 184.9, sigma_deg = 2.0 },
+  { lm = "A#3", ath = 200.57, sigma_deg = 0.6 },
+  { lm = "r2.gate.pav_n.col_ne", ath = 31.4, sigma_deg = 0.6 },
+  { lm = "r2.j.se_corner", ath = 207.0, sigma_deg = 1.0 },
+]
+
+[scenes.scene_428518]
+pose = "free"
+init = [78.0, 28.0, 262.0]
+prior_sigma_m = 40.0
+note = "on Inonu Caddesi's west sidewalk looking west through the gate; carriageway starts 2-3 m east; sketch position (30, 29) rejected"
+obs = [
+  { lm = "r2.flag.plaza", ath = 353.77, snapped = true },
+  { lm = "r2.plaza.monument", ath = 355.35, sigma_deg = 0.8 },
+  { lm = "A#2", ath = 71.0, sigma_deg = 1.5 },
+  { lm = "r2.gate.pav_n.col_ne", ath = 57.77, sigma_deg = 0.6 },
+]
+
+[scenes.scene_428530]
+pose = "free"
+init = [68.0, 65.5, 258.0]
+prior_sigma_m = 40.0
+note = "J Blok Girisi: J's entrance, fence 2-5 m east, A-J passage with steel fire stair at ath 343-357"
+obs = [
+  { lm = "A#2", ath = 282.91, snapped = true },
+  { lm = "A#3", ath = 327.0, sigma_deg = 3.0 },
+  { lm = "r2.gate.col.n", ath = 278.75, sigma_deg = 0.5 },
+  { lm = "r2.gate.pav_n.col_ne", ath = 271.5, sigma_deg = 0.6 },
+  { lm = "r2.j.se_corner", ath = 358.7, sigma_deg = 0.8 },
+]
+
+[scenes.scene_428551]
+pose = "free"
+init = [7.8, 13.5, 36.9]
+prior_sigma_m = 20.0
+note = "in front of the IAU Store (B ground floor); flagpole 5 m S; 309.9 is A#0 (west face silhouette), 312.6 is A#1"
+obs = [
+  { lm = "A#0", ath = 309.88, sigma_deg = 1.0 },
+  { lm = "r2.b.pilaster", ath = 250.1, sigma_deg = 1.0 },
+  { lm = "r2.a.tower.w", ath = 1.93, snapped = true },
+  { lm = "r2.flag.plaza", ath = 180.36, sigma_deg = 1.0 },
+  { lm = "A#1", ath = 312.6, sigma_deg = 0.6 },
+]
