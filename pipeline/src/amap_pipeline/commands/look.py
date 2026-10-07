@@ -7,6 +7,7 @@ published: ``amap publish`` only ships ``data/out``.
 
 import json
 import math
+import os
 from collections import deque
 from dataclasses import asdict, replace
 from itertools import pairwise
@@ -21,6 +22,7 @@ from amap_pipeline import paths
 from amap_pipeline.look.camera import DEFAULT_TRIPOD_M, Pose, bearing_to_ath
 from amap_pipeline.look.context import LookContext, load_context
 from amap_pipeline.look.edges import snap_edge
+from amap_pipeline.look.overlay import Mark as TieMark
 from amap_pipeline.look.overlay import (
     Painter,
     StripCanvas,
@@ -29,6 +31,7 @@ from amap_pipeline.look.overlay import (
     draw_buildings,
     draw_grid,
     draw_hotspots,
+    draw_marks,
     draw_nodes,
 )
 from amap_pipeline.look.plan import render_plan
@@ -57,7 +60,13 @@ def _scene_id(scene: str) -> str:
 
 
 def _context(tripod: float) -> LookContext:
-    return load_context(paths.data_dir(), tripod_m=tripod)
+    # AMAP_SURVEY_POSES=<solve output>: draw from the survey's measured poses.
+    survey = os.environ.get("AMAP_SURVEY_POSES")
+    return load_context(
+        paths.data_dir(),
+        tripod_m=tripod,
+        survey_poses=Path(survey) if survey else None,
+    )
 
 
 def _pose(ctx: LookContext, scene: str, override: str | None) -> Pose | None:
@@ -99,7 +108,7 @@ def _paint(
     grid_step: float = 5.0,
 ) -> None:
     """Layers: grid, buildings (= outlines + corners), outlines, corners, nodes,
-    hotspots."""
+    hotspots, ties (solved landmarks, with AMAP_SURVEY_POSES)."""
     wanted = {layer.strip() for layer in layers.split(",") if layer.strip()}
     if "buildings" in wanted:
         wanted |= {"outlines", "corners"}
@@ -123,6 +132,14 @@ def _paint(
         draw_nodes(painter, ctx, pose)
     if "hotspots" in wanted:
         draw_hotspots(painter, ctx, scene)
+    if pose is not None and "ties" in wanted:
+        ties = ctx.extra.get("landmarks", {})
+        near = [
+            TieMark(name, x, y)
+            for name, (x, y) in ties.items()
+            if math.hypot(x - pose.x, y - pose.y) < 70.0
+        ]
+        draw_marks(painter, pose, near)
     draw_ath_marks(painter, marks)
 
 

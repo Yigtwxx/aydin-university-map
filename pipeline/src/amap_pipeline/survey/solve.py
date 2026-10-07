@@ -73,6 +73,14 @@ class SolveConfig:
     # a bounded loss caps what any one of them can cost.
     hotspot_loss: str = "geman_mcclure"
     f_scale: float = 2.0  # whitened residuals beyond ~2 sigma lose weight
+    # Floors added to the reported uncertainty: what no sighting can see
+    # (the lens's nodal point, the corner's true position on the wall).
+    pose_floor_m: float = 0.3
+    heading_floor_deg: float = 0.5
+    landmark_floor_m: float = 0.3
+    # A tie point whose rays cross at less than this is placed along the
+    # baseline only by chance (two panoramas facing each other).
+    min_tie_angle_deg: float = 12.0
 
 
 @dataclass(slots=True)
@@ -161,6 +169,7 @@ class Solution:
     cost: float
     success: bool
     message: str
+    warnings: list[str] = field(default_factory=list[str])
 
 
 class Problem:
@@ -185,10 +194,14 @@ class Problem:
                 )
             elif scene not in self.priors and notes.sightings:
                 raise ValueError(f"{scene}: no pose to start from; give init")
+        self.warnings: list[str] = []
         self.layout = self._layout()
         self.bearings = self._bearings(links)
         self._index = {s: i for i, s in enumerate(self.layout.scenes)}
         self._lm_index = {n: i for i, n in enumerate(self.layout.landmarks)}
+        # Bootstrapping may drop weak tie points from the bearings, so it runs
+        # before anything reads them.
+        self._start: FloatArray = self._bootstrap(self._from_priors())
 
     # --- layout ---------------------------------------------------------------
 
@@ -270,6 +283,10 @@ class Problem:
     # --- model ----------------------------------------------------------------
 
     def initial(self) -> FloatArray:
+        """Start: priors, then resected free panoramas and triangulated ties."""
+        return self._start.copy()
+
+    def _from_priors(self) -> FloatArray:
         x0 = np.zeros(self.layout.size)
         lay = self.layout
         for i in range(len(lay.scenes)):
@@ -281,11 +298,113 @@ class Problem:
             lm = self.survey.landmarks[name]
             start = (lm.x, lm.y)
             if lm.sigma_m is None:
-                start = self._intersect(name) or start
+                start = self._intersect(name) or self._along_ray(name) or start
             if not all(math.isfinite(v) for v in start):
-                raise ValueError(f"tie point {name}: needs sightings from 2 panoramas")
+                raise ValueError(f"tie point {name}: nobody sights it")
             x0[lay.lm_off + 2 * j : lay.lm_off + 2 * j + 2] = start
         return x0
+
+    def _bootstrap(self, x0: FloatArray) -> FloatArray:
+        """Resect free panoramas from landmarks with known positions, then
+        triangulate the tie points they see; repeat while it helps.
+
+        A free panorama whose sightings all lie on one side has a cost valley
+        far from its true place; starting the global solve from a resection
+        (multi-start) keeps it out of that valley.
+        """
+        lay = self.layout
+        known: dict[str, tuple[float, float]] = {
+            name: (lm.x, lm.y)
+            for name, lm in self.survey.landmarks.items()
+            if lm.sigma_m is not None and math.isfinite(lm.x)
+        }
+        sightings: dict[str, list[Bearing]] = {}
+        for b in self.bearings:
+            if b.kind == "landmark":
+                sightings.setdefault(b.scene, []).append(b)
+        posed: set[str] = {s for i, s in enumerate(lay.scenes) if lay.model_of[i] >= 0}
+        for _ in range(4):
+            progress = False
+            for scene, seen in sorted(sightings.items()):
+                i = self._index.get(scene)
+                if i is None or lay.model_of[i] >= 0 or scene in posed:
+                    continue
+                usable = [b for b in seen if b.target in known]
+                if len(usable) < 3:
+                    continue
+                off = int(lay.free_off[i])
+                pose = _resect(usable, known, (x0[off], x0[off + 1], x0[off + 2]))
+                if pose is not None:
+                    x0[off : off + 3] = pose
+                    posed.add(scene)
+                    progress = True
+            xy, heading = self._state_at(x0)
+            for name, lm in self.survey.landmarks.items():
+                if name in known or lm.sigma_m is not None:
+                    continue
+                rays = [
+                    (
+                        xy[self._index[b.scene]],
+                        heading[self._index[b.scene]] + b.ath_deg,
+                    )
+                    for b in self.bearings
+                    if b.kind == "landmark" and b.target == name and b.scene in posed
+                ]
+                point = _triangulate(rays, self.config.min_tie_angle_deg)
+                if point is not None:
+                    known[name] = point
+                    j = self._lm_index[name]
+                    x0[lay.lm_off + 2 * j : lay.lm_off + 2 * j + 2] = point
+                    progress = True
+            if not progress:
+                break
+        self._drop_weak_ties(x0)
+        return x0
+
+    def _state_at(self, params: FloatArray) -> tuple[FloatArray, FloatArray]:
+        return self.scene_state(params)
+
+    def _drop_weak_ties(self, x0: FloatArray) -> None:
+        """Tie points whose rays never cross at a usable angle are dropped."""
+        xy, heading = self._state_at(x0)
+        weak: set[str] = set()
+        for name, lm in self.survey.landmarks.items():
+            if lm.sigma_m is not None:
+                continue
+            directions = [
+                heading[self._index[b.scene]] + b.ath_deg
+                for b in self.bearings
+                if b.kind == "landmark" and b.target == name
+            ]
+            best = max(
+                (
+                    min(abs(wrap180(a - b)), 180.0 - abs(wrap180(a - b)))
+                    for k, a in enumerate(directions)
+                    for b in directions[k + 1 :]
+                ),
+                default=0.0,
+            )
+            if best < self.config.min_tie_angle_deg:
+                weak.add(name)
+                self.warnings.append(
+                    f"tie point {name}: rays cross at {best:.0f}° at most; dropped"
+                )
+        if weak:
+            self.bearings = [b for b in self.bearings if b.target not in weak]
+        _ = xy
+
+    def _along_ray(
+        self, landmark: str, distance_m: float = 10.0
+    ) -> tuple[float, float] | None:
+        """A guess on the first sighting ray, for ties the rays can't place."""
+        for b in self.bearings:
+            if b.kind == "landmark" and b.target == landmark:
+                p = self.priors[b.scene]
+                rad = math.radians(p.heading_deg + b.ath_deg)
+                return p.x + distance_m * math.sin(rad), p.y + distance_m * math.cos(
+                    rad
+                )
+        return None
 
     def _intersect(self, landmark: str) -> tuple[float, float] | None:
         """Least-squares meeting point of the sighting rays from the prior poses."""
@@ -522,7 +641,14 @@ class Problem:
         # sighting's weight: Gauss-Newton on the robust cost.
         jac = result.jac
         dense = jac.toarray() if hasattr(jac, "toarray") else np.asarray(jac)
-        return np.linalg.pinv(dense.T @ dense)
+        cov = np.linalg.pinv(dense.T @ dense)
+        # Scale by the reduced chi-square when the fit is worse than the
+        # sigmas claim (never shrink below them).
+        m, n = dense.shape
+        if m > n:
+            factor = 2.0 * float(result.cost) / (m - n)
+            cov *= max(1.0, factor)
+        return cov
 
     def state_jacobian(self, params: FloatArray) -> FloatArray:
         """d(x, y, heading of every scene) / d(params), by central differences."""
@@ -540,6 +666,79 @@ class Problem:
             jac[1::3, k] = (xp[:, 1] - xm[:, 1]) / (2 * step)
             jac[2::3, k] = (hp - hm) / (2 * step)
         return jac
+
+
+def _resect(
+    sightings: Sequence[Bearing],
+    known: Mapping[str, tuple[float, float]],
+    start: tuple[float, float, float],
+    *,
+    max_rms_deg: float = 3.0,
+) -> tuple[float, float, float] | None:
+    """Position and heading from 3+ bearings to known points (multi-start).
+
+    Starts from ``start`` and from a grid around the seen points, each with
+    the heading that best fits there; keeps the lowest cost. None when even
+    the best start leaves the bearings disagreeing.
+    """
+    targets = np.array([known[b.target] for b in sightings], float)
+    ath = np.array([b.ath_deg for b in sightings], float)
+    sigma = np.array([b.sigma_deg for b in sightings], float)
+
+    def residual(p: FloatArray) -> FloatArray:
+        d = targets - p[:2]
+        bearing = np.degrees(np.arctan2(d[:, 0], d[:, 1]))
+        return ((p[2] + ath - bearing + 180.0) % 360.0 - 180.0) / sigma
+
+    def best_heading(x: float, y: float) -> float:
+        d = targets - (x, y)
+        bearing = np.degrees(np.arctan2(d[:, 0], d[:, 1]))
+        diffs = np.radians(bearing - ath)
+        return math.degrees(math.atan2(np.sin(diffs).sum(), np.cos(diffs).sum()))
+
+    centre = targets.mean(axis=0)
+    starts = [np.array(start, float)]
+    for dx in (-30.0, -15.0, 0.0, 15.0, 30.0):
+        for dy in (-30.0, -15.0, 0.0, 15.0, 30.0):
+            x, y = centre[0] + dx, centre[1] + dy
+            starts.append(np.array([x, y, best_heading(x, y)]))
+    best: tuple[float, FloatArray] | None = None
+    for p0 in starts:
+        result = least_squares(residual, p0, loss="soft_l1", f_scale=3.0)
+        cost = float(np.sqrt(np.mean((residual(result.x) * sigma) ** 2)))
+        if best is None or cost < best[0]:
+            best = (cost, np.asarray(result.x, float))
+    assert best is not None
+    if best[0] > max_rms_deg:
+        return None
+    x, y, h = best[1]
+    return float(x), float(y), float(h % 360.0)
+
+
+def _triangulate(
+    rays: Sequence[tuple[FloatArray, float]], min_angle_deg: float
+) -> tuple[float, float] | None:
+    """Meeting point of bearing rays; None if no two cross at a usable angle."""
+    if len(rays) < 2:
+        return None
+    angles = [b for _, b in rays]
+    widest = max(
+        min(abs(wrap180(a - b)), 180.0 - abs(wrap180(a - b)))
+        for k, a in enumerate(angles)
+        for b in angles[k + 1 :]
+    )
+    if widest < min_angle_deg:
+        return None
+    normal = np.zeros((2, 2))
+    rhs = np.zeros(2)
+    for origin, bearing in rays:
+        rad = math.radians(bearing)
+        d = np.array([math.sin(rad), math.cos(rad)])
+        proj = np.eye(2) - np.outer(d, d)
+        normal += proj
+        rhs += proj @ np.asarray(origin, float)
+    x, y = np.linalg.solve(normal, rhs)
+    return float(x), float(y)
 
 
 def robust(z: FloatArray, loss: str, f_scale: float) -> FloatArray:
@@ -583,6 +782,10 @@ def solve_survey(
         rows = g[3 * i : 3 * i + 3]
         c = rows @ cov @ rows.T
         prior = problem.priors[scene]
+        floor = problem.config.pose_floor_m**2
+        c[0, 0] += floor
+        c[1, 1] += floor
+        c[2, 2] += problem.config.heading_floor_deg**2
         poses[scene] = PoseEstimate(
             scene=scene,
             x=float(xy[i, 0]),
@@ -598,6 +801,7 @@ def solve_survey(
             free=bool(lay.model_of[i] < 0),
         )
     lms = problem.landmark_xy(params)
+    lm_floor = problem.config.landmark_floor_m**2
     landmarks: dict[str, LandmarkEstimate] = {}
     for j, name in enumerate(lay.landmarks):
         lm = survey.landmarks[name]
@@ -606,8 +810,8 @@ def solve_survey(
             name=name,
             x=float(lms[j, 0]),
             y=float(lms[j, 1]),
-            sigma_x=float(math.sqrt(max(cov[k, k], 0.0))),
-            sigma_y=float(math.sqrt(max(cov[k + 1, k + 1], 0.0))),
+            sigma_x=float(math.sqrt(max(cov[k, k], 0.0) + lm_floor)),
+            sigma_y=float(math.sqrt(max(cov[k + 1, k + 1], 0.0) + lm_floor)),
             shift_m=(
                 None
                 if lm.source == "tie"
@@ -650,6 +854,7 @@ def solve_survey(
         cost=float(result.cost),
         success=bool(result.success),
         message=str(result.message),
+        warnings=list(problem.warnings),
     )
 
 

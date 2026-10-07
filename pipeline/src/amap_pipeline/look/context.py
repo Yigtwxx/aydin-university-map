@@ -108,12 +108,44 @@ def poses_from_graph(
     return poses, sources
 
 
+def apply_survey_file(
+    poses: dict[str, Pose], sources: dict[str, str], path: Path
+) -> dict[str, tuple[float, float]]:
+    """Replace poses with a solve's measured ones; return its landmarks."""
+    data = json.loads(path.read_text("utf-8"))
+    for scene, p in data["poses"].items():
+        if not (p.get("sightings") or p.get("free")):
+            continue
+        base = poses.get(scene)
+        z = base.z if base else float(p.get("z", DEFAULT_TRIPOD_M))
+        tripod = base.tripod_m if base else DEFAULT_TRIPOD_M
+        poses[scene] = Pose(
+            scene=scene,
+            x=float(p["x"]),
+            y=float(p["y"]),
+            z=z,
+            heading_deg=float(p["heading_deg"]) % 360.0,
+            tripod_m=tripod,
+        )
+        sources[scene] = "surveyed"
+    return {n: (float(v["x"]), float(v["y"])) for n, v in data["landmarks"].items()}
+
+
 def load_context(
-    data_dir: Path, *, tripod_m: float = DEFAULT_TRIPOD_M, cache_scenes: int = 6
+    data_dir: Path,
+    *,
+    tripod_m: float = DEFAULT_TRIPOD_M,
+    cache_scenes: int = 6,
+    survey_poses: Path | None = None,
 ) -> LookContext:
+    """``survey_poses``: a solve's output whose measured poses (and landmarks)
+    replace the graph's, so overlays follow the survey as it goes."""
     out = data_dir / "out"
     graph = Graph.from_geojson(json.loads((out / "graph.geojson").read_text("utf-8")))
     poses, sources = poses_from_graph(graph, tripod_m)
+    landmarks: dict[str, tuple[float, float]] = {}
+    if survey_poses is not None:
+        landmarks = apply_survey_file(poses, sources, survey_poses)
     scenes: list[dict[str, Any]] = json.loads(
         (data_dir / "derived" / "scenes.json").read_text("utf-8")
     )
@@ -135,4 +167,5 @@ def load_context(
         faces=FaceCache(
             [data_dir / "tiles", data_dir / "out" / "panos"], capacity=cache_scenes
         ),
+        extra={"landmarks": landmarks},
     )

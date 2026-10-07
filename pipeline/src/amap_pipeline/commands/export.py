@@ -171,6 +171,7 @@ def export_furniture() -> None:
     out = paths.data_dir() / "out" / "furniture.json"
     out.write_text(collection.model_dump_json(indent=1) + "\n", "utf-8")
     typer.echo(
+        f"{len(collection.terraces)} terraces, "
         f"{len(collection.stairs)} stairs, {len(collection.ramps)} ramps, "
         f"{len(collection.railings)} railings, {len(collection.items)} items, "
         f"{len(collection.seating)} seating groups -> {out}"

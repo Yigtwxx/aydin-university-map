@@ -25,7 +25,7 @@ from typing import Any
 from amap_contracts.furniture import FurnitureCollection
 
 DEFAULT_FURNITURE = Path(__file__).parents[3] / "configs" / "furniture.toml"
-_GROUPS = ("stairs", "ramps", "railings", "items", "seating")
+_GROUPS = ("terraces", "stairs", "ramps", "railings", "items", "seating")
 
 
 def read_furniture(path: Path = DEFAULT_FURNITURE) -> dict[str, Any]:

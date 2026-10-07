@@ -38,6 +38,12 @@ learned = [
     "kornia==0.8.3",
     "torch>=2.14",
 ]
+# Open-vocabulary detection (OWLv2) of street furniture: inference only, heavy
+# (~0.6 GB of weights); never installed by CI or start.sh.
+detect = [
+    "torch>=2.14",
+    "transformers>=4.57",
+]
 
 [tool.uv.sources]
 amap-contracts = { workspace = true }

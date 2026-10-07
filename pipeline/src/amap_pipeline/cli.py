@@ -6,6 +6,7 @@ from amap_pipeline.commands import (
     db,
     dense,
     export,
+    furniture,
     georef,
     graph,
     look,
@@ -32,3 +33,4 @@ app.add_typer(rag.app, name="rag")
 app.add_typer(publish.app, name="publish")
 app.add_typer(survey.app, name="survey")
 app.add_typer(look.app, name="look")
+app.add_typer(furniture.app, name="furniture")

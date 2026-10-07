@@ -247,3 +247,34 @@ def test_notebooks_reject_conflicting_landmarks(tmp_path: Path) -> None:
     (folder / "b.toml").write_text("[landmarks.door]\nxy = [5.0, 2.0]\n", "utf-8")
     with pytest.raises(ValueError, match="door"):
         load_survey([], folder)
+
+
+def test_free_scene_far_off_is_resected_into_place() -> None:
+    priors = _distorted_priors(0.0, (0.0, 0.0))
+    # 60 m away and facing the wrong way: the global solve alone would stall.
+    priors["s2"] = PriorPose("s2", 80.0, -40.0, 200.0, None, "manual")
+    solution = solve_survey(priors, [], _survey())
+    est = solution.poses["s2"]
+    # The wrong hand prior (sigma 5 m, 80 m away) still tugs a little.
+    assert math.hypot(est.x - 20.0, est.y - 15.0) < 0.5, f"Got {est}"
+
+
+def test_tie_point_seen_head_on_is_dropped_with_a_warning() -> None:
+    # s1 (10, 10) and s3 (30, 20) look at a point on the line between them.
+    point = (20.0, 15.0)
+    lms = {"between": Landmark("between", math.nan, math.nan, None, "tie")}
+    extra = {
+        s: [Sighting("between", _ath(TRUE[s], point), 0.2, True)] for s in ("s1", "s3")
+    }
+    solution = solve_survey(
+        _distorted_priors(0.0, (0.0, 0.0)), [], _survey(extra, lms=lms)
+    )
+    assert any("between" in w for w in solution.warnings), solution.warnings
+    assert all(r.target != "between" for r in solution.residuals)
+
+
+def test_reported_uncertainty_has_a_floor() -> None:
+    solution = solve_survey(_distorted_priors(0.0, (0.0, 0.0)), [], _survey())
+    for est in solution.poses.values():
+        assert est.ellipse[1] >= 0.3 - 1e-9, f"{est.scene}: {est.ellipse}"
+        assert est.sigma_heading_deg >= 0.5 - 1e-9

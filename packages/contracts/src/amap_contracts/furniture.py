@@ -38,6 +38,27 @@ class Side(StrEnum):
     BOTH = "both"
 
 
+class Edge(StrEnum):
+    WALL = "wall"  # a retaining wall down to the lower ground
+    SLOPE = "slope"  # a grassy bank
+    KERB = "kerb"  # a step of a kerb's height
+
+
+class Terrace(BaseModel):
+    """A level area raised above (or sunk below) the street datum (z = 0).
+
+    The campus square stands about 1.5 m above the lane along D Blok; each
+    terrace is one level polygon, its sides drawn as ``edge``.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    outline: list[Point] = Field(min_length=3)
+    z_m: float = Field(ge=-10.0, le=20.0, description="Top above the street datum")
+    edge: Edge = Edge.WALL
+
+
 class Stairs(BaseModel):
     """A straight flight: centreline from its foot to its top."""
 
@@ -122,6 +143,7 @@ class FurnitureCollection(BaseModel):
 
     schema_version: int = FURNITURE_SCHEMA_VERSION
     generated_at: datetime
+    terraces: list[Terrace] = Field(default_factory=list[Terrace])
     stairs: list[Stairs] = Field(default_factory=list[Stairs])
     ramps: list[Ramp] = Field(default_factory=list[Ramp])
     railings: list[Railing] = Field(default_factory=list[Railing])

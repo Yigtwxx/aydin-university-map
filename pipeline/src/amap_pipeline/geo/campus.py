@@ -39,6 +39,7 @@ from typing import Any
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
 
+from amap_contracts.facade import Facade
 from amap_pipeline.geo.osm import Building
 
 DEFAULT_CAMPUS = Path(__file__).parents[3] / "configs" / "campus.toml"
@@ -96,6 +97,16 @@ def _polygon(code: str, points: Sequence[Sequence[float]]) -> Polygon:
     return poly
 
 
+def _facade(code: str, entry: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Validated facade recipe, defaults filled in (empty: none surveyed yet)."""
+    if not entry:
+        return {}
+    try:
+        return Facade.model_validate(entry).model_dump(mode="json")
+    except ValueError as exc:
+        raise ValueError(f"block {code}: invalid facade: {exc}") from exc
+
+
 def parse_campus(data: Mapping[str, Any]) -> Registry:
     blocks: dict[str, Block] = {}
     for code, entry in data.get("blocks", {}).items():
@@ -118,7 +129,7 @@ def parse_campus(data: Mapping[str, Any]) -> Registry:
             height_m=float(entry["height_m"]) if "height_m" in entry else None,
             base_m=float(entry["base_m"]) if "base_m" in entry else None,
             height_source=str(entry.get("height_source", "pano")),
-            facade=dict(entry.get("facade", {})),
+            facade=_facade(str(code), entry.get("facade")),
         )
     return Registry(blocks=blocks, remove=tuple(str(i) for i in data.get("remove", ())))
 

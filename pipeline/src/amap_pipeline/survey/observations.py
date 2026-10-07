@@ -209,11 +209,18 @@ def merge_notebooks(
 
 
 def load_survey(
-    buildings: Sequence[BuildingShape], path: Path | None = DEFAULT_SURVEY
+    buildings: Sequence[BuildingShape],
+    path: Path | Sequence[Path] | None = DEFAULT_SURVEY,
 ) -> Survey:
-    """Read one notebook file or every ``*.toml`` in a directory."""
-    if path is None or not path.exists():
+    """Read notebook files, or every ``*.toml`` in a directory."""
+    sources = [] if path is None else [path] if isinstance(path, Path) else list(path)
+    files: list[Path] = []
+    for source in sources:
+        if source.is_dir():
+            files += sorted(source.glob("*.toml"))
+        elif source.is_file():
+            files.append(source)
+    if not files:
         return Survey(tripod_m=DEFAULT_TRIPOD_M, landmarks={}, scenes={})
-    files = sorted(path.glob("*.toml")) if path.is_dir() else [path]
     documents = [(f.name, tomllib.loads(f.read_text("utf-8"))) for f in files]
     return parse_survey(merge_notebooks(documents), buildings)

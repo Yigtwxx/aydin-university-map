@@ -178,8 +178,10 @@ def survey_solve(
         bool, typer.Option("--holdout", help="Cross-validate the sightings.")
     ] = False,
     notebook: Annotated[
-        Path | None,
-        typer.Option(help="One notebook file or folder (default: configs/survey)."),
+        list[Path] | None,
+        typer.Option(
+            help="Notebook file or folder, repeatable (default: configs/survey)."
+        ),
     ] = None,
     out: Annotated[
         Path | None,
@@ -192,7 +194,7 @@ def survey_solve(
     )
     survey = (
         load_survey(ctx_buildings)
-        if notebook is None
+        if not notebook
         else load_survey(ctx_buildings, notebook)
     )
     scenes: list[dict[str, Any]] = json.loads(
@@ -240,6 +242,8 @@ def survey_solve(
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n", "utf-8")
     typer.echo(json.dumps(summary, ensure_ascii=False))
+    for warning in solution.warnings:
+        typer.echo(f"warning: {warning}")
     moved = sorted(
         (p for p in solution.poses.values() if sightings.get(p.scene)),
         key=lambda p: -p.shift_m,
@@ -356,11 +360,10 @@ def survey_kroki(
         data = json.loads(
             (file or paths.derived_dir() / "survey.json").read_text("utf-8")
         )
-        # Only poses the pictures measured: sighted or solved freely.
+        # Only poses the pictures measured: a free pose with no sightings is
+        # just its hand-set prior.
         known = {
-            s: (p["x"], p["y"])
-            for s, p in data["poses"].items()
-            if p.get("sightings") or p.get("free")
+            s: (p["x"], p["y"]) for s, p in data["poses"].items() if p.get("sightings")
         }
     report: dict[str, Any] = {}
     for name, markers in views.items():

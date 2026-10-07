@@ -113,7 +113,7 @@ osm = ["way/2"]
 levels = 5
 height_m = 18.4
 base_m = 1.2
-facade = { recipe = "punched", wall = "#e8d9b0" }
+facade = { windows = "punched", wall = "#e8d9b0" }
 """
     )
     buildings = apply_building_overrides(
@@ -124,8 +124,15 @@ facade = { recipe = "punched", wall = "#e8d9b0" }
     assert t["campus"] and t["code"] == "T"
     assert (t["height_m"], t["levels"], t["height_source"]) == (18.4, 5, "pano")
     assert t["base_m"] == 1.2
-    assert t["facade"] == {"recipe": "punched", "wall": "#e8d9b0"}
+    assert t["facade"]["windows"] == "punched"
+    assert t["facade"]["wall"] == "#e8d9b0"
+    assert t["facade"]["bay_m"] == 3.4  # defaults filled in
 
 
 def test_missing_registry_changes_nothing(tmp_path: Path) -> None:
     assert load_campus(tmp_path / "absent.toml").blocks == {}
+
+
+def test_invalid_facade_is_rejected() -> None:
+    with pytest.raises(ValueError, match="block T: invalid facade"):
+        _registry('[blocks.T]\nosm = ["way/2"]\nfacade = { wall = "ochre" }\n')
