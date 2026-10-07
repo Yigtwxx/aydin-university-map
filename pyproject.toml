@@ -16,6 +16,8 @@ members = ["packages/contracts", "pipeline", "apps/api"]
 dev = [
     "pyright>=1.1.400",
     "pytest>=8.4",
+    # apps/api/evals reads its question set from YAML
+    "pyyaml>=6.0",
     "ruff>=0.13",
 ]
 
@@ -43,6 +45,7 @@ include = [
     "pipeline/tests",
     "apps/api/src",
     "apps/api/tests",
+    "apps/api/evals",
     "tools",
 ]
 exclude = ["data", "**/node_modules", "**/.venv"]

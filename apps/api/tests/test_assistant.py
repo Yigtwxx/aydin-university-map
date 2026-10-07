@@ -1,10 +1,14 @@
 """Campus assistant with the offline model (no network, no API keys)."""
 
+import asyncio
 from collections.abc import Iterator
+from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic_ai.messages import (
+    ModelMessage,
     ModelRequest,
     ModelResponse,
     TextPart,
@@ -12,12 +16,26 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from amap_api.assistant.agent import keep_recent
+from amap_api.assistant.agent import (
+    KNOWLEDGE_DOWN,
+    SUGGESTIONS,
+    AssistantDeps,
+    _resolve,  # pyright: ignore[reportPrivateUsage]
+    _suggestions,  # pyright: ignore[reportPrivateUsage]
+    build_agent,
+    describe,
+    keep_recent,
+)
+from amap_api.assistant.knowledge import Knowledge, diversify
+from amap_api.db import Database
 from amap_api.graph_store import GraphStore
 from amap_api.main import CHAT_BUCKET, create_app
+from amap_api.places import Place, build_places
 from amap_api.rate_limit import TokenBucket
 from amap_api.settings import Settings
+from amap_contracts.graph import NodeKind
 
 
 @pytest.fixture
@@ -82,3 +100,236 @@ def test_keep_recent_starts_at_a_user_turn() -> None:
     assert isinstance(first, ModelRequest), "history must start with a request"
     assert isinstance(first.parts[0], UserPromptPart), "...that is a user prompt"
     assert len(kept) <= 8, f"kept {len(kept)} messages"
+
+
+def test_keep_recent_long_turn_keeps_the_question() -> None:
+    # Eval regression (Step 4.4): after four tool rounds the old trimming sent
+    # only the last tool result, and the model answered with a greeting.
+    question = ModelRequest(parts=[UserPromptPart(content="T Blok'a nasıl giderim?")])
+    rounds: list[ModelMessage] = []
+    for i in range(4):
+        call = ToolCallPart("search_places", {}, tool_call_id=f"t{i}")
+        result = ToolReturnPart("search_places", [], tool_call_id=f"t{i}")
+        rounds += [ModelResponse(parts=[call]), ModelRequest(parts=[result])]
+    history: list[ModelMessage] = [question, *rounds]
+    assert len(history) > 8, f"the turn must exceed the budget, got {len(history)}"
+    kept = keep_recent(history)
+    assert kept == history, f"the current turn must be sent whole, kept {len(kept)}"
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("A Blok'a", "c"),  # apostrophe suffix
+        ("Kütüphane Girişi", "d"),  # possessive suffix on "Giriş"
+        ("Kütüphane", "d"),
+        ("T Blok", None),  # not in the walking graph
+        ("Girişinden", None),  # fits "A Blok Girişi" and "Kütüphane Giriş"
+    ],
+)
+def test_resolve_turkish_suffixes_find_the_place(
+    store: GraphStore, name: str, expected: str | None
+) -> None:
+    deps = AssistantDeps(store=store, places=build_places(store), knowledge=None)
+    place = _resolve(deps, name)
+    found = place.id if place else None
+    assert found == expected, f"{name!r}: expected {expected}, got {found}"
+
+
+class _QuotaExhaustedKnowledge(Knowledge):
+    """Every search fails, like a spent free-tier embedding quota (HTTP 429)."""
+
+    def __init__(self) -> None:  # no database, no Gemini client
+        pass
+
+    async def search(
+        self, question: str, lang: str, k: int = 5
+    ) -> list[dict[str, Any]]:
+        raise RuntimeError("429 RESOURCE_EXHAUSTED")
+
+
+def _call_tool(
+    store: GraphStore,
+    tool: str,
+    args: dict[str, Any],
+    knowledge: Knowledge | None = None,
+) -> tuple[Any, str]:
+    """Run one tool call through the real agent: (tool result, final answer)."""
+
+    def respond(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
+        last = messages[-1]
+        if isinstance(last, ModelRequest) and any(
+            isinstance(p, ToolReturnPart) for p in last.parts
+        ):
+            return ModelResponse(parts=[TextPart("Tamam.")])
+        return ModelResponse(parts=[ToolCallPart(tool, args)])
+
+    deps = AssistantDeps(store=store, places=build_places(store), knowledge=knowledge)
+    result = asyncio.run(build_agent(FunctionModel(respond)).run("?", deps=deps))
+    returned = [
+        p.content
+        for m in result.all_messages()
+        if isinstance(m, ModelRequest)
+        for p in m.parts
+        if isinstance(p, ToolReturnPart)
+    ]
+    assert len(returned) == 1, f"expected one tool result, got {returned}"
+    return returned[0], result.output
+
+
+def test_search_knowledge_quota_error_returns_tool_error(store: GraphStore) -> None:
+    args = {"query": "T Blok", "lang": "tr"}
+    output, answer = _call_tool(
+        store, "search_knowledge", args, knowledge=_QuotaExhaustedKnowledge()
+    )
+    assert output == [{"error": KNOWLEDGE_DOWN}], f"got {output}"
+    assert answer, "the chat still answers instead of failing"
+
+
+def test_get_route_to_room_enters_and_climbs(indoor_store: GraphStore) -> None:
+    output, _ = _call_tool(indoor_store, "get_route", {"to_place": "Anatomi Lab"})
+    assert output["to"]["floor"] == -1, f"room floor: {output['to']}"
+    assert output["approximate"] is True, "indoor lengths are estimates"
+    steps = output["steps_tr"]
+    assert "M Blok'a girin" in steps, f"enters the block: {steps}"
+    assert any(s.startswith("Merdivenle 1 kat inin") for s in steps), steps
+    assert steps[-1] == "Vardınız: Anatomi Lab (M Blok, \u22121. kat)", steps[-1]
+
+
+def test_get_route_same_named_rooms_asks_with_floors(indoor_store: GraphStore) -> None:
+    output, _ = _call_tool(indoor_store, "get_route", {"to_place": "Derslik"})
+    options = {(o["building"], o["floor"]) for o in output.get("did_you_mean", [])}
+    assert "error" in output, f"two classrooms must not be guessed: {output}"
+    assert options == {("D", 3), ("M", 5)}, f"both rooms with floors, got {options}"
+
+
+def test_get_route_block_named_room_resolves(indoor_store: GraphStore) -> None:
+    output, _ = _call_tool(indoor_store, "get_route", {"to_place": "Derslik D Blok"})
+    assert output.get("to", {}).get("id") == "class_d", f"got {output}"
+
+
+def test_get_route_unknown_place_lists_entrances_only(
+    indoor_store: GraphStore,
+) -> None:
+    output, _ = _call_tool(indoor_store, "get_route", {"to_place": "Rektörlük"})
+    expected = ["D Blok Giriş", "M Blok Giriş", "M Blok Yan Giriş"]
+    assert output.get("entrances") == expected, f"entrances only, got {output}"
+
+
+def test_suggestions_stay_small_on_a_large_campus() -> None:
+    # 200+ places since indoor routing: the error must not list them all
+    # (Groq's free tier allows 8K tokens a minute).
+    rooms = [
+        Place(f"r{i}", "Derslik", "Classroom", NodeKind.INDOOR, f"B{i}", (f"r{i}",),
+              key=f"derslik classroom b{i} blok", floor=i % 6)
+        for i in range(200)
+    ]  # fmt: skip
+    found = _suggestions(rooms, "Derslik")
+    assert len(found) == SUGGESTIONS, f"capped at {SUGGESTIONS}, got {len(found)}"
+
+
+class _CountingEmbeddings:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def embed_content(self, **_kwargs: Any) -> Any:
+        self.calls += 1
+        return SimpleNamespace(embeddings=[SimpleNamespace(values=[0.5, 0.25])])
+
+
+def test_knowledge_repeated_question_embeds_once(fake_db: Database) -> None:
+    knowledge = Knowledge(fake_db, gemini_api_key="test-key")
+    fake = _CountingEmbeddings()
+    knowledge.client = SimpleNamespace(aio=SimpleNamespace(models=fake))  # pyright: ignore[reportAttributeAccessIssue]
+    # Whitespace and case variants share one cached (float32) vector.
+    for question in ["T Blok", "  T   Blok ", "t blok"]:
+        vector = asyncio.run(knowledge.embed_query(question))
+        assert vector == [0.5, 0.25], f"{question!r}: got {vector}"
+    assert fake.calls == 1, f"expected one embedding call, got {fake.calls}"
+
+
+def test_diversify_near_duplicate_spots_leave_room_for_others() -> None:
+    def row(title: str, area: str | None) -> dict[str, Any]:
+        return {"title": title, "metadata": {"area_tr": area}}
+
+    garden = [row("T Blok Bahçe", "T Blok") for _ in range(4)]
+    rows = [row("T Blok Giriş", "T Blok"), *garden, row("T Blok", "T Blok")]
+    kept = diversify(rows, k=5)
+    titles = [r["title"] for r in kept]
+    assert titles.count("T Blok Bahçe") == 2, f"capped at two, got {titles}"
+    assert "T Blok" in titles, f"the block document gets a slot, got {titles}"
+    assert len(kept) == 4, f"six rows, two capped: expected 4, got {len(kept)}"
+
+
+M = "\u2212"  # floors are written with U+2212 MINUS SIGN ("\u22121. kat")
+
+
+def _library() -> list[Place]:
+    """Library spots as the tour labels them: "Kütüphane -3.Kat" to "3.Kat"."""
+    floors = [
+        Place(
+            f"k{f}",
+            f"Kütüphane {f}.Kat",
+            f"Library Floor {f}",
+            NodeKind.INDOOR,
+            "T",
+            (f"k{f}",),
+            key=f"kutuphane {f} kat library floor {f} t blok",
+            floor=f,
+            area_tr="Kütüphane",
+            area_en="Library",
+        )
+        for f in range(-3, 4)
+    ]
+    entrance = Place(
+        "kg",
+        "Kütüphane Giriş",
+        "Library Entrance",
+        NodeKind.ENTRANCE,
+        None,
+        ("kg",),
+        key="kutuphane giris library entrance",
+        area_tr="Kütüphane",
+        area_en="Library",
+    )
+    return [*floors, entrance]  # fmt: skip
+
+
+@pytest.mark.parametrize(
+    ("name", "lang", "first", "last"),
+    [
+        ("Kütüphane", "tr", f"{M}3. kat", "3. kat"),
+        ("library", "en", f"floor {M}3", "floor 3"),
+        ("library floors", "en", f"floor {M}3", "floor 3"),  # question words
+    ],
+)
+def test_describe_library_counts_its_floors(
+    name: str, lang: str, first: str, last: str
+) -> None:
+    # QA (Step 4.4): "How many floors does the library have?" got "I don't
+    # have that information" although the tour has floors -3 to 3.
+    out = describe(_library(), name, lang)
+    floors = out["floors_in_tour"]
+    assert out["floor_count_in_tour"] == 7, f"{name!r}: got {floors}"
+    assert (floors[0], floors[-1]) == (first, last), f"{name!r}: got {floors}"
+    assert out["entrances"], f"the entrance is listed: {out}"
+
+
+def test_describe_block_lists_rooms_by_floor(indoor_store: GraphStore) -> None:
+    out = describe(build_places(indoor_store), "M Blok", "tr")
+    assert out["floors_in_tour"] == [f"{M}1. kat", "5. kat"], out["floors_in_tour"]
+    by_floor = {f["floor"]: f["rooms"] for f in out["rooms_by_floor"]}
+    assert "Anatomi Lab" in by_floor[f"{M}1. kat"], f"got {by_floor}"
+    assert out["entrances"] == ["M Blok Giriş", "M Blok Yan Giriş"], out
+
+
+def test_describe_unknown_name_lists_blocks(indoor_store: GraphStore) -> None:
+    out = describe(build_places(indoor_store), "Rektörlük", "tr")
+    assert "error" in out and out["blocks"] == ["D", "M"], f"got {out}"
+
+
+def test_describe_place_tool_answers_in_english(indoor_store: GraphStore) -> None:
+    args = {"name": "M Block", "lang": "en"}
+    output, _ = _call_tool(indoor_store, "describe_place", args)
+    floors = output["floors_in_tour"]
+    assert floors == [f"floor {M}1", "floor 5"], f"got {floors}"

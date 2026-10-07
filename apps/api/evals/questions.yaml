@@ -1,0 +1,296 @@
+# Frozen evaluation set for the campus assistant (Step 4.4).
+#
+# 32 single-turn questions (16 TR, 16 EN) a student or visitor would ask about
+# the Florya campus. Expectations are grounded in the data, not invented:
+#
+# - `facts` are copied from the knowledge base (`amap.chunks`, built by
+#   `amap_pipeline.rag.corpus`). Each fact is a phrase, or a list of
+#   alternative phrases, that occurs in at least one chunk of the question's
+#   language. Context recall = share of facts found in what the tools returned.
+# - `route` / `place` are ids of routable places (`build_places` over
+#   data/out/graph.geojson): entrances, open areas and, since indoor routing,
+#   rooms. `place` may list several ids (rooms sharing a name). The default
+#   start is "Kampüs Girişi" (scene_428518).
+# - `tools`: `required` must all be called; at least one of `one_of` must be
+#   called; `allowed` may be called. Any other call is a wrong tool. No tools
+#   listed at all means the right answer needs no tool.
+# - `abstain: true`: the answer must say it does not know / cannot do it
+#   instead of inventing (menus, phone numbers, opening hours, no route).
+#   Every other question must be answered: "I don't know" there is wrong.
+#
+# `uv run python apps/api/evals/run_eval.py --validate` checks every fact and
+# place id against the database and the walking graph.
+#
+# Version 2 (indoor routing, 221 places): T Blok and the observatory became
+# routable, so tr-route-05 and en-place-02 changed, and three questions cover
+# rooms (tr-route-03: a name two rooms share, tr-route-05 and en-route-03:
+# routes into a building). tr-know-06 and en-know-07 are the library question
+# the chat suggests in the UI (QA: it was answered "I don't know"). The other
+# 26 questions are unchanged from questions_v1.yaml, the first baseline's set.
+
+version: 2
+questions:
+  # --- Turkish: routing ------------------------------------------------------
+  - id: tr-route-01
+    lang: tr
+    category: route
+    question: "E Blok'a nasıl giderim?"
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428518, to: scene_428538 }
+
+  - id: tr-route-02
+    lang: tr
+    category: route
+    question: "Kütüphane girişinden M Blok'a nasıl yürürüm?"
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428249, to: scene_428569 }
+
+  - id: tr-route-03
+    lang: tr
+    category: route
+    # Two rooms share the name (F Blok, T Blok): ask or name both, never guess.
+    question: "Öğrenci İşleri'ne nasıl giderim?"
+    tools: { one_of: [get_route, search_places], allowed: [search_knowledge] }
+    place: [scene_428363, scene_428759]
+
+  - id: tr-route-04
+    lang: tr
+    category: route
+    question: "Merdiven kullanmadan O Blok'a gitmek istiyorum, nereden gideyim?"
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428518, to: scene_428571, avoid_stairs: true }
+
+  - id: tr-route-05
+    lang: tr
+    category: route
+    # A room: the route enters M Blok and climbs to the 5th floor.
+    question: 'Hemşirelik sınıfına nasıl giderim?'
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428518, to: scene_428418 }
+
+  # --- Turkish: place lookup -------------------------------------------------
+  - id: tr-place-01
+    lang: tr
+    category: place
+    question: 'Kütüphane nerede?'
+    tools: { one_of: [search_places, get_route], allowed: [search_knowledge] }
+    place: scene_428249
+
+  - id: tr-place-02
+    lang: tr
+    category: place
+    question: 'Revir nerede?'
+    tools: { one_of: [search_places, get_route], allowed: [search_knowledge] }
+    place: scene_428547
+
+  - id: tr-place-03
+    lang: tr
+    category: place
+    question: 'G Blok nerede?'
+    tools: { one_of: [search_places, get_route], allowed: [search_knowledge] }
+    place: scene_428570
+
+  # --- Turkish: knowledge ----------------------------------------------------
+  - id: tr-know-01
+    lang: tr
+    category: knowledge
+    question: "T Blok'ta neler var?"
+    tools: { required: [search_knowledge], allowed: [search_places] }
+    facts:
+      - Kantin
+      - Muhasebe
+      - Öğrenci İşleri
+      - T Blok Fuaye
+      - T Blok Bahçe
+      - Amfi - 1 # "T Blok Sınıflar" area
+
+  - id: tr-know-02
+    lang: tr
+    category: knowledge
+    question: 'Kütüphanenin hangi katları var?'
+    tools: { required: [search_knowledge], allowed: [search_places] }
+    facts:
+      [
+        '-3. kat',
+        '-2. kat',
+        '-1. kat',
+        'zemin kat',
+        '1. kat',
+        '2. kat',
+        '3. kat',
+      ]
+
+  - id: tr-know-03
+    lang: tr
+    category: knowledge
+    question: 'Hemşirelik sınıfı hangi katta?'
+    tools: { required: [search_knowledge], allowed: [search_places] }
+    facts:
+      - M Blok-5.K # "Hemşirelik Sınıfı (M Blok-5.K, 5. kat, bina içi)"
+      - 5. kat
+      - Sağlık Bilimleri # the second nursing classroom
+
+  - id: tr-know-04
+    lang: tr
+    category: knowledge
+    question: 'D Blok girişinde neler var?'
+    tools: { required: [search_knowledge], allowed: [search_places, get_route] }
+    facts:
+      - beyaz sütunlar
+      - BrightLab Cyber Security Center
+      - birkaç basamak
+
+  - id: tr-know-05
+    lang: tr
+    category: knowledge
+    question: 'Kız öğrenci yurdunda hangi imkanlar var?'
+    tools: { required: [search_knowledge], allowed: [search_places] }
+    facts: [Çamaşır Odası, Etüd Salonu, Revir, Fitness Center, Mescid]
+
+  - id: tr-know-06
+    lang: tr
+    category: knowledge
+    # The chat's own suggestion (apps/web/messages/tr.json, Chat.suggest2).
+    question: 'Kütüphane kaç katlı, içinde neler var?'
+    tools:
+      { one_of: [describe_place, search_knowledge], allowed: [search_places] }
+    facts: ['-3. kat', '3. kat', 'zemin kat', Okuma Salonu]
+
+  # --- Turkish: out of scope -------------------------------------------------
+  - id: tr-oos-01
+    lang: tr
+    category: out_of_scope
+    question: 'Bugün yemekhanede ne yemek var?'
+    tools: { allowed: [search_knowledge, search_places] }
+    abstain: true
+
+  - id: tr-oos-02
+    lang: tr
+    category: out_of_scope
+    question: "Öğrenci İşleri'nin telefon numarası nedir?"
+    tools: { allowed: [search_knowledge, search_places] }
+    abstain: true
+
+  # --- English: routing ------------------------------------------------------
+  - id: en-route-01
+    lang: en
+    category: route
+    question: 'How do I get to the library?'
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428518, to: scene_428249 }
+
+  - id: en-route-02
+    lang: en
+    category: route
+    question: "I'm at the J Block entrance. How do I walk to F Block?"
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428530, to: scene_428542 }
+
+  - id: en-route-03
+    lang: en
+    category: route
+    # From a named start into a room (O Blok, 1st floor).
+    question: "I'm at the library entrance. How do I get to the gastronomy kitchen?"
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428249, to: scene_428218 }
+
+  - id: en-route-04
+    lang: en
+    category: route
+    question: 'Can you show me a step-free route from the campus entrance to D Block?'
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428518, to: scene_428336, avoid_stairs: true }
+
+  # --- English: place lookup -------------------------------------------------
+  - id: en-place-01
+    lang: en
+    category: place
+    question: 'Where is the emergency entrance?'
+    tools: { one_of: [search_places, get_route], allowed: [search_knowledge] }
+    place: scene_428458
+
+  - id: en-place-02
+    lang: en
+    category: place
+    # Routable since indoor routing (its entrance or the observatory itself).
+    question: 'Where is the observatory?'
+    tools: { one_of: [search_places, get_route], allowed: [search_knowledge] }
+    place: [scene_428253, scene_428251]
+    facts: [Observatory Entrance]
+
+  - id: en-place-03
+    lang: en
+    category: place
+    question: 'Where is the Marmaris cafe?'
+    tools: { one_of: [search_places, get_route], allowed: [search_knowledge] }
+    place: scene_428546
+
+  # --- English: knowledge ----------------------------------------------------
+  - id: en-know-01
+    lang: en
+    category: knowledge
+    question: 'What is in A Block?'
+    tools: { required: [search_knowledge], allowed: [search_places] }
+    facts: [Fitness Center, Conference Hall, VIP Lounge]
+
+  - id: en-know-02
+    lang: en
+    category: knowledge
+    question: 'Which floors of T Block can I see in the tour?'
+    tools: { required: [search_knowledge], allowed: [search_places] }
+    facts: [floor -2, floor -1, floor 2, floor 3, floor 4]
+
+  - id: en-know-03
+    lang: en
+    category: knowledge
+    question: 'What labs are there in the Technocenter?'
+    tools: { required: [search_knowledge], allowed: [search_places] }
+    facts:
+      - Automotive Technology Lab
+      - Food Chemistry Lab
+      - Mechanics Lab
+      - Orthopedic Prosthesis and Orthotics Lab
+
+  - id: en-know-04
+    lang: en
+    category: knowledge
+    question: 'Which floor are the chemistry labs on?'
+    tools: { required: [search_knowledge], allowed: [search_places] }
+    facts: [Chemistry - M Block, floor 4]
+
+  - id: en-know-05
+    lang: en
+    category: knowledge
+    question: 'What is there at the main campus entrance?'
+    tools: { required: [search_knowledge], allowed: [search_places, get_route] }
+    facts: [turnstiles, security booth, yellow-beige security building]
+
+  - id: en-know-06
+    lang: en
+    category: knowledge
+    question: 'Is the M Block entrance step-free?'
+    tools: { required: [search_knowledge], allowed: [search_places, get_route] }
+    facts: [blue-paved walkway, level access]
+
+  - id: en-know-07
+    lang: en
+    category: knowledge
+    # The chat's own suggestion (apps/web/messages/en.json, Chat.suggest2).
+    question: 'How many floors does the library have, and what is inside?'
+    tools:
+      { one_of: [describe_place, search_knowledge], allowed: [search_places] }
+    facts: [floor -3, floor 3, ground floor, Reading Hall]
+
+  # --- English: out of scope and small talk ----------------------------------
+  - id: en-oos-01
+    lang: en
+    category: out_of_scope
+    question: 'What time does the library open?'
+    tools: { allowed: [search_knowledge, search_places] }
+    abstain: true
+
+  - id: en-chat-01
+    lang: en
+    category: chitchat
+    question: 'Hi! What can you help me with?'
+    tools: {}

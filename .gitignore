@@ -32,6 +32,9 @@ tools/browser/local/
 *.key
 secrets/
 
+# Assistant eval runs (apps/api/evals/run_eval.py) hold model answers
+apps/api/evals/results/
+
 # Python
 .venv/
 __pycache__/

@@ -119,6 +119,37 @@ def spot_documents(
     return docs
 
 
+def _area_floors(area_tr: str, members: Iterable[Mapping[str, Any]]) -> list[int]:
+    return sorted(
+        {f for m in members if (f := floor_of(m["label"]["tr"], area_tr)) is not None}
+    )
+
+
+def _related_areas(
+    area_tr: str,
+    lang: str,
+    by_area: Mapping[str, list[Mapping[str, Any]]],
+) -> list[str]:
+    """Other tour areas named after the block that ``area_tr`` ("T Blok") is.
+
+    The tour splits a block into areas ("T Blok" and "T Blok Sınıflar", or
+    "M Blok", "M Blok-5.K" and "Kimya - M Blok"); listing them in the block's
+    own document lets one chunk answer "what is in T Blok?".
+    """
+    block = block_of(area_tr)
+    if block is None or area_tr.strip() != f"{block} Blok":
+        return []
+    parts: list[str] = []
+    for other, members in sorted(by_area.items()):
+        if other == area_tr or block_of(other) != block:
+            continue
+        name = other if lang == "tr" else members[0]["area"]["en"]
+        rooms = ", ".join(sorted({m["label"][lang] for m in members}))
+        floors = ", ".join(_floor_text(f, lang) for f in _area_floors(other, members))
+        parts.append(f"{name} ({floors}: {rooms})" if floors else f"{name} ({rooms})")
+    return parts
+
+
 def area_documents(scenes: Iterable[Mapping[str, Any]]) -> list[Document]:
     by_area: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
     for s in scenes:
@@ -130,13 +161,7 @@ def area_documents(scenes: Iterable[Mapping[str, Any]]) -> list[Document]:
         block = block_of(area_tr) or next(
             (b for m in members if (b := block_of(m["label"]["tr"]))), None
         )
-        floors = sorted(
-            {
-                f
-                for m in members
-                if (f := floor_of(m["label"]["tr"], area_tr)) is not None
-            }
-        )
+        floors = _area_floors(area_tr, members)
         for lang, name in (("tr", area_tr), ("en", area_en)):
             rooms = sorted({m["label"][lang] for m in members})
             if lang == "tr":
@@ -153,6 +178,14 @@ def area_documents(scenes: Iterable[Mapping[str, Any]]) -> list[Document]:
                         f" Floors: {', '.join(_floor_text(f, 'en') for f in floors)}."
                     )
                 text += f" Places here: {', '.join(rooms)}."
+            related = _related_areas(area_tr, lang, by_area)
+            if related:
+                head = (
+                    "Aynı bloğun turdaki diğer bölümleri"
+                    if lang == "tr"
+                    else "Other parts of this block in the tour"
+                )
+                text += f" {head}: {'; '.join(related)}."
             docs.append(
                 Document(
                     "area",
@@ -173,21 +206,32 @@ def campus_documents(
     blocks = sorted(
         {b for s in scenes if (b := block_of(s["label"]["tr"], s["area"]["tr"]))}
     )
-    entrances = sorted({s["label"]["tr"] for s in scenes if s["kind"] == "entrance"})
-    routable = sorted(set(routable_labels))
+    entrance_names = {
+        s["label"]["tr"]: s["label"]["en"] for s in scenes if s["kind"] == "entrance"
+    }
+    entrances = sorted(entrance_names)
+    # Since indoor routing every spot is routable (400+ labels): listing them
+    # all split this overview into six chunks. The count and the routable
+    # entrances say the same in one; rooms are found with the place search.
+    routable = set(routable_labels)
+    gates = [e for e in entrances if e in routable]
     tr = (
         "İstanbul Aydın Üniversitesi Florya Halit Aydın Yerleşkesi, İstanbul'un "
         "Küçükçekmece ilçesinde, Florya'da, eski Atatürk Havalimanı'nın yanındadır. "
         f"Turda geçen bloklar: {', '.join(b + ' Blok' for b in blocks)}. "
         f"Girişler: {', '.join(entrances)}. "
-        f"Haritada şu an yürüyüş rotası çizilebilen yerler: {', '.join(routable)}."
+        f"Haritada şu an {len(routable)} yere yürüyüş rotası çizilebiliyor "
+        "(binaların içindeki odalar dahil); rota çizilebilen girişler: "
+        f"{', '.join(gates)}."
     )
     en = (
         "İstanbul Aydın University's Florya Halit Aydın Campus is in Florya, "
         "Küçükçekmece, İstanbul, next to the former Atatürk Airport. "
         f"Blocks in the tour: {', '.join('Block ' + b for b in blocks)}. "
-        f"Entrances: {', '.join(entrances)}. "
-        f"Places the map can route to right now: {', '.join(routable)}."
+        f"Entrances: {', '.join(entrance_names[e] for e in entrances)}. "
+        f"The map can route to {len(routable)} places right now (rooms inside "
+        "buildings included); entrances it can route to: "
+        f"{', '.join(entrance_names[e] for e in gates)}."
     )
     return [
         Document("campus", "florya", "tr", "Florya Yerleşkesi", tr, {"blocks": blocks}),

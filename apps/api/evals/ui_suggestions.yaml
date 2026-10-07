@@ -1,0 +1,53 @@
+# The questions the chat suggests in the web UI (apps/web/messages/tr.json and
+# en.json, keys Chat.suggest1-3). Every one must be answerable: run
+#
+#   uv run python apps/api/evals/run_eval.py --questions apps/api/evals/ui_suggestions.yaml
+#
+# whenever the suggestions, the prompt or the data change. Same format and
+# grounding rules as questions.yaml.
+
+version: 1
+questions:
+  - id: ui-tr-1
+    lang: tr
+    category: route
+    question: 'A Blok girişine nasıl giderim?'
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428518, to: scene_428525 }
+
+  - id: ui-tr-2
+    lang: tr
+    category: knowledge
+    question: 'Kütüphane kaç katlı, içinde neler var?'
+    tools:
+      { one_of: [describe_place, search_knowledge], allowed: [search_places] }
+    facts: ['-3. kat', '3. kat', 'zemin kat', Okuma Salonu]
+
+  - id: ui-tr-3
+    lang: tr
+    category: knowledge
+    question: 'Kampüs girişinde neler görünüyor?'
+    tools: { required: [search_knowledge], allowed: [search_places, get_route] }
+    facts: [turnikeler, nizamiyet binası]
+
+  - id: ui-en-1
+    lang: en
+    category: route
+    question: 'How do I get to the A Block entrance?'
+    tools: { required: [get_route], allowed: [search_places, search_knowledge] }
+    route: { from: scene_428518, to: scene_428525 }
+
+  - id: ui-en-2
+    lang: en
+    category: knowledge
+    question: 'How many floors does the library have, and what is inside?'
+    tools:
+      { one_of: [describe_place, search_knowledge], allowed: [search_places] }
+    facts: [floor -3, floor 3, ground floor, Reading Hall]
+
+  - id: ui-en-3
+    lang: en
+    category: knowledge
+    question: 'What can I see at the campus entrance?'
+    tools: { required: [search_knowledge], allowed: [search_places, get_route] }
+    facts: [turnstiles, yellow-beige security building]
