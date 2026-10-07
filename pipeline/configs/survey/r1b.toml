@@ -1,0 +1,172 @@
+# Area r1b: B and D west (B Blok Giris, M Blok Giris, D Blok Giris north, the
+# panoramas between B and D). Sightings measured with amap look.
+#
+# The B Blok Giris portico columns (r1b.b.portico.*) are placed by 556, 557 and
+# pilot scene 552; the D Blok Giris portico columns (r1b.d.portico.*: f/b =
+# front/back row, e/w = east/west) by 336, 566, 569 and 559. The white quoin at
+# the north end of A's brick west facade is a tie (r1b.a.w_quoin): it sits ~3 m
+# south of A#0, so A#0 is not used here.
+#
+# D's north facade is not straight: a curved, recessed glass/maroon central bay
+# holds the portico between two tan wings (OSM draws one straight line). From
+# 336 a tan facade end shows at ath 15.1; it does not fit OSM D#3 with the
+# other sightings (likely the west wing's return), so it is not used.
+#
+# The D cluster (336, 566, 569) and 558/559 lie along the E-W street, so the
+# rays are nearly collinear and the along-street position is weak. Their init
+# and prior_sigma_m come from a separate adjustment that added base-depression
+# distances (558: B's NE corner 4.3 m; 559: D#0 7.2 m, B#0 4.8 m) and the
+# portico columns' angular size from 559 (~26 m). Without these priors, the
+# arrows to m0 neighbours 565/567/568 drag the cluster ~20 m east onto D#0;
+# with 3 m priors the solver still sometimes lands in a wrong basin ~10-17 m
+# west (D#3 pulled 7 m), so the D cluster uses 1.5 m. Its true along-street
+# uncertainty is ~3 m.
+
+[scenes.scene_428557]
+pose = "free"
+note = "B Blok Giris: courtyard between B's east face (portico 4 m W) and A's west face; IAU book store N, B-N passage NW"
+obs = [
+  { lm = "r2.flag.plaza", ath = 40.22, sigma_deg = 0.3 },
+  { lm = "r1b.a.w_quoin", ath = 290.73, sigma_deg = 0.8 },
+  { lm = "A#1", ath = 0.82, sigma_deg = 0.8 },
+  { lm = "r1b.b.portico.col_s", ath = 89.65, sigma_deg = 0.5 },
+  { lm = "r1b.b.portico.col_n", ath = 154.38, sigma_deg = 0.5 },
+  { lm = "B#1", ath = 199.6, sigma_deg = 0.8 },
+]
+
+[scenes.scene_428556]
+pose = "free"
+note = "south end of the B-A courtyard, A's SW corner 5 m NE, cafe umbrellas S"
+obs = [
+  { lm = "r2.flag.plaza", ath = 87.45, sigma_deg = 0.3 },
+  { lm = "A#1", ath = 325.37, sigma_deg = 2.5 },
+  { lm = "r1b.a.w_quoin", ath = 277.63, sigma_deg = 0.8 },
+  { lm = "r2.a.tower.w", ath = 344.29, snapped = true },
+  { lm = "r2.a.tower.e", ath = 345.69, snapped = true },
+  { lm = "r1b.b.portico.col_s", ath = 222.47, sigma_deg = 0.4 },
+  { lm = "r1b.b.portico.col_n", ath = 234.25, sigma_deg = 0.4 },
+]
+
+# Pilot scene 552 also sees the B Blok Giris portico (merged into r2's table).
+[scenes.scene_428552]
+obs = [
+  { lm = "r1b.b.portico.col_s", ath = 322.53, sigma_deg = 0.4 },
+  { lm = "r1b.b.portico.col_n", ath = 327.69, sigma_deg = 0.4 },
+]
+
+[scenes.scene_428558]
+pose = "free"
+init = [-13.7, 61.9, 165.7]
+prior_sigma_m = 2.5
+note = "north mouth of the B-N passage inside the gate: B's NE corner pilaster 4.3 m SW by base depression (prior 2.5 m), N's NW corner 2-4 m ESE, gate flagpoles and guardhouse W"
+obs = [
+  { lm = "B#1", ath = 50.27, sigma_deg = 0.5 },
+  { lm = "N#0", ath = 300.45, sigma_deg = 0.6 },
+  { lm = "r2.flag.plaza", ath = 356.85, sigma_deg = 0.4 },
+  { lm = "B#0", ath = 76.09, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428559]
+pose = "free"
+init = [-28.2, 55.7, 157.7]
+prior_sigma_m = 2.0
+note = "north mouth of the D-B lane, inside the street gate; D's NE corner (D BLOK sign) 7.2 m SW and B's NW corner 4.8 m E by base depression (prior 2 m from those); D portico 28-35 m WSW"
+obs = [
+  { lm = "D#0", ath = 75.75, sigma_deg = 0.6 },
+  { lm = "B#0", ath = 281.37, sigma_deg = 0.5 },
+  { lm = "r1b.d.portico.col_be", ath = 94.75, sigma_deg = 0.8 },
+  { lm = "r1b.d.portico.col_bw", ath = 96.4, sigma_deg = 0.8 },
+  { lm = "r1b.d.portico.col_fe", ath = 99.6, sigma_deg = 0.8 },
+]
+
+[scenes.scene_428336]
+pose = "free"
+init = [-58.8, 50.2, 236.3]
+prior_sigma_m = 1.5
+note = "D Blok Giris: foot of D's north portico steps, between the front columns; street gate N, footbridge stairs W"
+obs = [
+  { lm = "r1b.d.portico.col_fe", ath = 233.2, sigma_deg = 0.4 },
+  { lm = "r1b.d.portico.col_be", ath = 249.4, sigma_deg = 0.5 },
+  { lm = "r1b.d.portico.col_bw", ath = 342.04, sigma_deg = 0.5 },
+  { lm = "r1b.d.portico.col_fw", ath = 358.6, sigma_deg = 0.4 },
+  { lm = "D#0", ath = 211.1, sigma_deg = 0.5 },
+  { lm = "B#0", ath = 203.2, sigma_deg = 0.6 },
+]
+
+[scenes.scene_428566]
+pose = "free"
+init = [-70.5, 44.0, 315.4]
+prior_sigma_m = 1.5
+note = "against D's north face 10 m west of the portico, at the foot of the blue footbridge stairs; D#3 (NW corner) 23 m W"
+obs = [
+  { lm = "r1b.d.portico.col_fw", ath = 110.37, sigma_deg = 0.4 },
+  { lm = "r1b.d.portico.col_fe", ath = 113.88, sigma_deg = 0.6 },
+  { lm = "r1b.d.portico.col_bw", ath = 120.67, sigma_deg = 0.4 },
+  { lm = "D#3", ath = 281.89, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428569]
+pose = "free"
+init = [-72.3, 58.8, 118.6]
+prior_sigma_m = 1.5
+note = "M Blok Giris: on the footbridge deck at M Blok's first-floor door, north side of the street ~20 m from D's north face; D spans ath 342 (D#0) to 92 (D#3), portico canopy at 2-27"
+obs = [
+  { lm = "r1b.d.portico.col_fe", ath = 2.2, sigma_deg = 0.6 },
+  { lm = "r1b.d.portico.col_fw", ath = 19.24, sigma_deg = 0.4 },
+  { lm = "r1b.d.portico.col_bw", ath = 22.15, sigma_deg = 0.5 },
+  { lm = "D#0", ath = 342.25, sigma_deg = 0.6 },
+  { lm = "D#3", ath = 91.74, sigma_deg = 0.6 },
+  { lm = "B#0", ath = 334.2, sigma_deg = 0.8 },
+]
+
+# Unposed entrances. All six panoramas are indoors with no window view, so no
+# sighting is possible; the init comes from the outdoor neighbour's tour arrow
+# and the building the room belongs to. Arrows do the rest.
+
+[scenes.scene_428561]
+pose = "free"
+init = [-28.5, 45.5, 100.0]
+prior_sigma_m = 4.0
+prior_sigma_deg = 20.0
+obs = []
+note = "Muayenehane Giris (Revir / Klinik Tani Laboratuvarlari): basement corridor behind the door at the foot of the covered ramp in the D-B lane, ~10 m S of 559 (559 sees the door at ath ~22); corridor axis ath 70/250, exit to 559 at ath 258"
+
+[scenes.scene_428354]
+pose = "free"
+init = [-13.0, 38.0, 217.0]
+prior_sigma_m = 5.0
+prior_sigma_deg = 30.0
+obs = []
+note = "B Blok inner lobby behind the B Blok Giris portico (557's arrow at ath 123 points WSW into B); stairwell to 557 at ath 210, Kariyer Merkezi glass office at 75-150, Sac Bakimi entrance (353) at 292"
+
+[scenes.scene_428353]
+pose = "free"
+init = [-11.0, 34.5, 308.0]
+prior_sigma_m = 6.0
+prior_sigma_deg = 40.0
+obs = []
+note = "Sac Bakimi ve Guzellik Hizmetleri entrance hall inside B, a few metres S of 354 (glass doors to 354 at ath 21)"
+
+[scenes.scene_428306]
+pose = "free"
+init = [0.5, 48.5, 0.0]
+prior_sigma_m = 8.0
+prior_sigma_deg = 30.0
+obs = []
+note = "Fitness Center Giris: indoor corridor junction (Spor Salonu, Fitness Center, Konferans Salonu, VIP Salon) reached through the ISTANBUL AYDIN UNIVERSITY BOOK STORE doors at A/N's west end (557's arrow at ath 279, bearing ~45); heading unknown (placeholder 0, prior 30 deg: a 180 deg prior destabilises the solve)"
+
+[scenes.scene_428222]
+pose = "free"
+init = [-58.0, 41.0, 127.0]
+prior_sigma_m = 10.0
+prior_sigma_deg = 30.0
+obs = []
+note = "Technocenter Giris (lift/stair lobby, Prof. Dr. Aziz Sancar Technocenter sign): inside D below the D Blok Giris lobby (stairs up to 335 at ath 223); position = D's north lobby, heading guessed"
+
+[scenes.scene_428221]
+pose = "free"
+init = [-64.0, 31.0, 267.0]
+prior_sigma_m = 8.0
+prior_sigma_deg = 30.0
+obs = []
+note = "Technocenter Giris hall inside D (labs: Otomotiv Teknolojisi, Gida Mikrobiyolojisi, Elektrikli Araba); no outside view; placed ~12 m SSW of 222 (reciprocal arrows 221->222 at 124 and 222->221 at 84 give heading 222 + 140); absolute heading guessed"
