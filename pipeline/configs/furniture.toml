@@ -1,0 +1,626 @@
+# Street furniture and terrain notebook (central campus). Read by
+# `amap export furniture` -> data/out/furniture.json; the schema is
+# amap_contracts.furniture. Coordinates: local metres (x east, y north).
+# `evidence` and `note` stay in this file.
+#
+# Height datum (z = 0): the lowest level here, the south-west yard at the west
+# end of the lane along D Blok. Levels were measured from step counts (riser
+# ~0.15 m), wall heights and depression angles (camera 1.46 m above ground):
+#
+#   yard 0.0 | lane along D 0.6 | street level around E/F/K/D-north 3.2
+#   square 4.0 (the lane's 23-step flight tops out here) | café square (north) 2.3
+#   gate plaza 5.7 (square + ~1.7, 10-11 steps) | north deck 5.5 (café + 3.2, 20 steps)
+#
+# Nesting: `campus` (3.2, grassy bank at its rim) holds every other terrace; the
+# renderer cuts the children out of it. Flights stand outside the terraces they
+# join. The SfM camera heights in survey.json are per-model and were NOT used
+# (they disagree across models); levels come from the observations above.
+
+# ---------------------------------------------------------------- terraces
+
+[[terraces]]
+id = "campus"
+z_m = 3.2
+edge = "slope"
+outline = [[-100.0, -135.0], [100.0, -135.0], [100.0, 150.0], [-100.0, 150.0]]
+note = "street level around E/F/K and the north lanes; rim banks down to the datum"
+evidence = [{ scene = "scene_428541", ath = 0, note = "street south of E: about 0.6 m below the square (5-6 steps, 538 @225-250)" }]
+
+[[terraces]]
+id = "sw-yard"
+z_m = 0.0
+edge = "wall"
+outline = [[-95.0, -24.0], [-76.5, -19.6], [-61.0, -14.9], [-58.8, -14.0], [-58.8, -4.4], [-72.8, -9.4], [-76.0, 0.0], [-95.0, 0.0]]
+note = "cobbled yard at D's south-west corner and the lane's west end; lowest level"
+evidence = [{ scene = "scene_428545", ath = 245, note = "yard floor; 4 broad steps up to the lane 2.4 m ahead" }]
+
+[[terraces]]
+id = "lane-d"
+z_m = 0.6
+edge = "wall"
+outline = [[-58.4, -4.5], [-19.5, 8.7], [-19.4, 6.2], [-18.9, 2.8], [-29.6, -7.9], [-56.7, -17.8], [-58.4, -16.8]]
+note = "the lane between D's south wall and E's yellow retaining wall (3.2-3.4 m high on the square side); ~13 m wide"
+evidence = [
+  { scene = "scene_428547", ath = 188, note = "foot of the 23-step flight, E wall on the right" },
+  { scene = "scene_428546", ath = 178, note = "lane floor, steps at the west end" },
+  { scene = "scene_428545", ath = 245, note = "lane floor 0.6 m above the yard (4 steps)" },
+]
+
+[[terraces]]
+id = "square"
+z_m = 4.0
+edge = "wall"
+outline = [
+  [-44.5, -55.0], [-30.0, -49.6], [-15.6, -46.0], [-14.4, -44.2], [-10.5, -44.0], [-10.5, -52.8],
+  [45.0, -34.4], [90.0, -22.0], [90.0, 92.0], [64.0, 92.0], [38.5, 82.0], [31.4, 78.4],
+  [-12.1, 62.4], [-27.2, 58.6], [-13.2, 12.0], [-12.5, 7.2], [-11.9, 3.8], [-18.7, 2.5],
+  [-29.7, -7.9], [-56.7, -17.8], [-57.0, -19.6],
+]
+note = "the central campus plateau: the square, B/N/A, E and its front platform, J; the gate plaza is cut out as a child"
+evidence = [
+  { scene = "scene_428550", ath = 200, note = "top of the lane flight; the square a little below the store landing" },
+  { scene = "scene_428504", ath = 240, note = "4-5 steps up to the store landing at B's south-west corner" },
+  { scene = "scene_428540", ath = 295, note = "5 steps up to the travertine platform in front of E" },
+]
+
+[[terraces]]
+id = "gate-plaza"
+z_m = 5.7
+edge = "wall"
+outline = [
+  [45.0, -17.5], [86.0, -19.0], [86.0, 88.0], [64.5, 88.0], [38.9, 80.0], [38.4, 60.5],
+  [35.3, 57.5], [35.3, 26.6], [35.3, 17.0], [44.8, 12.3], [44.8, 0.3], [45.0, -7.5],
+]
+note = "raised paved plaza east of the café: Starbucks kiosk, main gate, A's east half, J and its cafeteria terrace"
+evidence = [
+  { scene = "scene_428500", ath = 150, note = "wide granite flight up to the plaza (11 treads, double handrails)" },
+  { scene = "scene_428521", ath = 80, note = "5 curved tiers of the amphitheatre between the plaza rim and the café" },
+  { scene = "scene_428513", ath = 138, note = "tiers and the railed south flight along the plaza's west edge" },
+]
+
+[[terraces]]
+id = "north-cafe-square"
+z_m = 2.3
+edge = "wall"
+outline = [[-68.0, 56.5], [-52.0, 57.0], [-51.5, 70.0], [-53.5, 83.0], [-57.0, 98.0], [-82.0, 99.0], [-68.5, 62.0]]
+note = "sunken paved café square in front of the blue deck steps, west of the deck"
+evidence = [
+  { scene = "scene_428564", ath = 290, note = "café tables on the square floor; blue steps and the deck wall on the right" },
+  { scene = "scene_428575", ath = 265, note = "foot of the deck steps, 5 m ahead" },
+]
+
+[[terraces]]
+id = "north-deck"
+z_m = 5.5
+edge = "wall"
+outline = [
+  [-46.0, 59.0], [-24.0, 57.2], [-22.2, 67.5], [-25.0, 78.5], [-29.2, 82.0], [-33.5, 87.5],
+  [-34.3, 93.0], [-34.0, 99.0], [-47.0, 99.0], [-47.0, 84.0], [-44.2, 82.0], [-44.2, 68.0], [-47.5, 66.0],
+]
+note = "raised paved deck in front of G/O; glass-and-steel balustrade round its edge"
+evidence = [
+  { scene = "scene_428573", ath = 90, note = "deck floor with the curved blue steps falling away to the café square" },
+  { scene = "scene_428572", ath = 45, note = "deck edge balustrade and the ramp's glass rail" },
+]
+
+# ------------------------------------------------------------------ stairs
+
+[[stairs]]
+id = "lane-to-square"
+foot = [-19.0, 4.4]
+top = [-12.2, 5.5]
+width_m = 3.4
+steps = 23
+base_z = 0.6
+rise_m = 3.4
+railings = "both"
+note = "foot is 1.3 m ahead of scene 547; the top lip reads 15 deg above the horizon from the foot (rise ~3.4-3.7 m). Handrail on the clinic (north) side, yellow wall with a rail on the south side"
+evidence = [{ scene = "scene_428547", ath = 188, note = "23 treads counted, Saglik Merkezi door on the left" }, { scene = "scene_428550", ath = 164, note = "top of the flight, 1.3 m from the camera (view centred at 200)" }]
+
+[[stairs]]
+id = "lane-west-steps"
+foot = [-59.2, -9.3]
+top = [-58.2, -9.0]
+width_m = 5.0
+steps = 4
+base_z = 0.0
+rise_m = 0.6
+railings = "none"
+evidence = [{ scene = "scene_428545", ath = 245, note = "4 broad grey steps from the yard up to the lane, 2.4 m ahead (view centred at 290)" }]
+
+[[stairs]]
+id = "store-steps"
+foot = [-8.4, 3.2]
+top = [-8.9, 4.6]
+width_m = 5.5
+steps = 4
+base_z = 4.0
+rise_m = 0.5
+railings = "none"
+evidence = [{ scene = "scene_428504", ath = 242, note = "4-5 steps up to the store landing in front of B's south-west corner (ET Store), 7 m ahead" }]
+
+[[stairs]]
+id = "amphitheatre"
+foot = [39.3, 6.3]
+top = [44.8, 6.3]
+width_m = 12.0
+steps = 5
+base_z = 4.0
+rise_m = 1.7
+railings = "none"
+note = "curved wooden-seat tiers from the plaza rim down to the sunken café; modelled as one straight wide flight"
+evidence = [{ scene = "scene_428521", ath = 79, note = "5 tiers, rim at about (44.8, 2..11)" }, { scene = "scene_428500", ath = 240, note = "tiers curving round the café" }]
+
+[[stairs]]
+id = "plaza-west-flight"
+foot = [32.0, 21.8]
+top = [35.3, 21.8]
+width_m = 9.6
+steps = 11
+base_z = 4.0
+rise_m = 1.7
+railings = "both"
+note = "wide granite flight with two twin handrails; foot line x ~ 32 from y 17.4 to 26.6 (500 @113-180)"
+evidence = [{ scene = "scene_428500", ath = 142, note = "foot edge at 2.6 m (ath 180) to 8 m (ath 113)" }, { scene = "scene_428502", ath = 347, note = "flight seen from the square, 26 m" }]
+
+[[stairs]]
+id = "plaza-south-flight"
+foot = [39.2, -12.5]
+top = [45.0, -12.5]
+width_m = 10.0
+steps = 10
+base_z = 4.0
+rise_m = 1.7
+railings = "both"
+note = "Starbucks side: wide flight with a central pair of rails, steel rails on the brick stair wall beside it (521 @0-40). Detector stairs_04/05 sit at its lip"
+evidence = [{ scene = "scene_428513", ath = 138, note = "railed flight at bearing 85, 21-24 m" }, { scene = "scene_428521", ath = 345, note = "brick wall, dark steps and steel rail 3-6 m from the camera" }]
+
+[[stairs]]
+id = "d-portico-steps"
+foot = [-58.8, 46.6]
+top = [-58.3, 44.2]
+width_m = 6.0
+steps = 7
+base_z = 3.2
+rise_m = 1.05
+railings = "none"
+note = "curved green-stone steps with riser lights up to D's north entrance"
+evidence = [{ scene = "scene_428336", ath = 301, note = "7 treads to the entrance glazing (view centred at 290)" }]
+
+[[stairs]]
+id = "footbridge-stair"
+foot = [-71.9, 44.4]
+top = [-76.3, 45.4]
+width_m = 2.0
+steps = 16
+base_z = 2.8
+rise_m = 2.6
+railings = "both"
+note = "blue straight flight up to the glass-railed footbridge deck; rise from the 566 / 569 camera levels (2.5 m)"
+evidence = [{ scene = "scene_428566", ath = 328, note = "foot 1.5 m ahead, 16 blue treads (view centred at 310)" }, { scene = "scene_428336", ath = 16, note = "same flight from the east, 16 m" }]
+
+[[stairs]]
+id = "deck-steps"
+foot = [-51.6, 75.6]
+top = [-43.8, 74.6]
+width_m = 13.0
+steps = 20
+base_z = 2.3
+rise_m = 3.2
+railings = "both"
+note = "big curved blue/teal steps from the café square up to the deck; two central handrails and side balustrades; modelled as one straight flight"
+evidence = [{ scene = "scene_428575", ath = 267, note = "9 light-teal treads visible, foot arc 5.3 m ahead" }, { scene = "scene_428573", ath = 112, note = "arc seen from the deck top, 8 m" }]
+
+[[stairs]]
+id = "d-b-lane-stairs"
+foot = [-30.5, 46.0]
+top = [-29.8, 56.2]
+width_m = 2.4
+steps = 12
+base_z = 3.5
+rise_m = 2.0
+railings = "both"
+note = "covered ramp and stairs from the D-B lane up to the deck (clinic side); levels from 559 vs 567 (1.9 m apart over 2.3 m horizontally). Partly a ramp, step count approximate"
+evidence = [{ scene = "scene_428559", ath = 38, note = "covered ramp and stairs, steel rails, 5 m (survey note: 559 @0-30)" }]
+
+[[stairs]]
+id = "e-court-steps"
+foot = [-27.4, -50.1]
+top = [-27.2, -48.6]
+width_m = 4.0
+steps = 5
+base_z = 3.2
+rise_m = 0.8
+railings = "none"
+evidence = [{ scene = "scene_428540", ath = 300, note = "5 travertine steps up to the café platform along E's face, 9 m" }]
+
+[[stairs]]
+id = "e-east-steps"
+foot = [-11.8, -45.6]
+top = [-14.6, -44.2]
+width_m = 3.8
+steps = 6
+base_z = 3.2
+rise_m = 0.9
+railings = "both"
+note = "wide travertine steps with steel rails on both sides at E's south-east corner (detector stairs_11)"
+evidence = [{ scene = "scene_428538", ath = 229, note = "5-6 steps, rails left and right, 9 m" }]
+
+[[stairs]]
+id = "bridge-stair-north"
+foot = [-31.0, -59.0]
+top = [-35.2, -61.1]
+width_m = 1.8
+steps = 16
+base_z = 3.2
+rise_m = 2.6
+railings = "both"
+note = "north landing of the glass-covered road-bridge stair (U-shaped, only the first flight placed); direction and height estimated"
+evidence = [{ scene = "scene_428540", ath = 156, note = "dark covered stair with glass side, 3-4 m from the camera" }]
+
+# ------------------------------------------------------------------- ramps
+
+[[ramps]]
+id = "fe-lane-ramp"
+foot = [-58.0, -19.0]
+top = [-51.8, -42.5]
+width_m = 3.0
+base_z = 0.0
+rise_m = 3.2
+railings = "both"
+note = "tiled ramp with stainless handrails up the F-E lane from the yard to the south street; far end reads 3 deg above the horizon from 545, so >= 2.6 m climb; direction up to the south"
+evidence = [{ scene = "scene_428545", ath = 31, note = "tiled ramp 19 m ahead, rails on its left (strip 270-450)" }, { scene = "scene_428542", ath = 189, note = "brick ramp with double steel rail along E's west wall, 4 m" }]
+
+[[ramps]]
+id = "e-east-ramp"
+foot = [-16.4, -55.6]
+top = [-16.9, -46.8]
+width_m = 2.2
+base_z = 3.2
+rise_m = 0.8
+railings = "both"
+note = "long ramp with steel rails beside the E-east steps (detector railing_10 and railing_20)"
+evidence = [{ scene = "scene_428538", ath = 279, note = "long rail line at bearing ~107, 5 m" }]
+
+# ---------------------------------------------------------------- railings
+
+[[railings]]
+id = "deck-south-balustrade"
+line = [[-46.0, 59.2], [-24.5, 57.5]]
+height_m = 1.1
+base_z = 5.5
+evidence = [{ scene = "scene_428573", ath = 358, note = "glass and steel balustrade along the deck's south edge (detector railing_14), 16 m" }]
+
+[[railings]]
+id = "deck-west-balustrade"
+line = [[-46.0, 59.2], [-47.5, 66.2]]
+height_m = 1.1
+base_z = 5.5
+evidence = [{ scene = "scene_428573", ath = 49, note = "balustrade round the deck corner above the café square, 13 m" }]
+
+[[railings]]
+id = "e-court-pool-rail"
+line = [[-26.0, -54.9], [-24.3, -54.3], [-22.6, -53.4]]
+height_m = 1.0
+base_z = 3.2
+evidence = [{ scene = "scene_428540", ath = 341, note = "curved steel rail round the pool at the E court (detector railing_19)" }]
+
+# ----------------------------------------------------------------- seating
+
+[[seating]]
+id = "cafe-amphitheatre"
+outline = [[26.5, -3.0], [37.5, -2.5], [38.5, 10.5], [28.0, 11.5]]
+tables = 14
+seats_per_table = 4
+umbrellas = true
+evidence = [{ scene = "scene_428502", ath = 25, note = "wicker chairs and tables on the cobbled café floor (view centred at 37)" }, { scene = "scene_428506", ath = 54, note = "detector chair_02-04, sheet tiles 55-58" }]
+
+[[seating]]
+id = "cafe-a-west"
+outline = [[-1.5, 22.0], [8.5, 21.0], [10.0, 31.0], [0.0, 32.0]]
+tables = 6
+umbrellas = true
+evidence = [{ scene = "scene_428551", ath = 303, note = "white seating with black umbrellas against A's brick base" }]
+
+[[seating]]
+id = "cafe-a-centre"
+outline = [[12.5, 19.5], [25.0, 19.0], [26.0, 30.0], [13.5, 30.5]]
+tables = 8
+umbrellas = true
+evidence = [{ scene = "scene_428500", ath = 53, note = "white tables and chairs, black IAU umbrellas, 13 m" }]
+
+[[seating]]
+id = "cafe-south-east"
+outline = [[-2.5, -24.0], [4.5, -24.0], [4.5, -14.5], [-2.5, -14.5]]
+tables = 5
+umbrellas = false
+evidence = [{ scene = "scene_428513", ath = 298, note = "tables and chairs on the south side of the square, 19 m" }]
+
+[[seating]]
+id = "cafe-south-west"
+outline = [[-10.5, -36.0], [-3.0, -36.0], [-3.0, -28.0], [-10.5, -28.0]]
+tables = 5
+umbrellas = false
+evidence = [{ scene = "scene_428516", ath = 328, note = "detector chair_09 and table_03, sheet tile 63" }]
+
+[[seating]]
+id = "marmaris-west"
+outline = [[-56.8, -4.3], [-44.8, -0.2], [-43.6, -3.6], [-55.6, -7.7]]
+tables = 4
+umbrellas = true
+evidence = [{ scene = "scene_428545", ath = 271, note = "Marmaris tables on the pink strip along D's wall (view centred at 290)" }]
+
+[[seating]]
+id = "marmaris-east"
+outline = [[-42.8, 0.5], [-22.8, 7.3], [-21.6, 3.9], [-41.6, -2.9]]
+tables = 9
+umbrellas = true
+evidence = [{ scene = "scene_428546", ath = 178, note = "white chairs and black umbrellas on white bases along the yellow line" }]
+
+[[seating]]
+id = "cafe-e-court"
+outline = [[-29.5, -52.5], [-22.0, -50.8], [-21.5, -55.5], [-29.0, -56.5]]
+tables = 4
+umbrellas = true
+evidence = [{ scene = "scene_428540", ath = 329, note = "tables and umbrellas by the pool; detector chair_11, sheet tile 65" }]
+
+[[seating]]
+id = "cafe-north-square"
+outline = [[-68.0, 60.0], [-58.0, 60.0], [-58.0, 68.0], [-68.0, 68.0]]
+tables = 8
+umbrellas = true
+evidence = [{ scene = "scene_428564", ath = 278, note = "white chairs and tables at the left of the café square, yellow line on the floor" }]
+
+[[seating]]
+id = "cafe-j-terrace"
+outline = [[63.5, 73.5], [73.0, 76.0], [71.5, 85.0], [62.5, 83.0]]
+tables = 5
+umbrellas = true
+evidence = [{ scene = "scene_428530", ath = 81, note = "J cafeteria terrace: detector chair_10 and umbrella_02" }]
+
+# ------------------------------------------------------------------- items
+# lamps, planters, bins and one bollard: detector candidates that were
+# checked on the review sheets (positions are the triangulated ones).
+
+[[items]]
+id = "lamp-00"
+kind = "lamp"
+at = [45.6, 21.6]
+evidence = [{ scene = "scene_428523", ath = 33, note = "detector lamp_00, triangulated, 4 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-01"
+kind = "lamp"
+at = [49.4, 26.9]
+evidence = [{ scene = "scene_428524", ath = 17, note = "detector lamp_01, triangulated, 3 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-02"
+kind = "lamp"
+at = [51.6, 5.4]
+evidence = [{ scene = "scene_428522", ath = 123, note = "detector lamp_02, triangulated, 5 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-03"
+kind = "lamp"
+at = [30.9, 0.0]
+evidence = [{ scene = "scene_428506", ath = 250, note = "detector lamp_03, triangulated, 18 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-04"
+kind = "lamp"
+at = [33.2, 16.3]
+evidence = [{ scene = "scene_428528", ath = 287, note = "detector lamp_04, triangulated, 3 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-05"
+kind = "lamp"
+at = [21.7, -1.6]
+evidence = [{ scene = "scene_428505", ath = 40, note = "detector lamp_05, triangulated, 3 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-06"
+kind = "lamp"
+at = [62.8, 14.0]
+evidence = [{ scene = "scene_428519", ath = 315, note = "detector lamp_06, triangulated, 4 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-08"
+kind = "lamp"
+at = [11.8, 10.8]
+evidence = [{ scene = "scene_428502", ath = 308, note = "detector lamp_08, triangulated, 8 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-09"
+kind = "lamp"
+at = [9.6, -4.8]
+evidence = [{ scene = "scene_428505", ath = 122, note = "detector lamp_09, triangulated, 5 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-10"
+kind = "lamp"
+at = [24.9, -16.7]
+evidence = [{ scene = "scene_428512", ath = 155, note = "detector lamp_10, triangulated, 3 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-11"
+kind = "lamp"
+at = [17.2, -19.2]
+evidence = [{ scene = "scene_428512", ath = 299, note = "detector lamp_11, triangulated, 4 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-12"
+kind = "lamp"
+at = [73.0, 4.1]
+evidence = [{ scene = "scene_428520", ath = 165, note = "detector lamp_12, triangulated, 2 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-13"
+kind = "lamp"
+at = [66.3, 5.0]
+evidence = [{ scene = "scene_428520", ath = 31, note = "detector lamp_13, triangulated, 2 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-14"
+kind = "lamp"
+at = [-0.3, 1.6]
+evidence = [{ scene = "scene_428504", ath = 331, note = "detector lamp_14, triangulated, 3 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "lamp-15"
+kind = "lamp"
+at = [23.8, -24.7]
+evidence = [{ scene = "scene_428511", ath = 161, note = "detector lamp_15, triangulated, 4 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-00"
+kind = "planter"
+at = [27.2, 26.5]
+length_m = 0.9
+evidence = [{ scene = "scene_428552", ath = 60, note = "detector planter_00, triangulated, 3 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-01"
+kind = "planter"
+at = [59.6, 33.3]
+length_m = 0.9
+evidence = [{ scene = "scene_428525", ath = 317, note = "detector planter_01, triangulated, 2 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-02"
+kind = "planter"
+at = [65.1, 35.5]
+length_m = 0.9
+evidence = [{ scene = "scene_428525", ath = 261, note = "detector planter_02, triangulated, 2 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-03"
+kind = "planter"
+at = [12.5, 21.3]
+length_m = 1.1
+evidence = [{ scene = "scene_428551", ath = 350, note = "detector planter_03, triangulated, 3 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-04"
+kind = "planter"
+at = [71.1, 61.0]
+length_m = 1.2
+evidence = [{ scene = "scene_428529", ath = 248, note = "detector planter_04, triangulated, 2 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-05"
+kind = "planter"
+at = [69.9, 58.6]
+length_m = 1.0
+evidence = [{ scene = "scene_428529", ath = 244, note = "detector planter_05, monoplot, 1 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-07"
+kind = "planter"
+at = [8.2, 35.4]
+length_m = 0.6
+evidence = [{ scene = "scene_428556", ath = 335, note = "detector planter_07, triangulated, 2 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-08"
+kind = "planter"
+at = [3.0, 40.4]
+length_m = 1.0
+evidence = [{ scene = "scene_428557", ath = 292, note = "detector planter_08, triangulated, 2 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-11"
+kind = "planter"
+at = [-9.9, 67.0]
+length_m = 0.8
+evidence = [{ scene = "scene_428558", ath = 250, note = "detector planter_11, monoplot, 1 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-12"
+kind = "planter"
+at = [-12.7, 65.8]
+length_m = 1.0
+evidence = [{ scene = "scene_428558", ath = 239, note = "detector planter_12, monoplot, 1 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-14"
+kind = "planter"
+at = [-64.0, -10.1]
+length_m = 1.0
+evidence = [{ scene = "scene_428545", ath = 148, note = "detector planter_14, monoplot, 1 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-15"
+kind = "planter"
+at = [-60.6, -9.2]
+length_m = 1.1
+evidence = [{ scene = "scene_428545", ath = 199, note = "detector planter_15, monoplot, 1 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "planter-17"
+kind = "planter"
+at = [-80.0, -13.8]
+length_m = 0.7
+evidence = [{ scene = "scene_428563", ath = 330, note = "detector planter_17, monoplot, 1 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "bin-01"
+kind = "bin"
+at = [16.8, 21.0]
+length_m = 0.5
+evidence = [{ scene = "scene_428552", ath = 305, note = "detector bin_01, triangulated, 5 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "bin-02"
+kind = "bin"
+at = [11.9, 14.2]
+length_m = 0.5
+evidence = [{ scene = "scene_428551", ath = 44, note = "detector bin_02, triangulated, 3 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "bin-05"
+kind = "bin"
+at = [19.4, -37.6]
+length_m = 0.5
+evidence = [{ scene = "scene_428510", ath = 302, note = "detector bin_05, triangulated, 2 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "bin-06"
+kind = "bin"
+at = [3.0, -25.5]
+length_m = 0.5
+evidence = [{ scene = "scene_428535", ath = 34, note = "detector bin_06, triangulated, 2 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "bin-07"
+kind = "bin"
+at = [69.5, 69.6]
+length_m = 0.5
+evidence = [{ scene = "scene_428530", ath = 251, note = "detector bin_07, monoplot, 1 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "bin-10"
+kind = "bin"
+at = [-31.3, -2.6]
+length_m = 0.5
+evidence = [{ scene = "scene_428546", ath = 9, note = "detector bin_10, triangulated, 3 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "bin-11"
+kind = "bin"
+at = [-12.6, 9.1]
+length_m = 0.5
+evidence = [{ scene = "scene_428550", ath = 223, note = "detector bin_11, monoplot, 1 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "bin-14"
+kind = "bin"
+at = [-40.6, -7.2]
+length_m = 0.5
+evidence = [{ scene = "scene_428546", ath = 158, note = "detector bin_14, monoplot, 1 view(s), checked on the review sheet" }]
+
+[[items]]
+id = "bollard-04"
+kind = "bollard"
+at = [78.7, 34.9]
+evidence = [{ scene = "scene_428518", ath = 76, note = "detector bollard_04, monoplot, 1 view(s), checked on the review sheet" }]

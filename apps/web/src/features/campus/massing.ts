@@ -199,6 +199,17 @@ export class Builder {
   private flags: number[] = [];
   private rise: number[] = [];
 
+  get vertexCount(): number {
+    return this.position.length / 3;
+  }
+
+  /** Raise every vertex from index ``from`` on by ``up`` metres. */
+  lift(from: number, up: number) {
+    if (up === 0) return;
+    for (let i = from * 3 + 1; i < this.position.length; i += 3)
+      this.position[i]! += up;
+  }
+
   /** One vertex in ENU (east, north, up). */
   private vertex(
     e: number,
@@ -812,147 +823,162 @@ export function massingRecipes(
   return geometry.userData.facadeRecipes as DataTexture | undefined;
 }
 
-/** Build the merged, styled geometry of ``buildings``. */
+/**
+ * Build the merged, styled geometry of ``buildings``. ``groundOf`` lifts each
+ * block onto the ground it stands on (a terrace), 0 when flat.
+ */
 export function buildMassing(
   buildings: Building[],
+  groundOf: (b: Building) => number = () => 0,
 ): BufferGeometry | undefined {
   const builder = new Builder();
   const recipes = new RecipeTable();
   const origin = introOrigin(buildings);
   for (const b of buildings) {
-    const ring = ccw(b.outline);
-    if (ring.length < 3) continue;
-    const style: BuildingStyle = b.style ?? (b.campus ? 'campus' : 'apartment');
-    const seed = seedOf(b.id);
-    const facade = b.facade;
-    const styled = metaOf(b, style, seed, origin);
-    const meta = facade
-      ? recipeMeta(b, facade, styled, recipes.slot(facade))
-      : styled;
-    const palette = palettes[style];
-    const wall = facade
-      ? new Color(facade.wall)
-      : varied(new Color(pick(palette.walls, seed)), seed);
-    const look = facade ? recipeLook(facade, wall, meta) : plain(wall, meta);
-    // Surveyed roof colour first, then the satellite's, then the style's.
-    const roof = b.roof ?? { shape: 'flat' };
-    const sampledRoof = facade?.roof
-      ? new Color(facade.roof)
-      : b.roof_colour
-        ? new Color(b.roof_colour)
-        : undefined;
-    const top = b.height_m;
-    const bottom = b.base_m ?? 0;
-    if (facade) buildFeatures(builder, ring, facade, meta);
-
-    if (style === 'canopy') {
-      walls(builder, ring, bottom, top, plain(wall, { ...meta, storey: 0 }));
-      builder.cap(
-        ring,
-        [],
-        top,
-        new Color(facade?.roof ?? pick(palette.roofs, seed)),
-        meta,
-      );
-      builder.cap(ring, [], bottom, wall, meta, false);
-      continue;
-    }
-
-    if (roof.shape === 'hipped') {
-      walls(builder, ring, 0, top, look);
-      const tile =
-        sampledRoof ?? new Color(pick(TILE_ROOFS, (seed * 7.31) % 1));
-      if (!hippedRoof(builder, roof, top, tile, meta))
-        builder.cap(ring, [], top, tile, meta);
-      continue;
-    }
-
-    if (roof.shape === 'barrel') {
-      walls(builder, ring, 0, top, look);
-      const vault = new Color(facade?.roof ?? pick(palette.roofs, seed));
-      builder.cap(ring, [], top, vault, meta);
-      barrelRoof(builder, roof, top, vault, meta);
-      continue;
-    }
-
-    if (roof.shape === 'dome') {
-      walls(builder, ring, 0, top, look);
-      builder.cap(ring, [], top, STONE, meta);
-      const plainMeta = { ...meta, storey: 0 };
-      // Drum, dome and a small lantern.
-      builder.cylinder(
-        roof.centre,
-        roof.radius,
-        roof.radius,
-        top,
-        top + 1.4,
-        24,
-        STONE,
-        plainMeta,
-      );
-      builder.dome(roof.centre, roof.radius, top + 1.4, LEAD, plainMeta);
-      const crown = top + 1.4 + roof.radius * 0.92;
-      builder.cylinder(
-        roof.centre,
-        0.35,
-        0,
-        crown - 0.1,
-        crown + 1.4,
-        8,
-        LEAD,
-        plainMeta,
-        false,
-      );
-      minaret(builder, roof.minaret, roof.minaret_m, plainMeta);
-      continue;
-    }
-
-    // Flat roof, with a parapet when it has room for one.
-    const roofColor = sampledRoof ?? new Color(pick(palette.roofs, seed));
-    if (roof.parapet && roof.parapet.length >= 3) {
-      const inner = ccw(roof.parapet);
-      walls(builder, ring, 0, top + PARAPET_M, look);
-      builder.cap(inner, [], top, roofColor, meta);
-      // Inner face of the parapet looks into the roof: reverse the ring.
-      const reversed = [...inner].reverse();
-      walls(
-        builder,
-        reversed,
-        top,
-        top + PARAPET_M,
-        plain(roofColor, { ...meta, storey: 0 }),
-      );
-      // Coping: the recipe's trim (white stone), else the wall colour.
-      const coping = facade ? new Color(facade.trim) : wall;
-      builder.cap(ring, [inner], top + PARAPET_M, coping, meta);
-    } else {
-      walls(builder, ring, 0, top, look);
-      builder.cap(ring, [], top, roofColor, meta);
-    }
-    if (roof.penthouse && roof.penthouse.length >= 3) {
-      // Set-back top floor (çekme kat): one more storey of windows.
-      const upper = ccw(roof.penthouse);
-      const height = roof.penthouse_m ?? 2.9;
-      const storeys = meta.storeys + 1;
-      const penthouse: Look = (a, b) => {
-        const side = look(a, b);
-        return { color: side.color, meta: { ...side.meta, storeys } };
-      };
-      walls(builder, upper, top, top + height, penthouse);
-      builder.cap(upper, [], top + height, roofColor, meta);
-      roofFixtures(
-        builder,
-        b,
-        { ...roof, parapet: upper },
-        top + height,
-        seed,
-        meta,
-      );
-      continue;
-    }
-    roofFixtures(builder, b, roof, top, seed, meta);
+    const from = builder.vertexCount;
+    addBlock(builder, recipes, origin, b);
+    builder.lift(from, groundOf(b));
   }
   const geometry = builder.build();
   if (geometry) geometry.userData.facadeRecipes = recipes.texture();
   return geometry;
+}
+
+/** One block's walls, roof and features, standing at 0. */
+function addBlock(
+  builder: Builder,
+  recipes: RecipeTable,
+  origin: ReturnType<typeof introOrigin>,
+  b: Building,
+): void {
+  const ring = ccw(b.outline);
+  if (ring.length < 3) return;
+  const style: BuildingStyle = b.style ?? (b.campus ? 'campus' : 'apartment');
+  const seed = seedOf(b.id);
+  const facade = b.facade;
+  const styled = metaOf(b, style, seed, origin);
+  const meta = facade
+    ? recipeMeta(b, facade, styled, recipes.slot(facade))
+    : styled;
+  const palette = palettes[style];
+  const wall = facade
+    ? new Color(facade.wall)
+    : varied(new Color(pick(palette.walls, seed)), seed);
+  const look = facade ? recipeLook(facade, wall, meta) : plain(wall, meta);
+  // Surveyed roof colour first, then the satellite's, then the style's.
+  const roof = b.roof ?? { shape: 'flat' };
+  const sampledRoof = facade?.roof
+    ? new Color(facade.roof)
+    : b.roof_colour
+      ? new Color(b.roof_colour)
+      : undefined;
+  const top = b.height_m;
+  const bottom = b.base_m ?? 0;
+  if (facade) buildFeatures(builder, ring, facade, meta);
+
+  if (style === 'canopy') {
+    walls(builder, ring, bottom, top, plain(wall, { ...meta, storey: 0 }));
+    builder.cap(
+      ring,
+      [],
+      top,
+      new Color(facade?.roof ?? pick(palette.roofs, seed)),
+      meta,
+    );
+    builder.cap(ring, [], bottom, wall, meta, false);
+    return;
+  }
+
+  if (roof.shape === 'hipped') {
+    walls(builder, ring, 0, top, look);
+    const tile = sampledRoof ?? new Color(pick(TILE_ROOFS, (seed * 7.31) % 1));
+    if (!hippedRoof(builder, roof, top, tile, meta))
+      builder.cap(ring, [], top, tile, meta);
+    return;
+  }
+
+  if (roof.shape === 'barrel') {
+    walls(builder, ring, 0, top, look);
+    const vault = new Color(facade?.roof ?? pick(palette.roofs, seed));
+    builder.cap(ring, [], top, vault, meta);
+    barrelRoof(builder, roof, top, vault, meta);
+    return;
+  }
+
+  if (roof.shape === 'dome') {
+    walls(builder, ring, 0, top, look);
+    builder.cap(ring, [], top, STONE, meta);
+    const plainMeta = { ...meta, storey: 0 };
+    // Drum, dome and a small lantern.
+    builder.cylinder(
+      roof.centre,
+      roof.radius,
+      roof.radius,
+      top,
+      top + 1.4,
+      24,
+      STONE,
+      plainMeta,
+    );
+    builder.dome(roof.centre, roof.radius, top + 1.4, LEAD, plainMeta);
+    const crown = top + 1.4 + roof.radius * 0.92;
+    builder.cylinder(
+      roof.centre,
+      0.35,
+      0,
+      crown - 0.1,
+      crown + 1.4,
+      8,
+      LEAD,
+      plainMeta,
+      false,
+    );
+    minaret(builder, roof.minaret, roof.minaret_m, plainMeta);
+    return;
+  }
+
+  // Flat roof, with a parapet when it has room for one.
+  const roofColor = sampledRoof ?? new Color(pick(palette.roofs, seed));
+  if (roof.parapet && roof.parapet.length >= 3) {
+    const inner = ccw(roof.parapet);
+    walls(builder, ring, 0, top + PARAPET_M, look);
+    builder.cap(inner, [], top, roofColor, meta);
+    // Inner face of the parapet looks into the roof: reverse the ring.
+    const reversed = [...inner].reverse();
+    walls(
+      builder,
+      reversed,
+      top,
+      top + PARAPET_M,
+      plain(roofColor, { ...meta, storey: 0 }),
+    );
+    // Coping: the recipe's trim (white stone), else the wall colour.
+    const coping = facade ? new Color(facade.trim) : wall;
+    builder.cap(ring, [inner], top + PARAPET_M, coping, meta);
+  } else {
+    walls(builder, ring, 0, top, look);
+    builder.cap(ring, [], top, roofColor, meta);
+  }
+  if (roof.penthouse && roof.penthouse.length >= 3) {
+    // Set-back top floor (çekme kat): one more storey of windows.
+    const upper = ccw(roof.penthouse);
+    const height = roof.penthouse_m ?? 2.9;
+    const storeys = meta.storeys + 1;
+    const penthouse: Look = (a, b) => {
+      const side = look(a, b);
+      return { color: side.color, meta: { ...side.meta, storeys } };
+    };
+    walls(builder, upper, top, top + height, penthouse);
+    builder.cap(upper, [], top + height, roofColor, meta);
+    roofFixtures(
+      builder,
+      b,
+      { ...roof, parapet: upper },
+      top + height,
+      seed,
+      meta,
+    );
+    return;
+  }
+  roofFixtures(builder, b, roof, top, seed, meta);
 }

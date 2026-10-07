@@ -97,6 +97,7 @@ export function distanceToRing(p: [number, number], ring: Ring): number {
 export function blockChips(
   buildings: Building[],
   nodes: GraphNode[],
+  groundOf: (b: Building) => number = () => 0,
 ): BlockChip[] {
   const shapes = buildings.map((b) => ({ b, ring: openRing(b.outline) }));
   const named = new Map<string, (typeof shapes)[number]>();
@@ -135,7 +136,7 @@ export function blockChips(
       chips.push({
         id: `block-${code}`,
         code,
-        position: enuToWorld(ce, cn, own.b.height_m + 2),
+        position: enuToWorld(ce, cn, groundOf(own.b) + own.b.height_m + 2),
       });
     } else if (shape && d <= DOOR_TO_WALL_M) {
       const [ce, cn] = centroidOf(shape.ring);
@@ -147,7 +148,7 @@ export function blockChips(
         position: enuToWorld(
           e + ((ce - e) / len) * step,
           n + ((cn - n) / len) * step,
-          shape.b.height_m + 2,
+          groundOf(shape.b) + shape.b.height_m + 2,
         ),
       });
     } else {
@@ -169,7 +170,7 @@ export function blockChips(
     chips.push({
       id: `building-${b.id}`,
       code,
-      position: enuToWorld(ce, cn, b.height_m + 2),
+      position: enuToWorld(ce, cn, groundOf(b) + b.height_m + 2),
     });
   }
   return chips.sort((a, b) => a.code.localeCompare(b.code, 'tr'));

@@ -4,6 +4,7 @@ import { EMPTY_FURNITURE, type Furniture } from './furniture';
 import {
   createTerrain,
   FLAT_TERRAIN,
+  groundUnder,
   standingHeight,
   terrainOf,
 } from './terrain';
@@ -152,5 +153,33 @@ describe('standingHeight', () => {
   });
   it('keeps an explicit height', () => {
     expect(standingHeight(terrain, 0.4, [5, 5])).toBe(0.4);
+  });
+});
+
+describe('groundUnder', () => {
+  it('is 0 on flat ground', () => {
+    expect(groundUnder(FLAT_TERRAIN, square(0, 0, 10))).toBe(0);
+  });
+
+  it('stands a block inside a terrace on its level', () => {
+    const terrain = createTerrain(
+      furniture({
+        terraces: [
+          { id: 'square', outline: square(0, 0, 30), z_m: 1.5, edge: 'wall' },
+        ],
+      }),
+    );
+    expect(groundUnder(terrain, square(5, 5, 10))).toBe(1.5);
+  });
+
+  it('stands a block across a terrace edge on the lower side', () => {
+    const terrain = createTerrain(
+      furniture({
+        terraces: [
+          { id: 'square', outline: square(0, 0, 30), z_m: 1.5, edge: 'wall' },
+        ],
+      }),
+    );
+    expect(groundUnder(terrain, square(20, 5, 20))).toBe(0);
   });
 });

@@ -287,3 +287,12 @@ export function standingHeight(
 ): number {
   return baseZ !== 0 ? baseZ : terrain.heightAt(east, north);
 }
+
+/**
+ * The ground a block stands on: the lowest ground at its corners, so no wall
+ * floats above a lower yard; the higher sides run into their terrace.
+ */
+export function groundUnder(terrain: Terrain, outline: readonly XY[]): number {
+  if (terrain.terraces.length === 0 || outline.length === 0) return 0;
+  return Math.min(...outline.map(([e, n]) => terrain.heightAt(e, n)));
+}

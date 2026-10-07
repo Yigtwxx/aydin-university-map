@@ -13,7 +13,7 @@ import { FanMark } from '@/components/brand/FanMark';
 import { enuToWorld } from '@/features/campus/coords';
 import { openRing } from '@/features/campus/geometry';
 import { type Place, useTerrain } from '@/features/campus/queries';
-import type { Terrain } from '@/features/campus/terrain';
+import { groundUnder, type Terrain } from '@/features/campus/terrain';
 import type { Building, GraphNode } from '@/features/campus/types';
 
 import { blockChips } from './blockChips';
@@ -263,9 +263,10 @@ function BuildingLabels({
   tier: ZoomTier;
 }) {
   const t = useTranslations('Map');
+  const terrain = useTerrain();
   const labels = useMemo(
-    () => blockChips(buildings, nodes),
-    [buildings, nodes],
+    () => blockChips(buildings, nodes, (b) => groundUnder(terrain, b.outline)),
+    [buildings, nodes, terrain],
   );
 
   const near = tier === 'near';

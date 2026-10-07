@@ -41,6 +41,8 @@ import { Precipitation } from './Precipitation';
 import { RouteRibbon } from './RouteRibbon';
 import { SkyRig } from './SkyRig';
 import { StreetFurniture } from './StreetFurniture';
+import { useTerrain } from './queries';
+import { groundUnder } from './terrain';
 import type {
   Building,
   CampusGraph,
@@ -610,7 +612,11 @@ function Buildings({
     if (uniforms)
       uniforms.uNight.value += ((night ? 1 : 0) - uniforms.uNight.value) * k;
   });
-  const geometry = useMemo(() => buildMassing(buildings), [buildings]);
+  const terrain = useTerrain();
+  const geometry = useMemo(
+    () => buildMassing(buildings, (b) => groundUnder(terrain, b.outline)),
+    [buildings, terrain],
+  );
   // Surveyed facade recipes reach the shader before its first compile
   // (userData) and after every rebuild (uniform).
   const recipes = geometry && massingRecipes(geometry);
