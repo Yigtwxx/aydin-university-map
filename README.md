@@ -25,8 +25,7 @@ walking graph and shortest walking routes.
 
 - **Yükselen kampüs:** açılışta kamera düz haritanın tam üstünden eğilirken binalar
   kampüsten dışa doğru bir dalgayla zeminden yükselir; ardından canlı harita gelir.
-  Oturum başına bir kez oynar, bir dokunuşla hızlanır. (İstanbul üstünden kaydırmalı
-  dalışın kodu, önceden render edilmiş bir sürüm için saklanıyor.)
+  Oturum başına bir kez oynar, bir dokunuşla hızlanır.
 - **Kampüs ve çevresi 3D:** 3.000'i aşkın bina türüne göre çizilir: kiremit veya parapetli
   çatı, çekme kat, dükkân vitrini, kubbe ve minare, hangar. İstenirse tek tuşla
   fotogerçekçi görünüme geçilir.
@@ -101,7 +100,6 @@ Bkz. [docs/data-policy.md](docs/data-policy.md).
 - **A rising campus:** the map opens looking straight down on the flat map; as the
   camera tilts, the buildings rise out of the ground in a wave from the campus outwards,
   then the live map takes over. It plays once per session and speeds up on any touch.
-  (The scroll dive over İstanbul stays in the code for a pre-rendered version.)
 - **The campus and its neighbourhood in 3D:** 3,000+ buildings drawn by type (tiled or
   parapet roofs, set-back floors, shop fronts, domes and minarets, hangars), with a
   one-tap photorealistic view.
@@ -120,7 +118,7 @@ Bkz. [docs/data-policy.md](docs/data-policy.md).
 
 Python 3.12 (uv, pycolmap, kornia LightGlue, OpenMVS as an external tool, shapely,
 FastAPI, NetworkX, pydantic-ai) · Next.js 16 + TypeScript (React Three Fiber,
-3d-tiles-renderer, Photo Sphere Viewer, Lenis, motion, Tailwind, next-intl, Playwright) ·
+3d-tiles-renderer, Photo Sphere Viewer, motion, Tailwind, next-intl, Playwright) ·
 Supabase (PostGIS, pgvector) · Cloudflare Pages (assets) · Vercel (web + API).
 
 ### Development
@@ -145,8 +143,5 @@ and never committed. See [docs/data-policy.md](docs/data-policy.md).
 - Code: [MIT](LICENSE) © 2026 Yiğit Erdoğan. Independent project, not an official university product.
 - 360° görüntüler / 360° imagery: İstanbul Aydın Üniversitesi sanal turu, used with permission
 - Photorealistic 3D city: Google Photorealistic 3D Tiles, streamed through [Cesium ion](https://cesium.com/platform/cesium-ion/) (credits shown on screen)
-- Satellite imagery: [EOxCloudless](https://cloudless.eox.at) by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2024; CC BY-NC-SA 4.0)
-- Night lights: NASA Earth Observatory / GIBS, VIIRS Black Marble
-- Terrain: [Terrain Tiles](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) by Mapzen/Tilezen (SRTM, GMTED2010, 3DEP, ETOPO1, EU-DEM and others)
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - Weather data by [Open-Meteo](https://open-meteo.com/) (CC BY 4.0)

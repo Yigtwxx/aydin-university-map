@@ -54,8 +54,8 @@ ASSET_DIR="$ROOT/data/out" uv run uvicorn amap_api.main:create_app --factory --r
   --port "$API_PORT" &
 pids+=("$!")
 
-# Browser token for the landing's photorealistic tiles (optional; read from
-# .env without echoing it). Without it the landing uses satellite imagery.
+# Browser token for the map's photoreal view (optional; read from .env
+# without echoing it). Without it the photoreal toggle is hidden.
 CESIUM_TOKEN="$(sed -n 's/^NEXT_PUBLIC_CESIUM_ION_TOKEN=//p' .env | tail -n 1)"
 
 NEXT_PUBLIC_API_URL="http://localhost:$API_PORT" \

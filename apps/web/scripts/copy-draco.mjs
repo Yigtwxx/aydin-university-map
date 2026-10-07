@@ -1,6 +1,6 @@
-// Copies three's Draco decoder into public/ so the landing can decode the
-// Draco-compressed photorealistic tiles from our own origin (no third-party
-// script host). The copy is generated, never committed (see .gitignore).
+// Copies three's Draco decoder into public/ so the map's photoreal view can
+// decode the Draco-compressed tiles from our own origin (no third-party script
+// host). The copy is generated, never committed (see .gitignore).
 import { cpSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

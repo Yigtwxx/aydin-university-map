@@ -23,8 +23,7 @@ Nothing in `.env` is required to run the map locally. The comments in
   `AMAP_ASSISTANT_MODEL=offline` gives a deterministic stand-in model, as in
   the E2E tests.
 - `NEXT_PUBLIC_CESIUM_ION_TOKEN`: Google Photorealistic 3D Tiles for the
-  landing dive and the map's photoreal view. Without it the dive uses the
-  satellite imagery from `amap export earth`.
+  map's photoreal view. Without it the photoreal toggle is hidden.
 - `DATABASE_POOLER_URL`, `AMAP_API_DATABASE_URL`: Supabase. The API also runs
   from the in-memory graph without them.
 - `COLMAP_BIN`, `OPENMVS_BIN`, `GLTFPACK_BIN`: only for the reconstruction

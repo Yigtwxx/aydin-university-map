@@ -11,14 +11,10 @@ import {
 import { TilesPlugin, TilesRenderer } from '3d-tiles-renderer/r3f';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TilesRenderer as TilesRendererImpl } from '3d-tiles-renderer/three';
-import { type Group, PerspectiveCamera, Raycaster, Vector3 } from 'three';
+import { type Group, Raycaster, Vector3 } from 'three';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
-import { CAMPUS_LAT, CAMPUS_LNG } from '@/features/campus/constants';
-import { enuToWorld } from '@/features/campus/coords';
-
-import { poseAt } from './cameraPath';
-import { landingState } from './state';
+import { CAMPUS_LAT, CAMPUS_LNG } from './constants';
 
 /** Cesium ion asset id of Google Photorealistic 3D Tiles. */
 const GOOGLE_3D_TILES = 2275207;
@@ -38,8 +34,6 @@ const PROBES = [
   [0, -45],
 ].map(([x, z]) => new Vector3(x, 3000, z));
 const DOWN = new Vector3(0, -1, 0);
-/** How far ahead (scroll progress) the prefetch camera looks. */
-const LOOK_AHEAD = 0.1;
 
 /** One credit line: text, or a logo image (https only). */
 export interface Credit {
@@ -92,7 +86,6 @@ export function GoogleTiles({
   onFailure,
   onReady,
   onAttributions,
-  prefetch = false,
 }: {
   token: string;
   /** Screen-space error in px: lower is sharper and heavier. */
@@ -102,8 +95,6 @@ export function GoogleTiles({
   onReady: () => void;
   /** Credits of the tiles in view (Google requires them on screen). */
   onAttributions: (credits: Credit[]) => void;
-  /** Load the landing dive's next stretch ahead of the scroll. */
-  prefetch?: boolean;
 }) {
   const draco = useMemo(() => {
     const loader = new DRACOLoader();
@@ -155,35 +146,6 @@ export function GoogleTiles({
       if (hit) ground = Math.min(ground, hit.point.y);
     }
     if (Number.isFinite(ground)) offset.position.y -= ground * 0.5;
-  });
-
-  // A second, invisible camera waits a little further along the dive, so the
-  // tiles for the next stretch are already in when the scroll gets there.
-  const ahead = useRef(new PerspectiveCamera());
-  const lookAt = useRef(new Vector3());
-  useEffect(() => {
-    const tilesRenderer = renderer.current;
-    const camera = ahead.current;
-    if (!tilesRenderer || !ready || !prefetch) return;
-    tilesRenderer.setCamera(camera);
-    tilesRenderer.setResolution(camera, window.innerWidth, window.innerHeight);
-    return () => {
-      tilesRenderer.deleteCamera(camera);
-    };
-  }, [ready, prefetch]);
-  useFrame(() => {
-    if (!ready || !prefetch) return;
-    const camera = ahead.current;
-    const pose = poseAt(landingState.target + LOOK_AHEAD);
-    camera.fov = pose.fov;
-    camera.aspect = window.innerWidth / Math.max(1, window.innerHeight);
-    const [x, y, z] = enuToWorld(...pose.eye);
-    camera.position.set(x, y, z);
-    camera.lookAt(lookAt.current.set(...enuToWorld(...pose.target)));
-    camera.near = Math.max(1, y * 0.0025);
-    camera.far = Math.max(80000, y * 40 + 200000);
-    camera.updateProjectionMatrix();
-    camera.updateMatrixWorld();
   });
 
   // Credits change with the tiles in view; collect them a few times a second.

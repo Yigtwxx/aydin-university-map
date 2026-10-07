@@ -3,7 +3,7 @@ import { expect, expectRoute, openMap, test } from './fixtures';
 test('the assistant answers a route question and fills the directions', async ({
   page,
 }) => {
-  // The landing page links here: ?panel=assistant opens the assistant tab.
+  // A shared link with ?panel=assistant opens the assistant tab.
   await openMap(page, '/tr/map?panel=assistant');
   await expect(page.getByRole('tab', { name: 'Asistan' })).toHaveAttribute(
     'aria-selected',

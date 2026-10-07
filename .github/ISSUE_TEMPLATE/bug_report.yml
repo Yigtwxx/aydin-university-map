@@ -14,7 +14,7 @@ body:
       options:
         - Pipeline (tiles, SfM, georeference, graph)
         - API (FastAPI, routing, AI assistant)
-        - Web app (map, 360 walkthrough, landing)
+        - Web app (map, 360 walkthrough)
         - Docs / repo tooling
     validations:
       required: true
