@@ -6,26 +6,176 @@
 [blocks.A]
 name = { tr = "A Blok", en = "A Block" }
 osm = ["way/1550440571"]   # corners A#0-A#3 within 1 m of their sightings
+levels = 5
+height_m = 20.0
+height_source = "pano"
+# cream upper floors, two brick-red storeys, white string courses; the brick
+# entrance tower with its glass canopy stands on the south face (r2.a.tower.*)
+[blocks.A.facade]
+wall = "#d6c5a7"
+plinth = "#8a3f2e"
+trim = "#ece6dc"
+glass = "#34475a"
+windows = "punched"
+bay_m = 3.6
+window_width = 0.4
+window_height = 0.52
+storey_m = 4.0
+ground = "same"
+ground_m = 4.2
+[[blocks.A.facade.features]]
+kind = "tower"
+at = [34.7, 47.5]
+width_m = 10.3
+depth_m = 6.0
+height_m = 24.0
+facing_deg = 162.5
+colour = "#8a3f2e"
+accent = "#6f3326"
+[[blocks.A.facade.features]]
+kind = "canopy"
+at = [35.3, 43.2]
+width_m = 8.0
+depth_m = 3.0
+base_m = 3.6
+height_m = 0.25
+facing_deg = 162.5
+colour = "#9fc0cf"
+accent = "#dfe3e6"
 
 [blocks.B]
 name = { tr = "B Blok", en = "B Block" }
 osm = ["way/1550440570"]   # "B BLOK" by the store; east portico (r1b)
+levels = 5
+height_m = 17.6
+height_source = "pano"
+# ochre stucco with white trim; columned portico on the east face (r1b.b.portico.*)
+[blocks.B.facade]
+wall = "#b8a07c"
+trim = "#f1ede4"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.42
+window_height = 0.5
+storey_m = 3.5
+[[blocks.B.facade.features]]
+kind = "canopy"
+at = [-4.2, 39.0]
+width_m = 6.0
+depth_m = 3.5
+base_m = 3.6
+height_m = 0.35
+facing_deg = 90.0
+colour = "#f1ede4"
+accent = "#d9d3c6"
 
 [blocks.N]
 name = { tr = "N Blok", en = "N Block" }
 osm = ["way/1550440572"]
+levels = 4
+height_m = 14.6
+height_source = "pano"
+# ochre stucco, white quoin pilasters and window surrounds
+[blocks.N.facade]
+wall = "#b19b72"
+trim = "#f1ede4"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.42
+window_height = 0.5
+storey_m = 3.5
 
 [blocks.D]
 name = { tr = "D Blok", en = "D Block" }
 osm = ["way/1550439994"]   # D#0, D#1, D#3 fit; the south-west yard is wider than OSM (r4)
+levels = 5
+height_m = 17.6
+height_source = "pano"
+# ochre stucco; the north face has a recessed glass-and-maroon central bay
+# under a portico (columns about (-54.7..-62.2, 46..49))
+[blocks.D.facade]
+wall = "#b19b72"
+trim = "#f1ede4"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.42
+window_height = 0.5
+storey_m = 3.5
+[[blocks.D.facade.walls]]
+facing_deg = 0.0
+tolerance_deg = 15.0
+windows = "curtain"
+wall = "#6d2a2f"
+[[blocks.D.facade.features]]
+kind = "canopy"
+at = [-58.5, 49.5]
+width_m = 9.0
+depth_m = 3.5
+base_m = 3.6
+height_m = 0.35
+facing_deg = 0.0
+colour = "#f1ede4"
+accent = "#d9d3c6"
 
 [blocks.E]
 name = { tr = "E Blok", en = "E Block" }
 osm = ["way/539867979"]    # NE column on E#2; south corners ambiguous (r3a, r4)
+levels = 4
+height_m = 15.0
+height_source = "pano"
+# blue-reflective glass curtain wall with white spandrel bands; blue-and-white
+# glass drum on the south face and a canopied door east of it (r3b.e.drum)
+[blocks.E.facade]
+wall = "#ddd7d6"
+trim = "#f4f1ea"
+glass = "#1f4a73"
+windows = "curtain"
+bay_m = 2.6
+window_height = 0.62
+storey_m = 3.6
+ground = "glazed"
+ground_m = 4.0
+[[blocks.E.facade.features]]
+kind = "drum"
+at = [-26.9, -47.3]
+width_m = 6.5
+height_m = 15.0
+colour = "#e8e6e6"
+accent = "#2358a8"
+[[blocks.E.facade.features]]
+kind = "canopy"
+at = [-21.8, -49.2]
+width_m = 4.5
+depth_m = 2.5
+base_m = 3.2
+height_m = 0.25
+facing_deg = 198.0
+colour = "#c9d3da"
+accent = "#8f9aa3"
 
 [blocks.F]
 name = { tr = "F Blok", en = "F Block" }
 osm = ["way/539867978"]    # F#0-F#2 within 0.4 m
+levels = 5
+height_m = 18.0
+height_source = "pano"
+# ochre stucco, white quoins; brick portal and "F BLOK" sign mid east wall
+[blocks.F.facade]
+wall = "#a98f58"
+trim = "#f1ede4"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.4
+window_height = 0.5
+storey_m = 3.6
+[[blocks.F.facade.features]]
+kind = "portal"
+at = [-45.5, -42.0]
+width_m = 3.6
+height_m = 3.2
+facing_deg = 90.0
+colour = "#8a3f2e"
+accent = "#f1ede4"
 
 # OSM draws J on A's north wall; a passage with a fire stair separates them.
 # J's south-east corner is sighted at (63.4, 71.3) (r2.j.se_corner): the
@@ -34,10 +184,37 @@ osm = ["way/539867978"]    # F#0-F#2 within 0.4 m
 name = { tr = "J Blok", en = "J Block" }
 osm = ["way/539867982"]
 outline = [[38.9, 78.6], [59.0, 85.0], [63.4, 71.3], [56.9, 69.2], [43.3, 64.9]]
+levels = 4
+height_m = 14.8
+height_source = "pano"
+# ochre-cream upper floors, brick plinth, glazed cafeteria ground floor
+[blocks.J.facade]
+wall = "#dcc89c"
+plinth = "#7a3322"
+trim = "#f1ede4"
+windows = "punched"
+bay_m = 3.5
+window_width = 0.4
+window_height = 0.5
+storey_m = 3.5
+ground = "glazed"
+ground_m = 4.2
 
 [blocks.K]
 name = { tr = "K Blok", en = "K Block" }
 osm = ["way/539867998"]    # "K BLOK" on its east face (r3b); south end uncertain
+levels = 4
+height_m = 15.0
+height_source = "pano"
+# mustard stucco with white trim and string courses; "K BLOK" on the east face
+[blocks.K.facade]
+wall = "#b59a62"
+trim = "#f1ede4"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.4
+window_height = 0.5
+storey_m = 3.6
 
 # way/508438421 draws the G and O fronts on the north deck; its G quoins are
 # sighted 5-6 m south-east of where OSM puts them (r1a, joint solve).
@@ -45,26 +222,146 @@ osm = ["way/539867998"]    # "K BLOK" on its east face (r3b); south end uncertai
 name = { tr = "G Blok", en = "G Block" }
 osm = ["way/508438421"]
 outline = [[54.4, 144.0], [64.0, 95.6], [-21.5, 68.4], [-25.1, 78.7], [-29.2, 81.8], [-33.8, 87.3], [-34.6, 92.7], [-34.3, 98.8], [-33.0, 102.2], [-36.8, 110.2], [-36.2, 115.4]]
+levels = 4
+height_m = 14.6
+height_source = "pano"
+# ochre plaster with white window sills; "G BLOK" sign above the glazed door
+[blocks.G.facade]
+wall = "#a98c5c"
+trim = "#f1ede4"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.4
+window_height = 0.5
+storey_m = 3.6
 
 [blocks.M]
 name = { tr = "M Blok", en = "M Block" }
 osm = ["way/539867996"]    # first-floor door onto the footbridge deck (r1b)
+levels = 5
+height_m = 18.0
+height_source = "pano"
+# maroon-brown walls with white window surrounds and a balustraded roof
+[blocks.M.facade]
+wall = "#7c3030"
+trim = "#efe9df"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.4
+window_height = 0.5
+storey_m = 3.5
 
 [blocks.L]
 name = { tr = "L Blok", en = "L Block" }
 osm = ["way/539868001"]    # Dentaydın (r3b, tentative)
+levels = 7
+height_m = 22.0
+height_source = "pano"
+# glass-ribbon tower with grey aluminium piers and spandrels, white ground
+# floor under a black canopy (Dentaydın), "L BLOK" on the east pier
+[blocks.L.facade]
+wall = "#8d9094"
+plinth = "#ebebe8"
+trim = "#c4c7ca"
+glass = "#40627a"
+windows = "ribbon"
+bay_m = 3.0
+window_height = 0.6
+storey_m = 3.1
+ground = "solid"
+ground_m = 4.2
+[[blocks.L.facade.features]]
+kind = "canopy"
+at = [-15.0, -178.5]
+width_m = 12.0
+depth_m = 3.0
+base_m = 3.6
+height_m = 0.3
+facing_deg = 180.0
+colour = "#1c1c1e"
+accent = "#3a3a3d"
 
 [blocks.P]
 name = { tr = "Kütüphane (P Blok)", en = "Library (P Block)" }
 osm = ["way/539868002"]    # Bilgi Merkezi on Birlik Caddesi (r3b, by address)
+levels = 5
+height_m = 18.0
+height_source = "pano"
+# white composite-panel facade, blue glass, ribbon windows on the upper floors
+[blocks.P.facade]
+wall = "#e4e3df"
+trim = "#f4f2ee"
+glass = "#3d6f9a"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.35
+window_height = 0.5
+storey_m = 3.6
+ground = "solid"
 
 [blocks.YURT]
 name = { tr = "Kız Öğrenci Yurdu", en = "Girls' Dormitory" }
 osm = ["way/554532562"]    # entrance on its west face (r6)
+levels = 5
+height_m = 17.6
+height_source = "pano"
+# dark slate cladding with timber soffits, glazed lobby
+[blocks.YURT.facade]
+wall = "#4c515e"
+trim = "#d9d6d0"
+glass = "#2c3a48"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.4
+window_height = 0.5
+storey_m = 3.5
+ground = "glazed"
 
 [blocks.UTM]
 name = { tr = "Uçak Teknolojileri Merkezi", en = "Aviation Technology Centre" }
-osm = ["way/548582835"]    # orange-framed entrance on 1. Akasya Sokağı (r6)
+# Checked against scene_428381 (camera (-129.6,-223.3), heading 354): the
+# orange-framed glazed "UÇAK TEKNOLOJİLERİ MERKEZİ" hall seen at ath 330-15
+# has its base ~49 m away at bearing ~348, which is exactly where way/548582835
+# stands (its wireframe sits on the entrance bays). way/548582833 is the long
+# building whose south end lies at bearing 281-301, outside that view. The
+# glazed front looks ~20 m wide, wider than the 12 m footprint (open doubt).
+osm = ["way/548582835"]
+levels = 3
+height_m = 11.0
+height_source = "pano"
+# champagne cladding with an orange frame round a glazed double-height hall
+[blocks.UTM.facade]
+wall = "#8e8576"
+trim = "#e0601a"
+glass = "#3a4a52"
+windows = "curtain"
+bay_m = 3.0
+window_height = 0.6
+storey_m = 3.7
+ground = "glazed"
+ground_m = 7.0
+
+# T Blok stands inside the large way/548582857 (r5: its north face on Akasya
+# Sokağı matches the "SOSYAL BİLİMLER KAMPÜSÜ T BLOK" pavilion; entrances
+# scene_428782/428783 near (-6..-10, -188..-202)). Floors run -1..4.Kat.
+[blocks.T]
+name = { tr = "T Blok", en = "T Block" }
+osm = ["way/548582857"]
+levels = 5
+height_m = 20.5
+height_source = "pano"
+# dark-red brick piers between tall glass strips, fully glazed ground floor
+[blocks.T.facade]
+wall = "#8a4b3a"
+trim = "#3a3a3d"
+glass = "#38555c"
+windows = "punched"
+bay_m = 2.4
+window_width = 0.6
+window_height = 0.7
+storey_m = 3.8
+ground = "glazed"
+ground_m = 4.5
 
 # The south gate's turnstile hall: four brick towers on Fabrikalar Caddesi,
 # no OSM footprint (r3b.sgate.tower.*).
@@ -73,3 +370,10 @@ name = { tr = "Güney Kapı", en = "South Gate" }
 outline = [[3.2, -41.8], [4.5, -45.3], [-7.2, -51.5], [-8.4, -46.9]]
 levels = 1
 height_m = 5.5
+# brick towers with dark roofs
+[blocks.GATE_S.facade]
+wall = "#8a3f2e"
+trim = "#d9d3c6"
+roof = "#3a3a3d"
+windows = "blank"
+storey_m = 5.5
