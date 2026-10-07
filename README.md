@@ -34,6 +34,15 @@ walking graph and shortest walking routes.
 - **Bina içi rota:** 190'dan fazla oda ve laboratuvar aranabilir ("Anatomi Lab"); rota
   binaya girer, merdivenle kaç kat inileceğini söyler ve odada biter. Bina içi mesafeler
   sanal turun bağlantılarından tahmin edilir ve öyle belirtilir.
+- **Kanıtlı konumlar:** her dış mekân panoraması ve giriş, kendi görüntüsündeki bina
+  köşeleri ve sabit noktalar ölçülerek yeniden konumlandırıldı (ADR-0010). Kanıt raporu
+  her noktanın hata payını ve önce/sonra görüntüsünü gösterir.
+- **İşletmeler ve hizmetler:** Starbucks, Espresso Lab, kantinler, revir, kütüphane…
+  kategori ikonlu pinlerle; aranabilir, rota verilebilir, son doğrulama tarihiyle.
+- **Gerçek bloklar ve cepheler:** blok harfleri, düzeltilmiş sınırlar, ölçülmüş boylar ve
+  panoramalara benzeyen cepheler (duvar rengi, pencere ritmi, cam cephe, E'nin silindiri).
+- **Teraslar, merdivenler, mobilya:** kot farkları, basamaklı merdivenler ve korkuluklar,
+  banklar, saksılar, lambalar, kafe terasları; dış merdivenler "merdivensiz rota"yı etkiler.
 - **Adım adım 360° tarif:** her adımın panoraması, doğru yöne bakan önizleme.
 - **Canlı ortam:** güneşin gerçek konumu ve anlık hava durumu (gündüz, gün batımı, gece,
   yağmur, sis).
@@ -73,6 +82,7 @@ Tasarımın tamamı: [`docs/superpowers/specs/2026-10-06-campus-map-design.md`](
 | 5 | Yapay zekâ asistanı (RAG) | ✅ |
 | 6 | Açılış animasyonu, yayına alma, E2E | ✅ |
 | 7 | Yoğun dokulu mesh, bina içi rota | ✅ |
+| 8 | Panoramalardan konum kanıtı, işletmeler, blok cepheleri, teras ve mobilya | ✅ |
 
 ### Geliştirme
 
@@ -108,6 +118,15 @@ Bkz. [docs/data-policy.md](docs/data-policy.md).
 - **Indoor routes:** 190+ rooms and labs are searchable ("Anatomi Lab"); the route enters
   the building, says how many floors to climb and ends in the room. Indoor distances are
   estimated from the tour's links and marked as such.
+- **Proven positions:** every outdoor panorama and entrance re-measured from sightings
+  of building corners and fixed points in its own picture (ADR-0010); an evidence report
+  shows each point's uncertainty and before/after overlays.
+- **Businesses and services:** Starbucks, Espresso Lab, canteens, the infirmary, the
+  library… as category pins, searchable and routable, each with a last-verified date.
+- **Real blocks and facades:** block letters, corrected outlines, measured heights and
+  facades that resemble the panoramas (wall colour, window rhythm, glass fronts, E's drum).
+- **Terraces, stairs, furniture:** level changes, stepped flights with railings, benches,
+  planters, lamps and café terraces; outdoor stairs feed the avoid-stairs option.
 - **Step-by-step 360° directions:** each step's panorama, facing the way you walk.
 - **Live environment:** the real sun position and current weather.
 - **AI assistant:** answers "How do I get to E Blok?" by drawing the route and quoting
