@@ -1,14 +1,25 @@
 import {
   BufferGeometry,
   Color,
+  type DataTexture,
   Float32BufferAttribute,
   ShapeUtils,
+  Uint8BufferAttribute,
   Vector2,
 } from 'three';
 
+import { buildFeatures, featuresTop } from './facadeFeatures';
+import {
+  facingOf,
+  fitStoreys,
+  GROUND_MODE,
+  RecipeTable,
+  sideOf,
+  WINDOW_MODE,
+} from './facadeRecipe';
 import { centroid, introOrigin, riseStart } from './opening';
 import { openRing } from './geometry';
-import type { Building, BuildingStyle, Roof } from './types';
+import type { Building, BuildingStyle, Facade, Roof } from './types';
 
 /**
  * Styled building massing: walls, roofs (flat with parapets, hipped tiles,
@@ -18,9 +29,15 @@ import type { Building, BuildingStyle, Roof } from './types';
  * Every vertex carries what the facade shader needs (facadeMaterial.ts):
  *   aWall = (u along the wall in m, wall length, v above ground in m, storey m)
  *   aMeta = (style index, per-building seed 0..1, storeys, ground floor m)
- *   aFlags = 1 when the building has shops at street level
+ *   aFlags = bytes (shops at street level 0/1, facade recipe slot (0 = none),
+ *            window kind, ground floor kind); see facadeRecipe.ts
  *   aRise = (intro time s the building starts to emerge, depth m it rises from)
  * Positions are three.js world space: x east, y up, z south.
+ *
+ * Blocks with a surveyed `facade` recipe take their colours, window rhythm
+ * and ground floor from it (per side of the block) and add the features that
+ * make them recognisable (facadeFeatures.ts). The recipes travel as a float
+ * texture on the geometry (`massingRecipes`).
  */
 
 export const STYLE_INDEX: Record<BuildingStyle | 'fixture', number> = {
@@ -155,7 +172,7 @@ function inside(p: [number, number], ring: [number, number][]): boolean {
   return hit;
 }
 
-interface BuildingMeta {
+export interface BuildingMeta {
   style: number;
   seed: number;
   storeys: number;
@@ -165,10 +182,15 @@ interface BuildingMeta {
   /** Opening (opening.ts): when it starts to emerge, and from how deep. */
   rise: number;
   sink: number;
+  /** Facade recipe slot (facadeRecipe.ts), 0 without a recipe. */
+  recipe: number;
+  /** WINDOW_MODE and GROUND_MODE of this side of the block. */
+  windows: number;
+  groundFloor: number;
 }
 
 /** Growable vertex buffers for one merged geometry. */
-class Builder {
+export class Builder {
   private position: number[] = [];
   private normal: number[] = [];
   private color: number[] = [];
@@ -192,7 +214,7 @@ class Builder {
     this.color.push(color.r, color.g, color.b);
     this.wall.push(...wall);
     this.meta.push(meta.style, meta.seed, meta.storeys, meta.ground);
-    this.flags.push(meta.shops);
+    this.flags.push(meta.shops, meta.recipe, meta.windows, meta.groundFloor);
     this.rise.push(meta.rise, meta.sink);
   }
 
@@ -292,6 +314,7 @@ class Builder {
     base: number,
     color: Color,
     meta: BuildingMeta,
+    capBottom = false,
   ) {
     const [cx, cy] = centre;
     const [sx, sy, sz] = size;
@@ -318,6 +341,59 @@ class Builder {
         false,
       );
     this.cap(ring, [], base + sz, color, meta);
+    if (capBottom) this.cap(ring, [], base, color, meta, false);
+  }
+
+  /**
+   * Upright elliptic drum with smooth (radial) normals: radius ``rx`` along
+   * the plan direction ``angle``, ``ry`` across it.
+   */
+  drum(
+    centre: [number, number],
+    rx: number,
+    ry: number,
+    angle: number,
+    bottom: number,
+    top: number,
+    color: Color,
+    meta: BuildingMeta,
+    capTop = true,
+    capBottom = false,
+    segments = 32,
+  ) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const points: { p: [number, number]; n: [number, number, number] }[] =
+      Array.from({ length: segments }, (_, i) => {
+        const t = (i / segments) * Math.PI * 2;
+        const x = Math.cos(t) * rx;
+        const y = Math.sin(t) * ry;
+        // Gradient of the ellipse: the outward normal at (x, y).
+        const nx = Math.cos(t) / rx;
+        const ny = Math.sin(t) / ry;
+        const len = Math.hypot(nx, ny);
+        return {
+          p: [centre[0] + x * cos - y * sin, centre[1] + x * sin + y * cos],
+          n: [(nx * cos - ny * sin) / len, (nx * sin + ny * cos) / len, 0],
+        };
+      });
+    const flat: [number, number, number, number] = [0, 0, 0, 0];
+    for (let i = 0; i < segments; i++) {
+      const a = points[i]!;
+      const b = points[(i + 1) % segments]!;
+      for (const [q, up] of [
+        [a, bottom],
+        [b, bottom],
+        [b, top],
+        [a, bottom],
+        [b, top],
+        [a, top],
+      ] as const)
+        this.vertex(q.p[0], q.p[1], up, q.n, color, flat, meta);
+    }
+    const ring = points.map((q) => q.p);
+    if (capTop) this.cap(ring, [], top, color, meta);
+    if (capBottom) this.cap(ring, [], bottom, color, meta, false);
   }
 
   /** Vertical cylinder (or cone when ``rTop`` is 0) around ``centre``. */
@@ -390,7 +466,7 @@ class Builder {
     g.setAttribute('color', new Float32BufferAttribute(this.color, 3));
     g.setAttribute('aWall', new Float32BufferAttribute(this.wall, 4));
     g.setAttribute('aMeta', new Float32BufferAttribute(this.meta, 4));
-    g.setAttribute('aFlags', new Float32BufferAttribute(this.flags, 1));
+    g.setAttribute('aFlags', new Uint8BufferAttribute(this.flags, 4));
     g.setAttribute('aRise', new Float32BufferAttribute(this.rise, 2));
     g.computeBoundingSphere();
     g.computeBoundingBox();
@@ -424,7 +500,64 @@ function metaOf(
     ground: storey + ground,
     shops: b.shops || style === 'retail' ? 1 : 0,
     rise: riseStart(Math.hypot(ce - origin[0], cn - origin[1]), seed),
-    sink: tallest(b) + 1,
+    sink: Math.max(tallest(b), b.facade ? featuresTop(b.facade) : 0) + 1,
+    recipe: 0,
+    windows: 0,
+    groundFloor: 0,
+  };
+}
+
+/** The recipe's floors and window kinds on top of the style's meta. */
+function recipeMeta(
+  b: Building,
+  facade: Facade,
+  meta: BuildingMeta,
+  slot: number,
+): BuildingMeta {
+  const { ground, storey, upper } = fitStoreys(facade, b.height_m, b.levels);
+  return {
+    ...meta,
+    storeys: upper,
+    storey,
+    ground,
+    recipe: slot,
+    windows: WINDOW_MODE[facade.windows],
+    groundFloor: GROUND_MODE[facade.ground],
+  };
+}
+
+/** How the wall from a to b looks: its colour and what the shader draws. */
+type Look = (
+  a: [number, number],
+  b: [number, number],
+) => { color: Color; meta: BuildingMeta };
+
+const plain =
+  (color: Color, meta: BuildingMeta): Look =>
+  () => ({ color, meta });
+
+/**
+ * A recipe block's walls: the recipe, or the override for the compass
+ * direction a wall faces (a glass front towards the street).
+ */
+function recipeLook(facade: Facade, wall: Color, meta: BuildingMeta): Look {
+  const colours = new Map<string, Color>();
+  return (a, b) => {
+    const side = sideOf(facade, facingOf(a, b));
+    if (!side) return { color: wall, meta };
+    let color = wall;
+    if (side.wall) {
+      color = colours.get(side.wall) ?? new Color(side.wall);
+      colours.set(side.wall, color);
+    }
+    return {
+      color,
+      meta: {
+        ...meta,
+        windows: side.windows ? WINDOW_MODE[side.windows] : meta.windows,
+        groundFloor: side.ground ? GROUND_MODE[side.ground] : meta.groundFloor,
+      },
+    };
   };
 }
 
@@ -448,18 +581,14 @@ function walls(
   ring: [number, number][],
   bottom: number,
   top: number,
-  color: Color,
-  meta: BuildingMeta,
+  look: Look,
 ) {
-  for (let i = 0; i < ring.length; i++)
-    builder.wallQuad(
-      ring[i]!,
-      ring[(i + 1) % ring.length]!,
-      bottom,
-      top,
-      color,
-      meta,
-    );
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i]!;
+    const b = ring[(i + 1) % ring.length]!;
+    const { color, meta } = look(a, b);
+    builder.wallQuad(a, b, bottom, top, color, meta);
+  }
 }
 
 function hippedRoof(
@@ -676,35 +805,61 @@ function roofFixtures(
   }
 }
 
+/** The recipe texture of a geometry from `buildMassing`, if any block has one. */
+export function massingRecipes(
+  geometry: BufferGeometry,
+): DataTexture | undefined {
+  return geometry.userData.facadeRecipes as DataTexture | undefined;
+}
+
 /** Build the merged, styled geometry of ``buildings``. */
 export function buildMassing(
   buildings: Building[],
 ): BufferGeometry | undefined {
   const builder = new Builder();
+  const recipes = new RecipeTable();
   const origin = introOrigin(buildings);
   for (const b of buildings) {
     const ring = ccw(b.outline);
     if (ring.length < 3) continue;
     const style: BuildingStyle = b.style ?? (b.campus ? 'campus' : 'apartment');
     const seed = seedOf(b.id);
-    const meta = metaOf(b, style, seed, origin);
+    const facade = b.facade;
+    const styled = metaOf(b, style, seed, origin);
+    const meta = facade
+      ? recipeMeta(b, facade, styled, recipes.slot(facade))
+      : styled;
     const palette = palettes[style];
-    const wall = varied(new Color(pick(palette.walls, seed)), seed);
+    const wall = facade
+      ? new Color(facade.wall)
+      : varied(new Color(pick(palette.walls, seed)), seed);
+    const look = facade ? recipeLook(facade, wall, meta) : plain(wall, meta);
+    // Surveyed roof colour first, then the satellite's, then the style's.
     const roof = b.roof ?? { shape: 'flat' };
-    // Roof colour seen from the satellite when the pipeline sampled one.
-    const sampledRoof = b.roof_colour ? new Color(b.roof_colour) : undefined;
+    const sampledRoof = facade?.roof
+      ? new Color(facade.roof)
+      : b.roof_colour
+        ? new Color(b.roof_colour)
+        : undefined;
     const top = b.height_m;
     const bottom = b.base_m ?? 0;
+    if (facade) buildFeatures(builder, ring, facade, meta);
 
     if (style === 'canopy') {
-      walls(builder, ring, bottom, top, wall, { ...meta, storey: 0 });
-      builder.cap(ring, [], top, new Color(pick(palette.roofs, seed)), meta);
+      walls(builder, ring, bottom, top, plain(wall, { ...meta, storey: 0 }));
+      builder.cap(
+        ring,
+        [],
+        top,
+        new Color(facade?.roof ?? pick(palette.roofs, seed)),
+        meta,
+      );
       builder.cap(ring, [], bottom, wall, meta, false);
       continue;
     }
 
     if (roof.shape === 'hipped') {
-      walls(builder, ring, 0, top, wall, meta);
+      walls(builder, ring, 0, top, look);
       const tile =
         sampledRoof ?? new Color(pick(TILE_ROOFS, (seed * 7.31) % 1));
       if (!hippedRoof(builder, roof, top, tile, meta))
@@ -713,22 +868,17 @@ export function buildMassing(
     }
 
     if (roof.shape === 'barrel') {
-      walls(builder, ring, 0, top, wall, meta);
-      builder.cap(ring, [], top, new Color(pick(palette.roofs, seed)), meta);
-      barrelRoof(
-        builder,
-        roof,
-        top,
-        new Color(pick(palette.roofs, seed)),
-        meta,
-      );
+      walls(builder, ring, 0, top, look);
+      const vault = new Color(facade?.roof ?? pick(palette.roofs, seed));
+      builder.cap(ring, [], top, vault, meta);
+      barrelRoof(builder, roof, top, vault, meta);
       continue;
     }
 
     if (roof.shape === 'dome') {
-      walls(builder, ring, 0, top, wall, meta);
+      walls(builder, ring, 0, top, look);
       builder.cap(ring, [], top, STONE, meta);
-      const plain = { ...meta, storey: 0 };
+      const plainMeta = { ...meta, storey: 0 };
       // Drum, dome and a small lantern.
       builder.cylinder(
         roof.centre,
@@ -738,9 +888,9 @@ export function buildMassing(
         top + 1.4,
         24,
         STONE,
-        plain,
+        plainMeta,
       );
-      builder.dome(roof.centre, roof.radius, top + 1.4, LEAD, plain);
+      builder.dome(roof.centre, roof.radius, top + 1.4, LEAD, plainMeta);
       const crown = top + 1.4 + roof.radius * 0.92;
       builder.cylinder(
         roof.centre,
@@ -750,10 +900,10 @@ export function buildMassing(
         crown + 1.4,
         8,
         LEAD,
-        plain,
+        plainMeta,
         false,
       );
-      minaret(builder, roof.minaret, roof.minaret_m, plain);
+      minaret(builder, roof.minaret, roof.minaret_m, plainMeta);
       continue;
     }
 
@@ -761,25 +911,34 @@ export function buildMassing(
     const roofColor = sampledRoof ?? new Color(pick(palette.roofs, seed));
     if (roof.parapet && roof.parapet.length >= 3) {
       const inner = ccw(roof.parapet);
-      walls(builder, ring, 0, top + PARAPET_M, wall, meta);
+      walls(builder, ring, 0, top + PARAPET_M, look);
       builder.cap(inner, [], top, roofColor, meta);
       // Inner face of the parapet looks into the roof: reverse the ring.
       const reversed = [...inner].reverse();
-      walls(builder, reversed, top, top + PARAPET_M, roofColor, {
-        ...meta,
-        storey: 0,
-      });
-      builder.cap(ring, [inner], top + PARAPET_M, wall, meta);
+      walls(
+        builder,
+        reversed,
+        top,
+        top + PARAPET_M,
+        plain(roofColor, { ...meta, storey: 0 }),
+      );
+      // Coping: the recipe's trim (white stone), else the wall colour.
+      const coping = facade ? new Color(facade.trim) : wall;
+      builder.cap(ring, [inner], top + PARAPET_M, coping, meta);
     } else {
-      walls(builder, ring, 0, top, wall, meta);
+      walls(builder, ring, 0, top, look);
       builder.cap(ring, [], top, roofColor, meta);
     }
     if (roof.penthouse && roof.penthouse.length >= 3) {
       // Set-back top floor (çekme kat): one more storey of windows.
       const upper = ccw(roof.penthouse);
       const height = roof.penthouse_m ?? 2.9;
-      const penthouse = { ...meta, storeys: meta.storeys + 1 };
-      walls(builder, upper, top, top + height, wall, penthouse);
+      const storeys = meta.storeys + 1;
+      const penthouse: Look = (a, b) => {
+        const side = look(a, b);
+        return { color: side.color, meta: { ...side.meta, storeys } };
+      };
+      walls(builder, upper, top, top + height, penthouse);
       builder.cap(upper, [], top + height, roofColor, meta);
       roofFixtures(
         builder,
@@ -793,5 +952,7 @@ export function buildMassing(
     }
     roofFixtures(builder, b, roof, top, seed, meta);
   }
-  return builder.build();
+  const geometry = builder.build();
+  if (geometry) geometry.userData.facadeRecipes = recipes.texture();
+  return geometry;
 }

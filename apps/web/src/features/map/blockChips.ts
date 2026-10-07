@@ -10,6 +10,19 @@ export function buildingCode(name: string | null): string | undefined {
   return match?.[1];
 }
 
+/** A block letter ("A", "G-H"), as the chips and "A Blok" labels show it. */
+const LETTER = /^[A-ZÇĞİÖŞÜ](?:-[A-ZÇĞİÖŞÜ])?$/u;
+
+/**
+ * The block letter of a building: the campus registry's `code` first, the
+ * OSM name otherwise. Registry blocks without a letter (KUTUPHANE) get none:
+ * they are named places, not lettered blocks.
+ */
+export function blockCode(b: Building): string | undefined {
+  if (b.code !== undefined) return LETTER.test(b.code) ? b.code : undefined;
+  return b.campus ? buildingCode(b.name) : undefined;
+}
+
 export interface BlockChip {
   /** Stable key: the block code, or the building id for OSM-only chips. */
   id: string;
@@ -88,7 +101,7 @@ export function blockChips(
   const shapes = buildings.map((b) => ({ b, ring: openRing(b.outline) }));
   const named = new Map<string, (typeof shapes)[number]>();
   for (const s of shapes) {
-    const code = s.b.campus ? buildingCode(s.b.name) : undefined;
+    const code = blockCode(s.b);
     if (code && s.ring.length >= 3 && !named.has(code)) named.set(code, s);
   }
   const doors = new Map<
@@ -150,7 +163,7 @@ export function blockChips(
 
   const tourCodes = new Set(doors.keys());
   for (const { b, ring } of shapes) {
-    const code = b.campus ? buildingCode(b.name) : undefined;
+    const code = blockCode(b);
     if (!code || tourCodes.has(code) || ring.length < 3) continue;
     const [ce, cn] = centroidOf(ring);
     chips.push({

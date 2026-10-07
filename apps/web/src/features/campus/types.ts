@@ -103,10 +103,68 @@ export type Roof =
       minaret_m: number;
     };
 
+/**
+ * How a campus block looks from the outside (amap_contracts.facade). Colours
+ * are sRGB hex, lengths metres; every field is filled in when present.
+ */
+export type WindowRecipe = 'punched' | 'ribbon' | 'curtain' | 'blank';
+export type GroundFloor = 'same' | 'glazed' | 'solid' | 'arcade';
+export type FeatureKind = 'drum' | 'tower' | 'canopy' | 'portal' | 'band';
+
+/** A side of the block that differs from the recipe. */
+export interface FacadeWall {
+  /** Compass direction the wall faces (out), degrees. */
+  facing_deg: number;
+  tolerance_deg: number;
+  windows: WindowRecipe | null;
+  wall: string | null;
+  ground: GroundFloor | null;
+}
+
+/** A shape that makes the block recognisable (drum, tower, canopy...). */
+export interface FacadeFeature {
+  kind: FeatureKind;
+  /** Centre in local metres [east, north]; null for bands. */
+  at: [number, number] | null;
+  width_m: number;
+  depth_m: number;
+  height_m: number;
+  base_m: number;
+  /** Compass direction the feature's front faces, degrees. */
+  facing_deg: number;
+  colour: string;
+  accent: string | null;
+}
+
+export interface Facade {
+  wall: string;
+  /** Ground-floor band, if different from the wall. */
+  plinth: string | null;
+  trim: string;
+  glass: string;
+  roof: string | null;
+  windows: WindowRecipe;
+  /** Window spacing, m. */
+  bay_m: number;
+  /** Share of the bay. */
+  window_width: number;
+  /** Share of the storey. */
+  window_height: number;
+  storey_m: number;
+  ground: GroundFloor;
+  ground_m: number;
+  walls: FacadeWall[];
+  features: FacadeFeature[];
+}
+
 export interface Building {
   id: string;
   name: string | null;
   campus: boolean;
+  /** Campus block code from the registry ("A", "G-H", "KUTUPHANE"). */
+  code?: string;
+  /** Surveyed facade recipe; without it the block keeps its style's look. */
+  facade?: Facade;
   height_m: number;
   /** Closed ring in local metres [east, north]. */
   outline: Ring;

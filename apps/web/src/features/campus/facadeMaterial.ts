@@ -1,5 +1,6 @@
 import {
   type Material,
+  type Texture,
   Vector4,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
@@ -16,6 +17,11 @@ export interface FacadeUniforms {
    * ground as it passes their `aRise` time; after the opening they all stand.
    */
   uIntroTime: { value: number };
+  /**
+   * Surveyed facade recipes of the massing (facadeRecipe.ts, from
+   * `massingRecipes`); null when no block has one.
+   */
+  uRecipes: { value: Texture | null };
 }
 
 /** The patched shader's uniforms, once the material has compiled. */
@@ -168,6 +174,13 @@ function recipeArrays(): Record<'a' | 'b' | 'c' | 'd', Vector4[]> {
  * and glass that reflects the environment. Roofs get tile courses (pitched)
  * or a faint concrete grain (flat). At night windows light up per building
  * and per style; mosques are floodlit.
+ *
+ * Blocks with a surveyed recipe (aFlags.y > 0) draw their walls from it
+ * instead: plinth, string course and cornice in the recipe's colours, punched
+ * windows in moulded surrounds, ribbon bands or curtain glass per side, and a
+ * glazed, solid or arcaded ground floor. Set the recipe texture before the
+ * first render with `material.userData.facadeRecipes`, later through
+ * `facadeUniforms(material).uRecipes`.
  */
 export function patchFacade(
   this: Material,
@@ -176,6 +189,9 @@ export function patchFacade(
   const uniforms: FacadeUniforms = {
     uNight: { value: 0 },
     uIntroTime: introClock.time,
+    uRecipes: {
+      value: (this.userData.facadeRecipes as Texture | undefined) ?? null,
+    },
   };
   this.userData.facade = uniforms;
   const recipes = recipeArrays();
@@ -185,6 +201,7 @@ export function patchFacade(
   shader.uniforms.uStyleB = { value: recipes.b };
   shader.uniforms.uStyleC = { value: recipes.c };
   shader.uniforms.uStyleD = { value: recipes.d };
+  shader.uniforms.uFacadeRecipes = uniforms.uRecipes;
 
   shader.vertexShader = shader.vertexShader
     .replace(
@@ -192,12 +209,12 @@ export function patchFacade(
       `#include <common>
         attribute vec4 aWall;
         attribute vec4 aMeta;
-        attribute float aFlags;
+        attribute vec4 aFlags;
         attribute vec2 aRise;
         uniform float uIntroTime;
         varying vec4 vWall;
         flat varying vec4 vMeta;
-        flat varying float vFlags;
+        flat varying vec4 vFlags;
         varying vec3 vFacadePos;
         varying vec3 vFacadeNormal;
         varying float vRise;`,
@@ -230,9 +247,10 @@ export function patchFacade(
         uniform vec4 uStyleB[${STYLE_COUNT}];
         uniform vec4 uStyleC[${STYLE_COUNT}];
         uniform vec4 uStyleD[${STYLE_COUNT}];
+        uniform highp sampler2D uFacadeRecipes;
         varying vec4 vWall;
         flat varying vec4 vMeta;
-        flat varying float vFlags;
+        flat varying vec4 vFlags;
         varying vec3 vFacadePos;
         varying vec3 vFacadeNormal;
         varying float vRise;
@@ -245,6 +263,10 @@ export function patchFacade(
           vec2 a = smoothstep(lo - aa, lo + aa, f);
           vec2 b = 1.0 - smoothstep(hi - aa, hi + aa, f);
           return a.x * a.y * b.x * b.y;
+        }
+        // Anti-aliased span: 1 for x inside [lo, hi].
+        float facadeSpan(float x, float lo, float hi, float aa) {
+          return smoothstep(lo - aa, lo + aa, x) * (1.0 - smoothstep(hi - aa, hi + aa, x));
         }`,
     )
     .replace(
@@ -269,8 +291,146 @@ export function patchFacade(
           float glass = 0.0;
           float lit = 0.0;
           float shopLit = 0.0;
+          int slot = int(vFlags.y + 0.5);
+          bool facadeWall = abs(n.y) < 0.5 && storey > 0.0 && vWall.y > 1.6;
 
-          if (abs(n.y) < 0.5 && storey > 0.0 && vWall.y > 1.6) {
+          if (facadeWall && slot > 0 && vFlags.z > 3.5) {
+            // ---- masonry feature (a tower): courses, a recessed panel ----
+            // Here vMeta.w is the feature's base and vWall.w its height.
+            float u = vWall.x;
+            float len = vWall.y;
+            float h = vWall.z - groundH;
+            float tall = storey;
+            float cw = fwidth(h / 0.3);
+            float course = facadeSpan(fract(h / 0.3), 0.0, 0.12, cw) * (1.0 - smoothstep(0.12, 0.35, cw));
+            vec3 wall = diffuseColor.rgb * (1.0 - 0.07 * course);
+            float am = max(fwidth(u), fwidth(h)) + 0.001;
+            float panel = len > 3.0 ? facadeBox(vec2(u, h), vec2(0.7, 1.2), vec2(len - 0.7, tall - 1.4), am) : 0.0;
+            // The recess shades a little, deepest under its head.
+            float reveal = panel * (1.0 - smoothstep(tall - 1.4 - 0.22 - am, tall - 1.4 - am, h));
+            wall *= 1.0 - 0.12 * panel - 0.1 * (panel - reveal);
+            wall *= 0.86 + 0.14 * smoothstep(0.34 - am, 0.34 + am, h);
+            diffuseColor.rgb = wall;
+          } else if (facadeWall && slot > 0) {
+            // ---- surveyed walls (facadeRecipe.ts) ----
+            int row = slot - 1;
+            vec4 R0 = texelFetch(uFacadeRecipes, ivec2(0, row), 0);
+            vec4 R1 = texelFetch(uFacadeRecipes, ivec2(1, row), 0);
+            vec4 R2 = texelFetch(uFacadeRecipes, ivec2(2, row), 0);
+            vec4 R3 = texelFetch(uFacadeRecipes, ivec2(3, row), 0);
+            float windows = vFlags.z;
+            float groundKind = vFlags.w;
+            float u = vWall.x;
+            float len = vWall.y;
+            float v = vWall.z;
+            float bays = max(1.0, floor(len / max(R0.x, 0.8) + 0.35));
+            float bayW = len / bays;
+            float bx = u / bayW;
+            float above = v - groundH;
+            bool onGround = above < 0.0;
+            float level = onGround ? 0.0 : 1.0 + floor(above / storey);
+            float rowH = onGround ? groundH : storey;
+            float fy = onGround ? v / groundH : fract(above / storey);
+            vec2 f = vec2(fract(bx), fy);
+            vec2 cell = vec2(floor(bx), level);
+            float aa = max(fwidth(bx), fwidth(v / rowH)) * 1.2;
+            float fade = 1.0 - smoothstep(0.16, 0.42, aa);
+            float av = fwidth(v) * 0.75 + 0.001;
+            bool topped = level > storeys + 0.5;
+            float roofLine = groundH + storeys * storey;
+
+            vec3 wall = diffuseColor.rgb;
+            // Plinth: the ground floor in its own material, laid in courses.
+            float plinthK = R1.w * (1.0 - smoothstep(groundH - av, groundH + av, v));
+            float course = facadeSpan(fract(v / 0.3), 0.0, 0.1, fwidth(v / 0.3));
+            vec3 plinth = R1.rgb * (1.0 - 0.07 * course * (1.0 - smoothstep(0.12, 0.35, fwidth(v / 0.3))));
+            wall = mix(wall, plinth, plinthK);
+            // Socle: a darker base course where the wall meets the paving.
+            wall *= 0.86 + 0.14 * smoothstep(0.34 - av, 0.34 + av, v);
+            // String course over the ground floor, cornice at the roof line.
+            float bands = facadeSpan(v, roofLine - 0.32, roofLine + 0.4, av);
+            if (R1.w > 0.5 || groundKind > 0.5)
+              bands = max(bands, facadeSpan(v, groundH - 0.1, groundH + 0.2, av));
+
+            float win = 0.0;    // glass, in detail
+            float cover = 0.0;  // its share of the wall, seen from afar
+            float detail = 0.0; // trims round the openings
+            float shop = 0.0;
+            bool front = onGround && groundKind > 0.5;
+            if (!topped) {
+              float hx = R0.y * 0.5;
+              float sill = R0.w;
+              float head = R0.w + R0.z;
+              // Trim width (13 cm) as a share of the bay and of the floor.
+              vec2 m = vec2(0.13 / bayW, 0.13 / rowH);
+              if (front) {
+                if (groundKind < 1.5) {
+                  // Glazed: shop fronts and lobby glass between slim piers.
+                  float bay = facadeBox(f, vec2(m.x, 0.0), vec2(1.0 - m.x, 0.82), aa);
+                  float glazing = facadeBox(f, vec2(m.x * 2.0, 0.02), vec2(1.0 - m.x * 2.0, 0.82 - m.y), aa);
+                  float mull = facadeSpan(f.x, 0.5 - m.x * 0.4, 0.5 + m.x * 0.4, aa);
+                  win = glazing * (1.0 - mull);
+                  detail = bay - win;
+                  cover = 0.68;
+                  shop = win;
+                } else if (groundKind > 2.5) {
+                  // Arcade: columns on the bay lines, glass back in their shade.
+                  float open = facadeBox(f, vec2(0.11, 0.0), vec2(0.89, 0.86), aa);
+                  wall = mix(wall, wall * 0.48, open);
+                  win = facadeBox(f, vec2(0.17, 0.05), vec2(0.83, 0.74), aa) * 0.85;
+                  detail = 1.0 - facadeSpan(f.x, 0.11, 0.89, aa);
+                  cover = 0.4;
+                  shop = win * 0.6;
+                }
+                // Solid: no openings.
+              } else if (windows < 0.5) {
+                // Punched windows in moulded surrounds, on a projecting sill.
+                win = facadeBox(f, vec2(0.5 - hx, sill), vec2(0.5 + hx, head), aa);
+                float frame = facadeBox(f, vec2(0.5 - hx, sill) - m, vec2(0.5 + hx, head) + m, aa);
+                float ledge = facadeBox(f, vec2(0.5 - hx - m.x * 1.8, sill - m.y * 1.7), vec2(0.5 + hx + m.x * 1.8, sill - m.y * 0.5), aa);
+                // A mullion splits windows wider than 1.1 m.
+                float mull = R0.y * bayW > 1.1 ? facadeSpan(f.x, 0.5 - 0.04 / bayW, 0.5 + 0.04 / bayW, aa) * win : 0.0;
+                detail = max(frame - win, ledge) + mull;
+                win -= mull;
+                cover = R0.y * R0.z;
+              } else if (windows < 1.5) {
+                // Ribbon: continuous glass bands with slim mullions.
+                float band = facadeSpan(f.y, sill, head, aa);
+                float lines = 1.0 - facadeSpan(fract(bx * 2.0), 0.035, 0.965, aa * 2.0);
+                win = band * (1.0 - lines);
+                detail = band * lines + facadeSpan(f.y, sill - m.y * 0.8, sill, aa);
+                cover = R0.z * 0.92;
+              } else if (windows < 2.5) {
+                // Curtain wall: glass floor to floor, a spandrel at each slab.
+                float sp = 0.25 / rowH;
+                float band = facadeSpan(f.y, sp, 1.0 - sp, aa);
+                float lines = 1.0 - facadeSpan(fract(bx * 2.0), 0.025, 0.975, aa * 2.0);
+                win = band * (1.0 - lines);
+                detail = band * lines;
+                cover = (1.0 - sp * 2.0) * 0.94;
+              }
+              // Blank: a closed wall.
+            }
+            float near = win;
+            // Far away the openings blur into their average, not into wall.
+            win = mix(cover, near, fade);
+            wall = mix(wall, R2.rgb, max(bands, clamp(detail, 0.0, 1.0) * fade));
+            glass = win;
+            bool curtain = !front && windows > 1.5 && windows < 2.5;
+            float tint = curtain ? 0.1 : 0.24;
+            vec3 pane = R3.rgb * (1.0 - tint * 0.5 + tint * facadeHash(cell + seed * 7.0));
+            if (front || windows > 0.5) {
+              // Broad glazing mirrors the sky, brighter up the facade and
+              // towards each pane's head, so it reads as glass, not a void.
+              float rise = clamp(v / max(roofLine, 1.0), 0.0, 1.0);
+              float sheen = front ? 0.1 + 0.1 * f.y : 0.16 + 0.2 * rise + 0.08 * f.y;
+              pane = mix(pane, vec3(0.56, 0.67, 0.78), sheen * (1.0 - uNight));
+            }
+            diffuseColor.rgb = mix(wall, pane, win * (1.0 - uNight * 0.5));
+            float id = facadeHash(cell + vec2(seed * 91.0, seed * 17.0));
+            lit = front ? 0.0 : mix(cover * D.x, near * step(1.0 - D.x, id), fade);
+            shopLit = front ? mix(cover * 0.8, shop, fade) : 0.0;
+          } else if (facadeWall) {
             // ---- walls ----
             float u = vWall.x;
             float len = vWall.y;
@@ -309,7 +469,7 @@ export function patchFacade(
 
             float win = 0.0;
             if (!topped) {
-              float shopFront = level < 0.5 && vFlags > 0.5 ? 1.0 : 0.0;
+              float shopFront = level < 0.5 && vFlags.x > 0.5 ? 1.0 : 0.0;
               if (shopFront > 0.5) {
                 // Shop front: tall glazing under a signage fascia.
                 win = facadeBox(f, vec2(0.06, 0.06), vec2(0.94, 0.74), aa);

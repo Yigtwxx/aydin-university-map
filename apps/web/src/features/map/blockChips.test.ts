@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import type { Building, GraphNode } from '@/features/campus/types';
 
-import { blockChips, buildingCode, distanceToRing } from './blockChips';
+import {
+  blockChips,
+  blockCode,
+  buildingCode,
+  distanceToRing,
+} from './blockChips';
 
 const square = (e: number, n: number, size: number): [number, number][] => [
   [e, n],
@@ -43,6 +48,40 @@ describe('buildingCode', () => {
     expect(buildingCode('İstanbul Aydın Üniversitesi A Binası')).toBe('A');
     expect(buildingCode('G-H Blok')).toBe('G-H');
     expect(buildingCode(null)).toBeUndefined();
+  });
+});
+
+describe('blockCode', () => {
+  const ring = square(0, 0, 10);
+  it('prefers the registry code to the OSM name', () => {
+    expect(
+      blockCode({
+        ...building('way/1', 'İstanbul Aydın Üniversitesi B Binası', ring),
+        code: 'T',
+      }),
+    ).toBe('T');
+    expect(blockCode({ ...building('way/1', null, ring), code: 'G-H' })).toBe(
+      'G-H',
+    );
+  });
+
+  it('falls back to the name, on campus only', () => {
+    const named = building(
+      'way/1',
+      'İstanbul Aydın Üniversitesi A Binası',
+      ring,
+    );
+    expect(blockCode(named)).toBe('A');
+    expect(blockCode({ ...named, campus: false })).toBeUndefined();
+  });
+
+  it('gives no letter to a registry place that is not a lettered block', () => {
+    expect(
+      blockCode({
+        ...building('way/1', 'İstanbul Aydın Üniversitesi Kütüphane', ring),
+        code: 'KUTUPHANE',
+      }),
+    ).toBeUndefined();
   });
 });
 
@@ -109,6 +148,13 @@ describe('blockChips', () => {
     expect(-chipJ.position[2]).toBeCloseTo(10);
     const chipA = chips.find((c) => c.code === 'A')!;
     expect(chipA.position[0]).toBeLessThan(40);
+  });
+
+  it('labels a block by its registry code when OSM has no name', () => {
+    const t = { ...building('campus/T', null, square(300, 0, 30)), code: 'T' };
+    const chips = blockChips([complex, t], [door('b', 'B', -2, 10)]);
+    expect(chips.map((c) => c.code)).toEqual(['B', 'T']);
+    expect(chips.find((c) => c.code === 'T')!.position[0]).toBeCloseTo(315);
   });
 
   it('ignores doors without a measured position', () => {
