@@ -142,6 +142,7 @@ prior_sigma_deg = 15.0
 note = "Tip Fakultesi Hastanesi Giris: on 1. Akasya Sokagi (hospital address Akasya Sk. No:4) south of the hospital's main-entrance canopy; street axis at ath 95/275, T Blok brick wall S, Dentaydin (8001) NW with flags and ACIL sign in front, ACIL lane NW. Weak: one OSM corner, position mostly from init and arrows"
 obs = [
   { lm = "8001#3", ath = 290.43, sigma_deg = 1.5 },
+  { lm = "9810#11", ath = 68.30, sigma_deg = 1.0 },  # 2026-10-08: hospital's glass east end
 ]
 
 [scenes.scene_428447]
@@ -152,6 +153,7 @@ prior_sigma_deg = 15.0
 note = "Tip Fakultesi Hastanesi Giris: in front of the hospital's curved main-entrance canopy (door at ath 4.5, tour link to 457 Hasta Kabul). Weak: one OSM corner, position mostly from init and arrows"
 obs = [
   { lm = "8001#3", ath = 272.2, sigma_deg = 1.5 },
+  { lm = "9810#11", ath = 78.10, sigma_deg = 1.0 },  # 2026-10-08: hospital's glass east end
 ]
 
 [scenes.scene_428249]

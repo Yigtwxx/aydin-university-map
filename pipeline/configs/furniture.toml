@@ -93,8 +93,10 @@ evidence = [
 id = "north-deck"
 z_m = 5.5
 edge = "wall"
+# 2026-10-08: the strip along G's west wall (y 67.5-84.5) is not deck: the
+# G-west ramp and stairs climb it from O Blok's door (571) at street level.
 outline = [
-  [-46.0, 59.0], [-24.0, 57.2], [-22.2, 67.5], [-25.0, 78.5], [-29.2, 82.0], [-33.5, 87.5],
+  [-46.0, 59.0], [-24.0, 57.2], [-22.2, 67.5], [-33.5, 67.5], [-33.5, 87.5],
   [-34.3, 93.0], [-34.0, 99.0], [-47.0, 99.0], [-47.0, 84.0], [-44.2, 82.0], [-44.2, 68.0], [-47.5, 66.0],
 ]
 note = "raised paved deck in front of G/O; glass-and-steel balustrade round its edge"
@@ -200,6 +202,18 @@ note = "blue straight flight up to the glass-railed footbridge deck; rise from t
 evidence = [{ scene = "scene_428566", ath = 328, note = "foot 1.5 m ahead, 16 blue treads (view centred at 310)" }, { scene = "scene_428336", ath = 16, note = "same flight from the east, 16 m" }]
 
 [[stairs]]
+id = "g-west-stairs"
+foot = [-30.3, 77.8]
+top = [-28.0, 68.2]
+width_m = 3.5
+steps = 18
+base_z = 3.2
+rise_m = 2.3
+railings = "both"
+note = "2026-10-08: wide teal stairs from O Blok's door (571) up to the deck (572), beside the G-west ramp; ~18 deep risers counted, rise from the top edge 4 deg above the horizon at ~11 m; position +-2 m (571's heading is the weak part)"
+evidence = [{ scene = "scene_428571", ath = 40, note = "teal flight right of the ramp, steel rail between them, glass balustrade on its west side" }]
+
+[[stairs]]
 id = "deck-steps"
 foot = [-51.6, 75.6]
 top = [-43.8, 74.6]
@@ -270,6 +284,17 @@ rise_m = 3.2
 railings = "left"
 note = "tiled ramp up the F-E lane from the yard to the south street; far end reads 3 deg above the horizon from 545, so >= 2.6 m climb. 2026-10-08 check: rises to the south (545 looks along it at bearing 169); one stainless handrail on its east side over the drop to a lower brick ramp, the building wall on its west side"
 evidence = [{ scene = "scene_428545", ath = 31, note = "tiled ramp 19 m ahead, rails on its left (strip 270-450)" }, { scene = "scene_428542", ath = 189, note = "brick ramp with double steel rail along E's west wall, 4 m" }]
+
+[[ramps]]
+id = "g-west-ramp"
+foot = [-27.0, 78.5]
+top = [-23.0, 67.0]
+width_m = 3.0
+base_z = 3.2
+rise_m = 2.3
+railings = "both"
+note = "2026-10-08: ramp along G's west wall from O Blok's door (571) up to the deck by 568; glass balustrade with handrail against G, steel rail on the stairs side; steep (~19 %) and position +-2 m"
+evidence = [{ scene = "scene_428571", ath = 12, note = "ramp rising ahead, top 4 deg above the horizon" }, { scene = "scene_428568", ath = 206, note = "the same ramp falling away north along G's sign" }]
 
 [[ramps]]
 id = "e-east-ramp"
