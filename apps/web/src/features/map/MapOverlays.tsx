@@ -12,7 +12,8 @@ import {
 import { FanMark } from '@/components/brand/FanMark';
 import { enuToWorld } from '@/features/campus/coords';
 import { openRing } from '@/features/campus/geometry';
-import type { Place } from '@/features/campus/queries';
+import { type Place, useTerrain } from '@/features/campus/queries';
+import type { Terrain } from '@/features/campus/terrain';
 import type { Building, GraphNode } from '@/features/campus/types';
 
 import { blockChips } from './blockChips';
@@ -23,19 +24,27 @@ import { PoiLayer } from './PoiLayer';
 /** Outdoor spots further than this from any entrance keep their bare name. */
 const NEAR_DOOR_M = 90;
 
-const atNode = (node: GraphNode, up = 0.6) =>
-  enuToWorld(node.enu[0], node.enu[1], up);
+/** A point `up` metres above the ground there (terraces, stairs). */
+const atEnu = (
+  terrain: Terrain,
+  [east, north]: readonly [number, number],
+  up = 0.6,
+) => enuToWorld(east, north, terrain.heightAt(east, north) + up);
 
-const atEnu = (enu: readonly [number, number]) =>
-  enuToWorld(enu[0], enu[1], 0.6);
+const atNode = (terrain: Terrain, node: GraphNode, up = 0.6) =>
+  atEnu(terrain, [node.enu[0], node.enu[1]], up);
 
 /**
  * A door where the drawn route stops to go inside (or through a building)
  * and where it comes out again: the gap between them is not a line outside.
  */
-function DoorPin({ node }: { node: GraphNode }) {
+function DoorPin({ node, terrain }: { node: GraphNode; terrain: Terrain }) {
   return (
-    <MapAnchor id={`pin-door-${node.id}`} position={atNode(node)} layer={3}>
+    <MapAnchor
+      id={`pin-door-${node.id}`}
+      position={atNode(terrain, node)}
+      layer={3}
+    >
       <span
         aria-hidden
         data-marker
@@ -47,9 +56,9 @@ function DoorPin({ node }: { node: GraphNode }) {
   );
 }
 
-function StartPin({ node }: { node: GraphNode }) {
+function StartPin({ node, terrain }: { node: GraphNode; terrain: Terrain }) {
   return (
-    <MapAnchor id="pin-start" position={atNode(node)} layer={3}>
+    <MapAnchor id="pin-start" position={atNode(terrain, node)} layer={3}>
       <span
         aria-hidden
         data-marker
@@ -119,6 +128,7 @@ function FocusPulse({ position }: { position: [number, number, number] }) {
  */
 function PanoSpots({
   nodes,
+  terrain,
   tier,
   hidden,
   quiet,
@@ -126,6 +136,7 @@ function PanoSpots({
   onOpen,
 }: {
   nodes: GraphNode[];
+  terrain: Terrain;
   tier: ZoomTier;
   hidden: Set<string>;
   /** While a route is shown: entrance names and path spots give way to it. */
@@ -192,7 +203,7 @@ function PanoSpots({
           <MapAnchor
             key={node.id}
             id={`spot-${node.id}`}
-            position={atNode(node, 0.4)}
+            position={atNode(terrain, node, 0.4)}
             layer={entrance ? 2 : 1}
           >
             <Tooltip>
@@ -389,6 +400,7 @@ export function MapOverlays({
   onPickPlace,
 }: OverlayProps) {
   const tier = useCameraStore((s) => s.tier);
+  const terrain = useTerrain();
   const hasRoute = route.length > 1;
   const start = hasRoute ? route[0] : undefined;
   const end = hasRoute
@@ -413,9 +425,9 @@ export function MapOverlays({
   // A business's storefront, else the node (a business of its own, `poi:`
   // id, has no node before its route arrives).
   const destination = destinationEnu
-    ? atEnu(destinationEnu)
+    ? atEnu(terrain, destinationEnu)
     : end
-      ? atNode(end)
+      ? atNode(terrain, end)
       : undefined;
 
   return (
@@ -424,6 +436,7 @@ export function MapOverlays({
       <BuildingLabels buildings={buildings} nodes={nodes} tier={tier} />
       <PanoSpots
         nodes={nodes}
+        terrain={terrain}
         tier={tier}
         hidden={hidden}
         quiet={quiet}
@@ -440,9 +453,11 @@ export function MapOverlays({
       {doors
         .filter((n) => n.id !== focus?.id)
         .map((n) => (
-          <DoorPin key={n.id} node={n} />
+          <DoorPin key={n.id} node={n} terrain={terrain} />
         ))}
-      {start && start.id !== focus?.id && <StartPin node={start} />}
+      {start && start.id !== focus?.id && (
+        <StartPin node={start} terrain={terrain} />
+      )}
       {destination && (
         <DestinationPin
           position={destination}
@@ -450,7 +465,11 @@ export function MapOverlays({
         />
       )}
       {focus && (
-        <FocusPulse position={focusEnu ? atEnu(focusEnu) : atNode(focus)} />
+        <FocusPulse
+          position={
+            focusEnu ? atEnu(terrain, focusEnu) : atNode(terrain, focus)
+          }
+        />
       )}
     </div>
   );

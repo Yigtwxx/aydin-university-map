@@ -5,6 +5,13 @@ Measured on the panoramas (sightings and the ground orthomosaic) and kept in
 map assets. Coordinates are local metres (east, north) from the campus origin;
 heights are metres above the local ground datum the terraces use.
 
+Heights. Terraces give the ground's height (``z_m``). A flight or ramp
+stands outside the terraces it joins, rising from ``base_z`` at its foot to
+``base_z + rise_m`` at its top. Items and café groups with ``base_z = 0``
+stand on whatever ground is there (the renderer looks it up). A free-standing
+railing uses ``base_z`` exactly as given, so one on a terrace edge carries the
+terrace's height.
+
 Stairs also matter to routing: an outdoor walking edge that crosses a flight
 becomes a stairs edge, so step-free routes go round it (by a ramp, if any).
 """
@@ -111,7 +118,11 @@ class Railing(BaseModel):
 
 
 class Item(BaseModel):
-    """One placed object: a bench, a planter, a lamp."""
+    """One placed object: a bench, a planter, a lamp.
+
+    ``heading_deg`` is the compass bearing its front faces (where a person on
+    a bench looks); ``length_m`` runs across it.
+    """
 
     model_config = ConfigDict(frozen=True)
 

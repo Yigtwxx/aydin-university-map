@@ -4,6 +4,8 @@ import type { ComponentProps } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { anchors } from '@/features/campus/anchors';
+import { EMPTY_FURNITURE, type Furniture } from '@/features/campus/furniture';
+import { FurnitureProvider } from '@/features/campus/furnitureTesting';
 import type { GraphNode } from '@/features/campus/types';
 
 import messages from '../../../messages/tr.json';
@@ -25,19 +27,24 @@ const node = (id: string, east: number, north: number): GraphNode => ({
 const door = node('door', 10, 20);
 const gate = node('gate', -40, 5);
 
-function renderOverlays(props: Partial<ComponentProps<typeof MapOverlays>>) {
+function renderOverlays(
+  props: Partial<ComponentProps<typeof MapOverlays>>,
+  furniture?: Furniture,
+) {
   render(
-    <NextIntlClientProvider locale="tr" messages={messages}>
-      <MapOverlays
-        nodes={[door, gate]}
-        buildings={[]}
-        route={[]}
-        labelOf={(n) => n.label.tr}
-        onOpenPano={vi.fn()}
-        onPickPlace={vi.fn()}
-        {...props}
-      />
-    </NextIntlClientProvider>,
+    <FurnitureProvider furniture={furniture}>
+      <NextIntlClientProvider locale="tr" messages={messages}>
+        <MapOverlays
+          nodes={[door, gate]}
+          buildings={[]}
+          route={[]}
+          labelOf={(n) => n.label.tr}
+          onOpenPano={vi.fn()}
+          onPickPlace={vi.fn()}
+          {...props}
+        />
+      </NextIntlClientProvider>
+    </FurnitureProvider>,
   );
 }
 
@@ -83,5 +90,34 @@ describe('MapOverlays destination', () => {
   it('shows a business’s own 360° spot at its pin', () => {
     renderOverlays({ focusNodeId: 'door', focusEnu: [14, 25] });
     expect(positionOf('pin-focus')).toEqual([14, 0.6, -25]);
+  });
+});
+
+describe('MapOverlays on raised ground', () => {
+  const terrace: Furniture = {
+    ...EMPTY_FURNITURE,
+    terraces: [
+      {
+        id: 'square',
+        outline: [
+          [0, 0],
+          [30, 0],
+          [30, 30],
+          [0, 30],
+        ],
+        z_m: 1.5,
+        edge: 'wall',
+      },
+    ],
+  };
+
+  it('stands pins on the terrace they are on', () => {
+    renderOverlays(
+      { destinationNodeId: 'door', destinationLabel: 'Kapı' },
+      terrace,
+    );
+    expect(positionOf('pin-end')).toEqual([10, 2.1, -20]);
+    // The gate is down on the street.
+    expect(positionOf('spot-gate')?.[1]).toBeCloseTo(0.4);
   });
 });

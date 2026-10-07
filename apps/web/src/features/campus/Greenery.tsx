@@ -11,9 +11,12 @@ import {
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
+import { liftOntoTerraces } from './clip';
 import { layers, OVERLAY } from './constants';
 import { enuToWorld } from './coords';
 import { openRing } from './geometry';
+import { useTerrain } from './queries';
+import type { Terrain } from './terrain';
 import type { Greenery as GreeneryData } from './types';
 
 const AREA_COLORS: Record<string, string> = {
@@ -32,6 +35,7 @@ function hash(i: number): number {
 }
 
 export function Greenery({ data }: { data: GreeneryData }) {
+  const terrain = useTerrain();
   const areas = useMemo(() => {
     const byColor = new Map<string, ShapeGeometry[]>();
     for (const area of data.areas) {
@@ -50,26 +54,49 @@ export function Greenery({ data }: { data: GreeneryData }) {
     }));
   }, [data]);
   useEffect(() => () => areas.forEach((a) => a.geometry.dispose()), [areas]);
+  // Lawns on terraces: the same areas again on each terrace's top.
+  const raised = useMemo(
+    () =>
+      areas.flatMap(({ color, geometry }) => {
+        const lifted = liftOntoTerraces(
+          geometry,
+          terrain.terraces,
+          layers.lift,
+        );
+        return lifted ? [{ color, geometry: lifted, lift: 0 }] : [];
+      }),
+    [areas, terrain],
+  );
+  useEffect(() => () => raised.forEach((a) => a.geometry.dispose()), [raised]);
 
   return (
     <>
-      {areas.map(({ color, geometry }) => (
+      {[
+        ...areas.map((a) => ({ ...a, lift: layers.lift, key: a.color })),
+        ...raised.map((a) => ({ ...a, key: `raised-${a.color}` })),
+      ].map(({ key, color, geometry, lift }) => (
         <mesh
-          key={color}
+          key={key}
           geometry={geometry}
-          position-y={layers.lift}
+          position-y={lift}
           renderOrder={layers.greenery}
           receiveShadow
         >
           <meshStandardMaterial color={color} roughness={1} {...OVERLAY} />
         </mesh>
       ))}
-      <Trees trees={data.trees} />
+      <Trees trees={data.trees} terrain={terrain} />
     </>
   );
 }
 
-function Trees({ trees }: { trees: [number, number][] }) {
+function Trees({
+  trees,
+  terrain,
+}: {
+  trees: [number, number][];
+  terrain: Terrain;
+}) {
   const canopy = useRef<InstancedMesh>(null);
   const trunk = useRef<InstancedMesh>(null);
 
@@ -79,8 +106,12 @@ function Trees({ trees }: { trees: [number, number][] }) {
     const tint = new Color();
     trees.forEach(([east, north], i) => {
       const size = 0.8 + hash(i) * 0.5;
-      const [x, , z] = enuToWorld(east, north);
-      dummy.position.set(x, 6.5 * size, z);
+      const [x, ground, z] = enuToWorld(
+        east,
+        north,
+        terrain.heightAt(east, north),
+      );
+      dummy.position.set(x, ground + 6.5 * size, z);
       dummy.scale.setScalar(size);
       dummy.rotation.set(0, hash(i + 7) * Math.PI, 0);
       dummy.updateMatrix();
@@ -89,7 +120,7 @@ function Trees({ trees }: { trees: [number, number][] }) {
         i,
         tint.set(CANOPY).offsetHSL(0, 0, (hash(i + 3) - 0.5) * 0.08),
       );
-      dummy.position.set(x, 2.2 * size, z);
+      dummy.position.set(x, ground + 2.2 * size, z);
       dummy.updateMatrix();
       trunk.current!.setMatrixAt(i, dummy.matrix);
     });
@@ -97,7 +128,10 @@ function Trees({ trees }: { trees: [number, number][] }) {
     if (canopy.current.instanceColor)
       canopy.current.instanceColor.needsUpdate = true;
     trunk.current.instanceMatrix.needsUpdate = true;
-  }, [trees]);
+    // Bounds from the instances, so frustum culling sees raised trees.
+    canopy.current.computeBoundingSphere();
+    trunk.current.computeBoundingSphere();
+  }, [trees, terrain]);
 
   if (trees.length === 0) return null;
   return (

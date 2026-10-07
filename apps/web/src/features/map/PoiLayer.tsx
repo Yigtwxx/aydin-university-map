@@ -9,7 +9,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { enuToWorld } from '@/features/campus/coords';
-import type { Place } from '@/features/campus/queries';
+import { type Place, useTerrain } from '@/features/campus/queries';
 import { shownFloor, whereText } from '@/features/route/indoor';
 import { PoiBadge } from '@/features/route/placeIcons';
 import { type PinnedPoi, poiGroups } from '@/features/route/places';
@@ -75,6 +75,7 @@ export function PoiLayer({
   onPick: (place: Place) => void;
 }) {
   const locale = useLocale();
+  const terrain = useTerrain();
   const groups = useMemo(() => poiGroups(places), [places]);
   const list = useMemo(
     () => new Intl.ListFormat(locale, { type: 'conjunction' }),
@@ -91,7 +92,7 @@ export function PoiLayer({
       <MapAnchor
         key={group.id}
         id={`pin-poi-${group.id}`}
-        position={enuToWorld(east, north, 0.6)}
+        position={enuToWorld(east, north, terrain.heightAt(east, north) + 0.6)}
         layer={2}
       >
         {/* The tail's tip is the pin: up by the marker's height, left by

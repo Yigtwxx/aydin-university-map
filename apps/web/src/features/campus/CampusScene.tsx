@@ -35,11 +35,12 @@ import { type Credit, GoogleTiles } from './GoogleTiles';
 import { Greenery } from './Greenery';
 import { GroundLayer } from './GroundLayer';
 import { IntroGradeEffect } from './openingGrade';
-import { buildMassing } from './massing';
+import { buildMassing, massingRecipes } from './massing';
 import { OverlayProjector } from './OverlayProjector';
 import { Precipitation } from './Precipitation';
 import { RouteRibbon } from './RouteRibbon';
 import { SkyRig } from './SkyRig';
+import { StreetFurniture } from './StreetFurniture';
 import type {
   Building,
   CampusGraph,
@@ -341,6 +342,10 @@ function SceneContents({
           <BaseGround />
           {ground && <GroundLayer data={ground} />}
           {greenery && <Greenery data={greenery} />}
+          <StreetFurniture
+            night={sky.phase === 'night' || sky.phase === 'twilight'}
+            reducedMotion={reducedMotion}
+          />
           <Buildings
             buildings={buildings}
             night={sky.phase === 'night' || sky.phase === 'twilight'}
@@ -606,6 +611,16 @@ function Buildings({
       uniforms.uNight.value += ((night ? 1 : 0) - uniforms.uNight.value) * k;
   });
   const geometry = useMemo(() => buildMassing(buildings), [buildings]);
+  // Surveyed facade recipes reach the shader before its first compile
+  // (userData) and after every rebuild (uniform).
+  const recipes = geometry && massingRecipes(geometry);
+  useLayoutEffect(() => {
+    const current = material.current;
+    if (!current) return;
+    current.userData.facadeRecipes = recipes;
+    const uniforms = facadeUniforms(current);
+    if (uniforms) uniforms.uRecipes.value = recipes ?? null;
+  }, [recipes]);
   // Buildings hide the DOM markers behind them (OverlayProjector). The BVH
   // takes a few hundred ms for the neighbourhood: build it when the main
   // thread is idle, not in the frames the opening plays in.
@@ -625,6 +640,7 @@ function Buildings({
       else window.clearTimeout(idle);
       if (bvh) occluders.delete(bvh);
       geometry.dispose();
+      massingRecipes(geometry)?.dispose();
     };
   }, [geometry]);
   if (!geometry) return null;

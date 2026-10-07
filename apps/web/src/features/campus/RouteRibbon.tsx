@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Color, GreaterDepth, type ShaderMaterial } from 'three';
 
 import { layers, palette } from './constants';
+import { useTerrain } from './queries';
 import { lineLength, ribbonGeometry } from './ribbon';
 import { routePolyline, smoothRoute } from './routeLine';
 import type { CampusGraph, GraphNode } from './types';
@@ -156,14 +157,23 @@ export function RouteRibbon({
   const length = useMemo(() => lineLength(points), [points]);
   // The extra length past each end becomes the round cap.
   const extended = useMemo(() => extendEnds(points, WIDTH_M), [points]);
+  // Over the ground's level changes: up terraces and along stairs.
+  const terrain = useTerrain();
   const geometry = useMemo(
-    () => ribbonGeometry([{ points: extended, width: WIDTH_M }], LIFT_M),
-    [extended],
+    () =>
+      ribbonGeometry(
+        [{ points: extended, width: WIDTH_M }],
+        (e, n) => terrain.heightAt(e, n) + LIFT_M,
+      ),
+    [extended, terrain],
   );
   const shadow = useMemo(
     () =>
-      ribbonGeometry([{ points: extended, width: WIDTH_M * 2 }], LIFT_M * 0.6),
-    [extended],
+      ribbonGeometry(
+        [{ points: extended, width: WIDTH_M * 2 }],
+        (e, n) => terrain.heightAt(e, n) + LIFT_M * 0.6,
+      ),
+    [extended, terrain],
   );
   useEffect(
     () => () => {

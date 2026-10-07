@@ -6,6 +6,8 @@ import { api } from '@/lib/api/client';
 import type { paths } from '@/lib/api/schema';
 import { assetBaseUrl } from '@/lib/assets';
 
+import { type Furniture, fetchFurniture } from './furniture';
+import { type Terrain, terrainOf } from './terrain';
 import {
   parseGraph,
   type Building,
@@ -84,6 +86,27 @@ export function useGround() {
     staleTime: Infinity,
     retry: false,
   });
+}
+
+/**
+ * Street furniture and the ground's level changes. Optional: a missing
+ * `furniture.json` (404) is an empty collection, not an error.
+ */
+export function useFurniture() {
+  return useQuery<Furniture>({
+    queryKey: ['furniture'],
+    queryFn: () => fetchFurniture(assetBaseUrl),
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
+/**
+ * Ground height at any point (terraces, banks, stairs and ramps); flat until
+ * the furniture loads, or when there is none.
+ */
+export function useTerrain(): Terrain {
+  return terrainOf(useFurniture().data);
 }
 
 export function usePlaces(query: string) {

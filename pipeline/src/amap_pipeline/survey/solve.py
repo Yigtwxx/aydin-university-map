@@ -666,6 +666,7 @@ class Problem:
                 jac_sparsity=sparsity,
                 x_scale="jac",
                 method="trf",
+                max_nfev=8000,
             )
             params = np.asarray(result.x, dtype=float)
         assert result is not None

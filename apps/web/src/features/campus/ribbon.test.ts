@@ -91,6 +91,32 @@ describe('ribbonGeometry', () => {
   });
 });
 
+describe('ribbonGeometry over terrain', () => {
+  it('follows a height function along the line, level across it', () => {
+    const geometry = ribbonGeometry(
+      [
+        {
+          points: [
+            [0, 0],
+            [10, 0],
+          ],
+          width: 4,
+        },
+      ],
+      // A slope rising 0.1 m per metre east, ignoring the north offset.
+      (east) => east * 0.1 + 0.3,
+    )!;
+    const position = geometry.getAttribute('position');
+    const center = geometry.getAttribute('aCenter');
+    // Both edge vertices of a cross-section share their centre's height.
+    expect(position.getY(0)).toBeCloseTo(0.3);
+    expect(position.getY(1)).toBeCloseTo(0.3);
+    expect(position.getY(2)).toBeCloseTo(1.3);
+    expect(position.getY(3)).toBeCloseTo(1.3);
+    expect(center.getY(2)).toBeCloseTo(1.3);
+  });
+});
+
 describe('lineLength', () => {
   it('sums segment lengths', () => {
     expect(

@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { anchors } from '@/features/campus/anchors';
+import { FurnitureProvider } from '@/features/campus/furnitureTesting';
 import type { Place } from '@/features/campus/queries';
 
 import messages from '../../../messages/tr.json';
@@ -58,15 +59,17 @@ function renderLayer({
   onPick?: (place: Place) => void;
 } = {}) {
   return render(
-    <NextIntlClientProvider locale="tr" messages={messages}>
-      <PoiLayer
-        places={places}
-        tier={tier}
-        quiet={quiet}
-        hiddenId={hiddenId}
-        onPick={onPick}
-      />
-    </NextIntlClientProvider>,
+    <FurnitureProvider>
+      <NextIntlClientProvider locale="tr" messages={messages}>
+        <PoiLayer
+          places={places}
+          tier={tier}
+          quiet={quiet}
+          hiddenId={hiddenId}
+          onPick={onPick}
+        />
+      </NextIntlClientProvider>
+    </FurnitureProvider>,
   );
 }
 

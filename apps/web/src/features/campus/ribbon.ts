@@ -20,11 +20,14 @@ const MITER_LIMIT = 2.5;
  * - `aCenter` / `aOffset` (centre point and unit half-width offset, world
  *   space) let a vertex shader rescale the width at draw time, e.g. to keep
  *   the route a minimum number of pixels wide when zoomed out.
+ * - `height` is a constant, or the height under each point of the line (the
+ *   terrain, so a route climbs stairs); the strip stays level across.
  */
 export function ribbonGeometry(
   lines: RibbonLine[],
-  height = 0,
+  height: number | ((east: number, north: number) => number) = 0,
 ): BufferGeometry | undefined {
+  const heightAt = typeof height === 'number' ? () => height : height;
   const positions: number[] = [];
   const centers: number[] = [];
   const offsets: number[] = [];
@@ -46,9 +49,10 @@ export function ribbonGeometry(
       const [nx, ny, scale] = miter(points, i);
       const unit = Math.min(scale, MITER_LIMIT);
       const offset = half * unit;
-      positions.push(...enuToWorld(x + nx * offset, y + ny * offset, height));
-      positions.push(...enuToWorld(x - nx * offset, y - ny * offset, height));
-      const center = enuToWorld(x, y, height);
+      const h = heightAt(x, y);
+      positions.push(...enuToWorld(x + nx * offset, y + ny * offset, h));
+      positions.push(...enuToWorld(x - nx * offset, y - ny * offset, h));
+      const center = enuToWorld(x, y, h);
       centers.push(...center, ...center);
       offsets.push(
         ...enuToWorld(nx * unit, ny * unit),
