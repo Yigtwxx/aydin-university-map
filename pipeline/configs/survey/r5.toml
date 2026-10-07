@@ -1,0 +1,104 @@
+# Area r5: T Blok (Sosyal Bilimler Kampusu) and its sunken garden on Akasya Sokagi.
+# Sightings measured with amap look.
+
+[scenes.scene_428782]
+pose = "free"
+init = [-12.0, -193.0, 176.0]
+prior_sigma_m = 20.0
+prior_sigma_deg = 15.0
+note = "Akasya Sokagi in front of T Blok's turnstile pavilion; L Blok (8001) across the street"
+obs = [
+  { lm = "8001#3", ath = 121.38, snapped = true },
+  { lm = "8001#2", ath = 171.42, snapped = true },
+]
+
+[scenes.scene_428783]
+pose = "free"
+init = [-17.0, -205.0, 67.0]
+prior_sigma_m = 20.0
+prior_sigma_deg = 15.0
+note = "inside the turnstile pavilion, terrace in front of the glass lobby"
+obs = [
+  { lm = "8001#3", ath = 278.6, sigma_deg = 0.4 },
+  { lm = "8001#2", ath = 307.6, snapped = true },
+]
+
+[scenes.scene_428784]
+note = "stair foot below the pavilion, garden level; no usable ties found (only arrows), position from init"
+pose = "free"
+init = [-15.6, -197.1, 191.2]
+prior_sigma_m = 10.0
+prior_sigma_deg = 25.0
+obs = []
+
+[scenes.scene_428785]
+pose = "free"
+init = [-23.4, -195.0, 57.7]
+prior_sigma_m = 10.0
+prior_sigma_deg = 25.0
+obs = [
+  { lm = "r5.corner_pier.edge", ath = 184.02 },
+]
+
+[scenes.scene_428786]
+pose = "free"
+init = [-26.8, -194.3, 109.6]
+prior_sigma_m = 10.0
+prior_sigma_deg = 25.0
+obs = [
+  { lm = "r5.corner_pier.edge", ath = 19.44 },
+]
+
+[scenes.scene_428787]
+pose = "free"
+init = [-28.7, -202.2, 43.2]
+prior_sigma_m = 10.0
+prior_sigma_deg = 25.0
+obs = [
+  { lm = "r5.corner_pier.edge", ath = 8.3 },
+]
+
+[scenes.scene_428788]
+pose = "free"
+init = [-30.5, -209.5, 102.9]
+prior_sigma_m = 10.0
+prior_sigma_deg = 25.0
+obs = []
+
+[scenes.scene_428789]
+pose = "free"
+init = [-32.5, -217.8, 113.2]
+prior_sigma_m = 10.0
+prior_sigma_deg = 25.0
+obs = []
+
+[scenes.scene_428790]
+pose = "free"
+init = [-33.7, -225.1, 37.0]
+prior_sigma_m = 10.0
+prior_sigma_deg = 25.0
+obs = []
+
+[scenes.scene_428791]
+pose = "free"
+init = [-33.7, -218.4, 121.5]
+prior_sigma_m = 10.0
+prior_sigma_deg = 25.0
+obs = []
+
+
+[scenes.scene_428756]
+pose = "free"
+init = [-25.0, -211.0, 161.0]
+prior_sigma_m = 12.0
+prior_sigma_deg = 25.0
+note = "T Blok Yan Giris: at the glass side doors of the west colonnade, ~6 m ESE of 428788 (tour arrow). No sightings: position is init + arrows only"
+obs = []
+
+[scenes.scene_428792]
+pose = "free"
+init = [-35.0, -224.0, 120.0]
+prior_sigma_m = 12.0
+prior_sigma_deg = 90.0
+note = "T Blok Giris at the SW corner porch, ~5 m SSW of 428791 (tour arrow 791->792 at ath 77). No sightings: init + arrows only"
+obs = []
