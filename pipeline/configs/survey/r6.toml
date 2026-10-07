@@ -1,0 +1,66 @@
+# Area r6: far entrances (girls' dormitory, aviation hangar, car park). Sightings measured with amap look.
+
+[scenes.scene_428636]
+pose = "free"
+init = [-557.0, -282.0, 55.0]
+prior_sigma_m = 6.0
+obs = [
+  { lm = "2562#1", ath = 311.93, snapped = true },
+  { lm = "2562#2", ath = 98.82, snapped = true },
+]
+note = "top landing of the entrance stairs, ~4 m from the west face of footprint 2562 (IAU girls dormitory); Yandex POI of the dormitory at (-553,-286) agrees to ~4 m; corners seen only from this one side, so along-face position is weak"
+
+[scenes.scene_428499]
+pose = "free"
+init = [-543.6, -277.2, 204.0]
+prior_sigma_m = 8.0
+obs = []
+note = "interior, no outdoor features; lobby ~10 m inside the revolving door of 2562, looking back at the door (ath 41); heading from tour arrows 636->499 (ath 11) and 499->636 (ath 42)"
+
+[scenes.scene_428641]
+pose = "free"
+init = [-527.0, -292.0, 67.0]
+prior_sigma_m = 25.0
+obs = []
+note = "inner courtyard of 2562; not placeable from pictures, estimate = footprint centre"
+
+[scenes.scene_428381]
+pose = "free"
+init = [-130.0, -224.0, 354.6]
+prior_sigma_m = 15.0
+obs = [
+  { lm = "2849#1", ath = 97.72, snapped = true },
+  { lm = "2849#0", ath = 112.9 },
+  { lm = "2848#1", ath = 120.32, snapped = true },
+  { lm = "2848#0", ath = 176.83 },
+  { lm = "2844#1", ath = 190.28, snapped = true },
+  { lm = "2844#0", ath = 223.03, snapped = true },
+  { lm = "2845#0", ath = 230.01, snapped = true },
+]
+note = "hangar street (1. Akasya Sokagi), standing in the street opposite the Ucak Teknolojileri gate; south-side blocks 2849 (grey), 2848 (Vartex shop), 2844/2845 (glass block, Vartex guard booth). 2845#1 dropped: the edge at ath 207 is a booth post, not the footprint corner (landmark moved 4.9 m)"
+
+[scenes.scene_428462]
+pose = "free"
+init = [108.0, 10.0, 355.0]
+prior_sigma_m = 15.0
+obs = [
+  { lm = "1826#0", ath = 58.78 },
+  { lm = "1826#5", ath = 103.67, snapped = true },
+  { lm = "2815#0", ath = 168.18, snapped = true },
+  { lm = "7989#1", ath = 211.73, snapped = true },
+  { lm = "r6.park.dark.w", ath = 38.73, snapped = true },
+  { lm = "r6.park.red.w", ath = 76.85, snapped = true },
+  { lm = "r6.park.red.e", ath = 96.04, snapped = true },
+]
+note = "car park entrance at the north-east corner of the main-gate junction, east of the road; 4 OSM corners on 3 different buildings fit within 0.5 m landmark shift"
+
+[scenes.scene_428463]
+pose = "free"
+init = [114.8, 32.1, 212.7]
+prior_sigma_m = 10.0
+obs = [
+  { lm = "r6.park.dark.w", ath = 196.37, snapped = true },
+  { lm = "r6.park.red.w", ath = 238.82, snapped = true },
+  { lm = "r6.park.red.e", ath = 258.37, snapped = true },
+]
+note = "car park interior, ~25 m north of the entrance (tour arrows 462->463 ath 18, 463->462 ath 343)"
