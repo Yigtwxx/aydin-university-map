@@ -213,14 +213,14 @@ evidence = [{ scene = "scene_428575", ath = 267, note = "9 light-teal treads vis
 
 [[stairs]]
 id = "d-b-lane-stairs"
-foot = [-30.5, 46.0]
-top = [-29.8, 56.2]
+foot = [-30.0, 49.6]
+top = [-29.3, 53.2]
 width_m = 2.4
 steps = 12
 base_z = 3.5
 rise_m = 2.0
 railings = "both"
-note = "covered ramp and stairs from the D-B lane up to the deck (clinic side); levels from 559 vs 567 (1.9 m apart over 2.3 m horizontally). Partly a ramp, step count approximate"
+note = "stairs from the cobbled deck by D Blok's sign down to the sunken, canopied entrance (clinic side); 2026-10-08 check: the flight starts 2.8 m from 559 (ledge at 27.5 deg below the horizon) and runs ~3.6 m (12 risers); the sloping brick lane beside it is step-free and stays outside the flight. Step count approximate"
 evidence = [{ scene = "scene_428559", ath = 38, note = "covered ramp and stairs, steel rails, 5 m (survey note: 559 @0-30)" }]
 
 [[stairs]]
@@ -249,13 +249,13 @@ evidence = [{ scene = "scene_428538", ath = 229, note = "5-6 steps, rails left a
 [[stairs]]
 id = "bridge-stair-north"
 foot = [-31.0, -59.0]
-top = [-35.2, -61.1]
+top = [-34.8, -61.8]
 width_m = 1.8
 steps = 16
 base_z = 3.2
 rise_m = 2.6
 railings = "both"
-note = "north landing of the glass-covered road-bridge stair (U-shaped, only the first flight placed); direction and height estimated"
+note = "north landing of the glass-covered road-bridge stair (U-shaped, only the first flight placed); 2026-10-08 check: straight flight of 16-17 risers rising away from 540 along bearing ~233, glass balustrade with handrail on the left, steel handrail on the right"
 evidence = [{ scene = "scene_428540", ath = 156, note = "dark covered stair with glass side, 3-4 m from the camera" }]
 
 # ------------------------------------------------------------------- ramps
@@ -267,8 +267,8 @@ top = [-51.8, -42.5]
 width_m = 3.0
 base_z = 0.0
 rise_m = 3.2
-railings = "both"
-note = "tiled ramp with stainless handrails up the F-E lane from the yard to the south street; far end reads 3 deg above the horizon from 545, so >= 2.6 m climb; direction up to the south"
+railings = "left"
+note = "tiled ramp up the F-E lane from the yard to the south street; far end reads 3 deg above the horizon from 545, so >= 2.6 m climb. 2026-10-08 check: rises to the south (545 looks along it at bearing 169); one stainless handrail on its east side over the drop to a lower brick ramp, the building wall on its west side"
 evidence = [{ scene = "scene_428545", ath = 31, note = "tiled ramp 19 m ahead, rails on its left (strip 270-450)" }, { scene = "scene_428542", ath = 189, note = "brick ramp with double steel rail along E's west wall, 4 m" }]
 
 [[ramps]]

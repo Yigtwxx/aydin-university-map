@@ -159,5 +159,10 @@ pose = "free"
 init = [-85.0, -116.0, 90.0]
 prior_sigma_m = 25.0
 prior_sigma_deg = 15.0
-note = "Kutuphane Giris = P Blok library (Bilgi Merkezi, Birlik Cad. 17-19) on Birlik Caddesi's east sidewalk; street axis at ath ~74/248. Outside the surveyed network: no outdoor neighbour sees the same features, both tour arrows (577, 446) are route jumps. Placed by address only"
-obs = []
+note = "Kutuphane Giris = P Blok library (Bilgi Merkezi, Birlik Cad. 17-19) on Birlik Caddesi's east sidewalk; street axis at ath ~74/248. Outside the surveyed network: no outdoor neighbour sees the same features, both tour arrows (577, 446) are route jumps. Placed by address only. 2026-10-08: the sign over the wall reads 'Istanbul Aydin Universitesi Bilgi Merkezi'; the recessed glass ground floor (OSM notch 7-6-5-4) spans ath 305-344 and the glass south wing ends at ath 49"
+obs = [
+  { lm = "P#7", ath = 305.28, sigma_deg = 1.0 },  # north edge of the recessed entrance
+  { lm = "P#4", ath = 344.05, sigma_deg = 1.0 },  # south edge of the recess
+  { lm = "P#3", ath = 48.82, sigma_deg = 1.5 },   # end of the glass south wing
+  { lm = "P#0", ath = 255.85, sigma_deg = 2.5 },  # north end, half behind trees
+]
