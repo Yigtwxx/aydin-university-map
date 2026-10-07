@@ -22,7 +22,7 @@ import { type Sky, phaseOf } from './hooks';
 import { StatusPill } from './StatusPill';
 import { useEnvironmentStore } from './store';
 import { sunAt } from './sun';
-import type { Weather } from './weather';
+import { type Condition, conditionOf, type Weather } from './weather';
 
 const weather: Weather = {
   temperature_c: 15,
@@ -35,7 +35,10 @@ const weather: Weather = {
   stale: false,
 } as Weather;
 
-function renderPill(live: Date) {
+function renderPill(
+  live: Date,
+  condition: Condition = conditionOf(weather.weather_code),
+) {
   const sun = sunAt(live);
   const sky: Sky = { sun, phase: phaseOf(sun.altitude) };
   return render(
@@ -49,6 +52,7 @@ function renderPill(live: Date) {
         live={live}
         sky={sky}
         weather={weather}
+        condition={condition}
         weatherError={false}
       />
     </NextIntlClientProvider>,
@@ -78,6 +82,17 @@ afterEach(() => {
   act(() => useEnvironmentStore.getState().backToLive());
 });
 
+describe('StatusPill', () => {
+  it('keeps the weather in words for the sheet and screen readers', () => {
+    renderPill(new Date('2026-10-07T09:00:00Z'));
+    const words = screen.getByText('Az bulutlu');
+    expect(words).toHaveClass('sr-only');
+    expect(
+      screen.getByRole('button', { name: /Az bulutlu/ }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe('StatusPill details', () => {
   it('shows the coming sunrise at 00:59, not the evening sunset', async () => {
     renderPill(new Date('2026-10-06T21:59:00Z')); // 00:59 campus time
@@ -99,5 +114,13 @@ describe('StatusPill details', () => {
     act(() => useEnvironmentStore.getState().setHour(21));
     expect(screen.queryByText('Florya, şu an')).toBeNull();
     expect(screen.getByText('Florya, canlı hava durumu')).toBeInTheDocument();
+  });
+
+  it('does not call a previewed weather "now" either', async () => {
+    renderPill(new Date('2026-10-07T09:00:00Z'));
+    open();
+    expect(await screen.findByText('Florya, şu an')).toBeInTheDocument();
+    act(() => useEnvironmentStore.getState().setCondition('snow'));
+    expect(screen.queryByText('Florya, şu an')).toBeNull();
   });
 });

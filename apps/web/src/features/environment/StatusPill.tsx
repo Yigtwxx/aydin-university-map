@@ -32,6 +32,7 @@ import { Slider } from '@/components/ui/slider';
 import type { Sky } from './hooks';
 import { campusHour, useEnvironmentStore } from './store';
 import { nextSunEvent } from './sun';
+import { WeatherSky } from './WeatherSky';
 import {
   type Condition,
   conditionOf,
@@ -74,6 +75,12 @@ const SUNNY = new Set<Condition | undefined>([
 function iconTint(condition: Condition | undefined, isDay: boolean): string {
   if (!SUNNY.has(condition)) return 'text-ink-muted';
   return isDay ? 'text-ochre' : 'text-marmara';
+}
+
+/** The same, lit for the sheet's sky: a warm sun, a pale moon, white cloud. */
+function skyIconTint(condition: Condition | undefined, isDay: boolean): string {
+  if (!SUNNY.has(condition)) return 'text-white';
+  return isDay ? 'text-[#ffd36e]' : 'text-[#dfe7ff]';
 }
 
 function WeatherIcon({
@@ -189,9 +196,10 @@ export function StatusPill({
               <span className="tabular leading-none font-semibold">
                 {number.format(weather.temperature_c)}°
               </span>
-              <span className="hidden text-ink-muted lg:inline">
-                {condition && t(`condition.${condition}`)}
-              </span>
+              {/* The words wait for the sheet; the icon says it at a glance. */}
+              {condition && (
+                <span className="sr-only">{t(`condition.${condition}`)}</span>
+              )}
             </>
           ) : (
             <span className="text-ink-muted">
@@ -222,13 +230,24 @@ export function StatusPill({
       <PopoverContent
         align="end"
         sideOffset={10}
-        className="glass glass-thick w-[min(21rem,calc(100vw-1rem))] gap-4 rounded-[18px] bg-(--glass-bg) p-4 ring-0"
+        className="glass-liquid relative isolate w-[min(21rem,calc(100vw-1rem))] gap-4 rounded-[18px] bg-transparent p-4 text-white ring-0 [--glass-shadow:var(--elevation-2)] [&_:focus-visible]:outline-white"
       >
+        {/* The sky the map shows, previews included. */}
+        <WeatherSky
+          condition={condition}
+          phase={sky.phase}
+          wind={
+            weather && {
+              speedKmh: weather.wind_speed_kmh,
+              fromDeg: weather.wind_direction_deg,
+            }
+          }
+        />
         <div className="flex items-start justify-between gap-4">
           <div>
-            {/* A previewed hour is not "now": the readings stay live. */}
-            <p className="text-xs text-ink-muted">
-              {hour === undefined ? t('now') : t('liveReading')}
+            {/* A preview is not "now": the readings stay live. */}
+            <p className="text-xs text-white/90">
+              {previewing ? t('liveReading') : t('now')}
             </p>
             <p className="tabular mt-1.5 text-3xl leading-none font-semibold tracking-display">
               {weather ? `${number.format(weather.temperature_c)}°` : '—'}
@@ -242,7 +261,7 @@ export function StatusPill({
           <WeatherIcon
             condition={liveCondition}
             isDay={weather?.is_day ?? isDay}
-            className={`size-10 ${iconTint(liveCondition, weather?.is_day ?? isDay)}`}
+            className={`size-10 drop-shadow-sm ${skyIconTint(liveCondition, weather?.is_day ?? isDay)}`}
             strokeWidth={1.5}
           />
         </div>
@@ -276,7 +295,7 @@ export function StatusPill({
         )}
         <section
           aria-labelledby="preview-heading"
-          className="flex flex-col gap-3 border-t border-hairline pt-4"
+          className="flex flex-col gap-3 border-t border-white/20 pt-4"
         >
           <div className="flex items-center justify-between">
             <h3
@@ -289,21 +308,22 @@ export function StatusPill({
               <button
                 type="button"
                 onClick={backToLive}
-                className="rounded-full px-2 py-1 text-xs font-medium text-route hover:bg-route-soft"
+                className="rounded-full px-2 py-1 text-xs font-semibold text-white hover:bg-white/15"
               >
                 {t('backToLive')}
               </button>
             )}
           </div>
           <div className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between text-xs text-ink-muted">
+            <div className="flex items-baseline justify-between text-xs text-white/90">
               <span id="preview-time">{t('time')}</span>
-              <span className="tabular text-sm font-semibold text-ink">
+              <span className="tabular text-sm font-semibold text-white">
                 {time(now)}
               </span>
             </div>
             <Slider
               aria-labelledby="preview-time"
+              className="[&_[data-slot=slider-range]]:bg-white [&_[data-slot=slider-thumb]]:border-white [&_[data-slot=slider-thumb]]:ring-white/40 [&_[data-slot=slider-track]]:bg-white/25"
               min={0}
               max={23.75}
               step={0.25}
@@ -312,7 +332,7 @@ export function StatusPill({
                 setHour(Array.isArray(value) ? value[0] : value)
               }
             />
-            <div className="tabular flex justify-between text-2xs text-ink-muted">
+            <div className="tabular flex justify-between text-2xs text-white/90">
               <span>00</span>
               <span>06</span>
               <span>12</span>
@@ -348,7 +368,7 @@ export function StatusPill({
             ))}
           </div>
         </section>
-        <p className="border-t border-hairline pt-3 text-xs text-ink-muted">
+        <p className="border-t border-white/20 pt-3 text-xs text-white/90">
           {weather?.stale ? `${t('stale')} ` : ''}
           {t('source')}
         </p>
@@ -374,8 +394,8 @@ function PreviewChip({
       className={[
         'flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-medium transition-colors duration-150 ease-out-soft',
         pressed
-          ? 'bg-ink text-stone-raised shadow-thumb'
-          : 'bg-fill text-ink hover:bg-fill-strong',
+          ? 'bg-white text-[#0f1724] shadow-thumb'
+          : 'bg-white/15 text-white hover:bg-white/25',
       ].join(' ')}
     >
       {children}
@@ -395,12 +415,12 @@ function Detail({
   return (
     <div className="flex items-start gap-2">
       <Icon
-        className="mt-0.5 size-4 text-ink-muted"
+        className="mt-0.5 size-4 text-white/90"
         strokeWidth={1.75}
         aria-hidden
       />
       <div>
-        <dt className="text-xs text-ink-muted">{label}</dt>
+        <dt className="text-xs text-white/90">{label}</dt>
         <dd className="tabular font-medium">{children}</dd>
       </div>
     </div>
