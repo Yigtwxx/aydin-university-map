@@ -1,0 +1,226 @@
+# Area r3a: the central square (plaza, cafe terraces, Coffee Shop pavilion,
+# flagpole, amphitheatre steps). Sightings measured with amap look.
+#
+# A's brick entrance tower protrudes ~1-2 m from the wings. Seen from the
+# square (south-west of it) its left brick edge is the inner junction with the
+# west wing and its right edge the tower's outer south-east corner, which are
+# not the pilot's r2.a.tower.w/e (mostly sighted from the south-east), so the
+# square uses its own r3a.a.tower.* ties.
+
+[scenes.scene_428502]
+pose = "free"
+init = [10.5, 7.1, 71.4]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 192.7, sigma_deg = 0.6 },
+  { lm = "r3a.a.tower.w_in", ath = 317.50, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 324.14, snapped = true },
+  { lm = "r2.gate.col.n", ath = 352.95, sigma_deg = 0.3 },
+  { lm = "r2.gate.col.s", ath = 12.5, sigma_deg = 0.3 },
+  { lm = "poi.starbucks", ath = 41.7, sigma_deg = 0.5 },
+  { lm = "poi.iau-store", ath = 209.4, sigma_deg = 0.8 },
+]
+
+[scenes.scene_428505]
+pose = "free"
+init = [11.8, 1.6, 74.4]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 231.05, sigma_deg = 0.5 },
+  { lm = "r3a.a.tower.w_in", ath = 309.62, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 316.56, snapped = true },
+  { lm = "r2.gate.col.n", ath = 344.85, sigma_deg = 0.4 },
+  { lm = "r3a.e.ne_col.e", ath = 178.03, snapped = true },
+  { lm = "poi.coffee-shop-lavazza", ath = 173.03, sigma_deg = 0.5 },
+  { lm = "poi.iau-store", ath = 223.4, sigma_deg = 0.5 },
+  { lm = "poi.starbucks", ath = 33.03, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428503]
+pose = "free"
+init = [6.8, -1.7, 78.1]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 285.0, sigma_deg = 0.5 },
+  { lm = "r3a.a.tower.w_in", ath = 311.78, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 316.80, snapped = true },
+  { lm = "r2.gate.col.n", ath = 341.45, sigma_deg = 0.4 },
+  { lm = "r2.gate.col.s", ath = 358.45, sigma_deg = 0.4 },
+  { lm = "r3a.e.ne_col.e", ath = 177.79, snapped = true },
+  { lm = "poi.coffee-shop-lavazza", ath = 171.65, sigma_deg = 0.5 },
+  { lm = "poi.iau-store", ath = 245.75, sigma_deg = 0.8 },
+  { lm = "poi.starbucks", ath = 22.85, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428504]
+pose = "free"
+init = [-2.2, -7.9, 74.5]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.gate.col.n", ath = 347.4, sigma_deg = 0.4 },
+  { lm = "r2.gate.col.s", ath = 2.55, sigma_deg = 0.4 },
+  { lm = "r2.flag.plaza", ath = 326.0, sigma_deg = 0.4 },
+  { lm = "r3a.e.ne_col.e", ath = 178.77, snapped = true },
+  { lm = "poi.coffee-shop-lavazza", ath = 168.93, sigma_deg = 0.5 },
+  { lm = "poi.iau-store", ath = 282.2, sigma_deg = 0.5 },
+  { lm = "poi.starbucks", ath = 23.8, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428521]
+pose = "free"
+init = [50.6, -6.1, 243.3]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 42.2, sigma_deg = 0.4 },
+  { lm = "r2.a.tower.w", ath = 93.25, sigma_deg = 0.5 },
+  { lm = "r2.a.tower.e", ath = 104.33, sigma_deg = 0.6 },
+  { lm = "r2.gate.col.n", ath = 138.85, sigma_deg = 0.5 },
+  { lm = "r2.gate.col.s", ath = 163.7, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428507]
+pose = "free"
+init = [34.7, -11.8, 340.5]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 321.35, sigma_deg = 0.3 },
+  { lm = "r3a.a.tower.w_in", ath = 13.75, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 23.08, snapped = true },
+  { lm = "r3a.e.se_col.w", ath = 256.68, snapped = true },
+  { lm = "poi.starbucks", ath = 110.93, sigma_deg = 0.7 },
+]
+
+[scenes.scene_428513]
+pose = "free"
+init = [17.6, -12.9, 305.8]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 21.6, sigma_deg = 0.3 },
+  { lm = "r3a.a.tower.w_in", ath = 66.76, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 74.21, snapped = true },
+  { lm = "r2.gate.col.n", ath = 100.5, sigma_deg = 0.4 },
+  { lm = "r3a.e.se_col.w", ath = 280.72, snapped = true },
+  { lm = "poi.starbucks", ath = 143.25, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428512]
+pose = "free"
+init = [19.5, -18.0, 288.2]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 41.45, sigma_deg = 0.3 },
+  { lm = "r3a.a.tower.w_in", ath = 81.43, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 88.68, snapped = true },
+  { lm = "r2.gate.col.n", ath = 114.05, sigma_deg = 0.4 },
+  { lm = "r3a.e.se_col.w", ath = 304.78, snapped = true },
+]
+
+[scenes.scene_428508]
+pose = "free"
+init = [40.7, -21.3, 333.4]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 334.5, sigma_deg = 0.3 },
+  { lm = "r3a.a.tower.w_in", ath = 16.54, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 25.29, snapped = true },
+  { lm = "r3a.e.se_col.w", ath = 273.59, snapped = true },
+  { lm = "poi.starbucks", ath = 87.45, sigma_deg = 0.7 },
+]
+
+[scenes.scene_428511]
+pose = "free"
+init = [21.5, -23.5, 328.4]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 2.8, sigma_deg = 0.3 },
+  { lm = "r3a.a.tower.w_in", ath = 38.63, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 45.61, snapped = true },
+  { lm = "r2.gate.col.n", ath = 69.6, sigma_deg = 0.4 },
+  { lm = "r3a.e.se_col.w", ath = 271.68, snapped = true },
+  { lm = "poi.starbucks", ath = 103.85, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428516]
+pose = "free"
+init = [10.3, -28.6, 285.3]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 65.95, sigma_deg = 0.3 },
+  { lm = "r3a.a.tower.w_in", ath = 90.10, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 96.06, snapped = true },
+  { lm = "r2.gate.col.n", ath = 117.15, sigma_deg = 0.4 },
+  { lm = "r3a.e.se_col.w", ath = 312.33, snapped = true },
+  { lm = "poi.starbucks", ath = 145.6, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428509]
+pose = "free"
+init = [36.7, -29.4, 66.4]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 252.55, sigma_deg = 0.3 },
+  { lm = "r3a.a.tower.w_in", ath = 287.99, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 295.64, snapped = true },
+  { lm = "poi.starbucks", ath = 342.88, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428535]
+pose = "free"
+init = [6.1, -31.2, 293.1]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 65.15, sigma_deg = 0.3 },
+  { lm = "r3a.a.tower.w_in", ath = 84.79, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 89.65, snapped = true },
+  { lm = "r2.gate.col.n", ath = 109.8, sigma_deg = 0.4 },
+  { lm = "r3a.e.se_col.w", ath = 304.70, snapped = true },
+  { lm = "poi.starbucks", ath = 136.44, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428510]
+pose = "free"
+init = [27.2, -36.5, 304.7]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 27.95, sigma_deg = 0.3 },
+  { lm = "r3a.a.tower.w_in", ath = 56.95, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 63.36, snapped = true },
+  { lm = "r2.gate.col.n", ath = 84.7, sigma_deg = 0.4 },
+  { lm = "poi.starbucks", ath = 105.65, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428515]
+pose = "free"
+init = [15.0, -20.0, 315.0]
+prior_sigma_m = 40.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 34.0, sigma_deg = 0.4 },
+  { lm = "r3a.a.tower.w_in", ath = 60.08, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 65.89, snapped = true },
+  { lm = "r2.gate.col.n", ath = 88.2, sigma_deg = 0.4 },
+  { lm = "poi.starbucks", ath = 122.98, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428506]
+pose = "free"
+init = [32.1, 0.0, 354.6]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 289.2, sigma_deg = 0.4 },
+  { lm = "r3a.a.tower.w_in", ath = 1.84, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 13.26, snapped = true },
+  { lm = "r2.gate.col.n", ath = 50.65, sigma_deg = 0.4 },
+  { lm = "poi.starbucks", ath = 122.3, sigma_deg = 0.6 },
+]
+
+[scenes.scene_428550]
+pose = "free"
+init = [-4.0, -1.0, 108.0]
+prior_sigma_m = 30.0
+obs = [
+  { lm = "r2.flag.plaza", ath = 325.95, sigma_deg = 0.4 },
+  { lm = "B#2", ath = 289.81, snapped = true },
+  { lm = "r3a.a.tower.se", ath = 297.40, snapped = true },
+  { lm = "r3a.e.ne_col.e", ath = 120.70, snapped = true },
+  { lm = "poi.coffee-shop-lavazza", ath = 95.4, sigma_deg = 0.8 },
+]

@@ -54,6 +54,20 @@ class FeatureKind(StrEnum):
 
 
 class Feature(BaseModel):
+    """One shape on a block. How the renderer reads the sizes:
+
+    - drum: a cylinder of diameter ``width_m`` from ``base_m`` up ``height_m``;
+      ``accent`` paints a stripe round it.
+    - tower: a box ``width_m`` (across its front) x ``depth_m`` from
+      ``base_m`` up ``height_m``, its front facing ``facing_deg``.
+    - canopy: a slab whose top is at ``base_m + height_m``, ``width_m`` along
+      the wall, ``depth_m`` out from it; ``accent`` is its edge strip.
+    - portal: a door frame ``width_m`` wide in total (side posts included),
+      ``height_m`` tall, facing ``facing_deg``.
+    - band: a stripe ``height_m`` tall (keep it ~0.5 m) round the whole
+      block at ``base_m``; ``at`` is ignored.
+    """
+
     model_config = ConfigDict(frozen=True)
 
     kind: FeatureKind

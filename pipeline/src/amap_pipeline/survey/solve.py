@@ -56,6 +56,7 @@ class TourLink:
 class SolveConfig:
     hotspot_sigma_deg: float = 5.0
     max_link_m: float = 60.0
+    min_link_m: float = 2.0
     # The georeference already fits each model to the footprints (ICP RMS about
     # 1 m), so a model moves as a block only when sightings insist; tour arrows
     # are too loosely aimed to turn one on their own.
@@ -81,6 +82,10 @@ class SolveConfig:
     # A tie point whose rays cross at less than this is placed along the
     # baseline only by chance (two panoramas facing each other).
     min_tie_angle_deg: float = 12.0
+    # A sighted point stands at least this far from the camera that sees it;
+    # without it a tie with two rays can collapse onto a camera (zero-length
+    # ray, zero residual).
+    min_range_m: float = 1.0
 
 
 @dataclass(slots=True)
@@ -266,7 +271,10 @@ class Problem:
             if link.source not in known or link.target not in known:
                 continue
             a, b = self.priors[link.source], self.priors[link.target]
-            if math.hypot(b.x - a.x, b.y - a.y) > self.config.max_link_m:
+            length = math.hypot(b.x - a.x, b.y - a.y)
+            # Teleports, and panoramas the old map stacked on one spot (their
+            # bearing is undefined and its derivative explodes).
+            if not self.config.min_link_m <= length <= self.config.max_link_m:
                 continue
             out.append(
                 Bearing(
@@ -494,6 +502,21 @@ class Problem:
         bearing = np.degrees(np.arctan2(d[:, 0], d[:, 1]))
         return (heading[src] + ath - bearing + 180.0) % 360.0 - 180.0
 
+    def range_penalty(
+        self, params: FloatArray, bearings: Sequence[Bearing]
+    ) -> FloatArray:
+        """One row per landmark sighting: zero unless the point is closer to
+        its camera than ``min_range_m``."""
+        rows = [b for b in bearings if not b.target_is_scene]
+        if not rows:
+            return np.zeros(0)
+        xy, _ = self.scene_state(params)
+        lms = self.landmark_xy(params)
+        src = np.array([self._index[b.scene] for b in rows], dtype=np.intp)
+        tgt = np.array([self._lm_index[b.target] for b in rows], dtype=np.intp)
+        dist = np.linalg.norm(lms[tgt] - xy[src], axis=1)
+        return np.maximum(0.0, self.config.min_range_m - dist) / 0.1
+
     def residuals(
         self,
         params: FloatArray,
@@ -515,6 +538,7 @@ class Problem:
             out = robust(whitened, cfg.loss, f)
             out[arrows] = robust(whitened[arrows], cfg.hotspot_loss, f)
             parts.append(out)
+            parts.append(self.range_penalty(params, bearings))
         for m in range(len(lay.models)):
             rot, tx, ty, log_s = params[4 * m : 4 * m + 4]
             parts.append(
@@ -591,6 +615,17 @@ class Problem:
             for c in cols:
                 pattern[r, c] = 1
             r += 1
+        for b in bearings:
+            if b.target_is_scene:
+                continue
+            j = self._lm_index[b.target]
+            for c in [
+                *scene_cols(self._index[b.scene]),
+                lay.lm_off + 2 * j,
+                lay.lm_off + 2 * j + 1,
+            ]:
+                pattern[r, c] = 1
+            r += 1
         for m in range(len(lay.models)):
             for k in range(4):
                 pattern[r, 4 * m + k] = 1
@@ -641,7 +676,12 @@ class Problem:
         # sighting's weight: Gauss-Newton on the robust cost.
         jac = result.jac
         dense = jac.toarray() if hasattr(jac, "toarray") else np.asarray(jac)
-        cov = np.linalg.pinv(dense.T @ dense)
+        normal = dense.T @ dense
+        # Eigen-inverse with a floor: a direction the data barely constrain
+        # gets a large variance (pinv would report zero for it).
+        values, vectors = np.linalg.eigh((normal + normal.T) / 2.0)
+        floor = max(float(values.max()), 1.0) * 1e-12
+        cov = (vectors / np.maximum(values, floor)) @ vectors.T
         # Scale by the reduced chi-square when the fit is worse than the
         # sigmas claim (never shrink below them).
         m, n = dense.shape

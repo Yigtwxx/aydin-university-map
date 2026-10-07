@@ -202,6 +202,7 @@ def survey_solve(
     )
     priors, links, heights = survey_inputs(run, scenes, survey)
     solution = solve_survey(priors, links, survey)
+    old_map = {s: (float(r["x"]), float(r["y"])) for s, r in base_poses(run).items()}
     sightings: dict[str, int] = {
         scene: len(notes.sightings) for scene, notes in survey.scenes.items()
     }
@@ -230,6 +231,13 @@ def survey_solve(
                 **asdict(p),
                 "z": heights.get(scene, DEFAULT_TRIPOD_M),
                 "sightings": sightings.get(scene, 0),
+                "map_shift_m": (
+                    round(
+                        math.hypot(p.x - old_map[scene][0], p.y - old_map[scene][1]), 2
+                    )
+                    if scene in old_map
+                    else None
+                ),
                 "prior": asdict(priors[scene]) if scene in priors else None,
             }
             for scene, p in solution.poses.items()
@@ -274,6 +282,9 @@ def survey_residuals(
         list[str] | None, typer.Option("--scene", help="Only these scenes.")
     ] = None,
     worst: Annotated[int, typer.Option(help="Show the N largest.")] = 30,
+    kind: Annotated[
+        str | None, typer.Option(help="Only 'landmark' or 'hotspot' rows.")
+    ] = None,
     file: Annotated[
         Path | None,
         typer.Option(help="Solve output (default: data/derived/survey.json)."),
@@ -286,7 +297,8 @@ def survey_residuals(
     rows = [
         r
         for r in data["residuals"]
-        if not wanted or r["scene"] in wanted or r["target"] in wanted
+        if (not wanted or r["scene"] in wanted or r["target"] in wanted)
+        and (kind is None or r["kind"] == kind)
     ]
     rows.sort(key=lambda r: -abs(r["residual_deg"]) / r["sigma_deg"])
     for r in rows[:worst]:

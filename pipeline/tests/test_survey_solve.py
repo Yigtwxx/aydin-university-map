@@ -278,3 +278,30 @@ def test_reported_uncertainty_has_a_floor() -> None:
     for est in solution.poses.values():
         assert est.ellipse[1] >= 0.3 - 1e-9, f"{est.scene}: {est.ellipse}"
         assert est.sigma_heading_deg >= 0.5 - 1e-9
+
+
+def test_stacked_panoramas_do_not_poison_the_covariance() -> None:
+    priors = _distorted_priors(0.0, (0.0, 0.0))
+    # Two panoramas the old map put on one spot, linked by a tour arrow.
+    priors["s6"] = PriorPose("s6", 20.0, 15.0, 0.0, None, "interpolated")
+    links = [TourLink("s2", "s6", 10.0), TourLink("s6", "s2", 190.0)]
+    solution = solve_survey(priors, links, _survey())
+    # s6 has no sightings and no usable arrow: its ellipse is its prior's.
+    assert solution.poses["s6"].ellipse[0] > 10.0
+    assert solution.poses["s2"].ellipse[0] < 1.0
+
+
+def test_a_tie_point_never_collapses_onto_its_camera() -> None:
+    lms = {"door": Landmark("door", math.nan, math.nan, None, "tie")}
+    door = (14.0, 13.0)  # 5 m from s1, seen nearly along s1->s2
+    extra = {
+        s: [Sighting("door", _ath(TRUE[s], door), 0.2, True)] for s in ("s1", "s2")
+    }
+    solution = solve_survey(
+        _distorted_priors(0.0, (0.0, 0.0)), [], _survey(extra, lms=lms)
+    )
+    est = solution.landmarks.get("door")
+    if est is not None:  # dropped as head-on is also acceptable
+        for s in ("s1", "s2"):
+            x, y, _ = TRUE[s]
+            assert math.hypot(est.x - x, est.y - y) >= 0.9

@@ -1,0 +1,163 @@
+# Area r3b: south of the square (the square's south gate, E Blok's glass front
+# and library entrance, Fabrikalar Caddesi, the hospital and its emergency
+# entrance). Sightings measured with amap look.
+#
+# The south gate is a turnstile hall with four round brick towers under white
+# caps; a tower's centre is the mean of its two silhouette edges.
+# K Blok's corners are tie points, not OSM 7998 vertices: the sightings put its
+# NE corner ~4 m west of 7998#1 and its SE corner ~10-13 m south of 7998#2.
+# 446/447 (Akasya Sokagi) and 249 (P Blok on Birlik Caddesi) have no anchored
+# neighbours: their poses rest on inits, priors and one OSM corner at most.
+
+[scenes.scene_428536]
+pose = "free"
+init = [-1.1, -34.6, 281.0]
+prior_sigma_m = 25.0
+note = "inside the south gate on the square; gate towers 6-13 m S, E Blok 20 m W, main gate 80 m NE"
+obs = [
+  { lm = "E#2", ath = 34.13, snapped = true },
+  { lm = "D#1", ath = 60.95, sigma_deg = 1.0 },
+  { lm = "r2.gate.col.n", ath = 126.12, sigma_deg = 0.5 },
+  { lm = "r2.gate.col.s", ath = 137.64, sigma_deg = 0.5 },
+  { lm = "r3b.sgate.flag.eu", ath = 196.4, sigma_deg = 0.25 },
+  { lm = "r3b.sgate.flag.tr", ath = 206.4, sigma_deg = 0.25 },
+  { lm = "r3b.sgate.flag.white", ath = 213.32, sigma_deg = 0.25 },
+  { lm = "r3b.sgate.board.black_end", ath = 180.98, snapped = true },
+  { lm = "r3b.sgate.board.white_end", ath = 217.88, snapped = true },
+  { lm = "r3b.sgate.tower.ne", ath = 228.1, sigma_deg = 0.3 },
+  { lm = "r3b.sgate.tower.nw", ath = 290.45, sigma_deg = 0.3 },
+]
+
+[scenes.scene_428537]
+pose = "free"
+init = [-8.6, -42.1, 10.0]
+prior_sigma_m = 25.0
+note = "just NW of the south gate hall (NW tower 4 m S), E Blok's glass entrance 10 m W"
+obs = [
+  { lm = "r3b.sgate.flag.eu", ath = 59.36, sigma_deg = 0.25 },
+  { lm = "r3b.sgate.flag.tr", ath = 65.2, sigma_deg = 0.25 },
+  { lm = "r3b.sgate.flag.white", ath = 70.8, sigma_deg = 0.25 },
+  { lm = "r3b.sgate.board.black_end", ath = 52.57, snapped = true },
+  { lm = "r3b.sgate.board.white_end", ath = 73.22, snapped = true },
+  { lm = "r3b.sgate.tower.ne", ath = 81.25, sigma_deg = 0.3 },
+  { lm = "r3b.sgate.tower.nw", ath = 155.47, sigma_deg = 0.5 },
+  { lm = "r2.a.tower.e", ath = 22.02, snapped = true },
+  { lm = "r2.a.tower.w", ath = 18.1, sigma_deg = 0.5 },
+  { lm = "r2.gate.col.n", ath = 38.11, sigma_deg = 0.5 },
+  { lm = "r2.gate.col.s", ath = 48.31, sigma_deg = 0.5 },
+  { lm = "r2.flag.plaza", ath = 9.26, sigma_deg = 0.25 },
+  { lm = "D#1", ath = 344.04, sigma_deg = 0.6 },
+]
+
+[scenes.scene_428539]
+pose = "free"
+init = [-17.4, -55.3, 250.0]
+prior_sigma_m = 25.0
+note = "terrace in front of E Blok's glass entrance, inside the street fence"
+obs = [
+  { lm = "r3b.sgate.tower.nw", ath = 172.41, sigma_deg = 0.3 },
+  { lm = "r3b.sgate.tower.sw", ath = 191.43, sigma_deg = 0.3 },
+  { lm = "r2.flag.plaza", ath = 143.62, sigma_deg = 0.2 },
+  { lm = "r2.a.tower.w", ath = 149.35, sigma_deg = 0.4 },
+  { lm = "r2.a.tower.e", ath = 152.91, snapped = true },
+  { lm = "r3b.e.drum", ath = 81.6, sigma_deg = 0.6 },
+  { lm = "r3b.e.annex.fascia_w", ath = 36.8, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428576]
+pose = "free"
+init = [2.4, -54.4, 250.0]
+prior_sigma_m = 25.0
+note = "Kampus Girisi: on Fabrikalar Caddesi's carriageway (zebra stripe underfoot) facing the south gate; hospital north face behind"
+obs = [
+  { lm = "r3b.sgate.tower.sw", ath = 54.79, sigma_deg = 0.3 },
+  { lm = "r3b.sgate.tower.se", ath = 137.49, sigma_deg = 0.3 },
+  { lm = "7989#0", ath = 198.77, snapped = true },
+  { lm = "r3b.kblok.ne", ath = 353.0, snapped = true },
+  { lm = "r3b.bridge.col_s", ath = 355.55, sigma_deg = 0.6 },
+]
+
+[scenes.scene_428577]
+pose = "free"
+init = [-18.3, -63.2, 247.0]
+prior_sigma_m = 25.0
+note = "on Fabrikalar Caddesi's carriageway outside E Blok's glass front; pedestrian bridge and K Blok WSW"
+obs = [
+  { lm = "r3b.sgate.tower.nw", ath = 147.55, sigma_deg = 0.3 },
+  { lm = "r3b.sgate.tower.sw", ath = 158.8, sigma_deg = 0.4 },
+  { lm = "r2.flag.plaza", ath = 132.7, sigma_deg = 0.2 },
+  { lm = "7989#0", ath = 190.55, sigma_deg = 0.4 },
+  { lm = "r3b.kblok.ne", ath = 342.9, snapped = true },
+  { lm = "r3b.bridge.col_s", ath = 345.8, sigma_deg = 0.6 },
+  { lm = "r3b.e.drum", ath = 89.55, sigma_deg = 0.6 },
+]
+
+[scenes.scene_428460]
+pose = "free"
+init = [21.7, -55.9, 309.0]
+prior_sigma_m = 30.0
+note = "Hastane Giris: on Fabrikalar Caddesi in front of the hospital's north forecourt (SAGLIGA GIDEN YOL banner), pink 7989 E; looks N over the campus fence at A Blok"
+obs = [
+  { lm = "A#1", ath = 37.83, snapped = true },
+  { lm = "r2.flag.plaza", ath = 35.6, sigma_deg = 0.2 },
+  { lm = "r2.a.tower.w", ath = 54.95, sigma_deg = 0.3 },
+  { lm = "r2.a.tower.e", ath = 60.55, sigma_deg = 0.3 },
+  { lm = "A#2", ath = 72.51, sigma_deg = 0.6 },
+  { lm = "r3b.sgate.tower.se", ath = 341.05, sigma_deg = 0.3 },
+  { lm = "r3b.sgate.tower.ne", ath = 350.45, sigma_deg = 0.3 },
+]
+
+[scenes.scene_428459]
+pose = "free"
+init = [-26.0, -76.4, 75.0]
+prior_sigma_m = 30.0
+note = "Hastane Giris: mouth of the lane between the hospital (9810) and K Blok, on Fabrikalar Caddesi's south side"
+obs = [
+  { lm = "r3b.e.drum", ath = 282.7, sigma_deg = 0.6 },
+  { lm = "r2.flag.plaza", ath = 304.61, sigma_deg = 0.2 },
+  { lm = "r2.a.tower.w", ath = 309.05, sigma_deg = 0.4 },
+  { lm = "r2.a.tower.e", ath = 312.2, sigma_deg = 0.4 },
+  { lm = "r3b.kblok.ne", ath = 173.27, sigma_deg = 0.6 },
+  { lm = "r3b.kblok.se", ath = 97.54, sigma_deg = 0.5 },
+  { lm = "r3b.bridge.col_s", ath = 194.2, sigma_deg = 0.6 },
+  { lm = "r3b.e.annex.fascia_w", ath = 248.89, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428458]
+pose = "free"
+init = [-20.0, -125.0, 85.0]
+prior_sigma_m = 12.0
+note = "Acil Giris: in the lane west of the hospital, at the south end of its ACIL/EMERGENCY notch; K Blok SE corner 9 m W, Dentaydin (8001) S, lane N to Fabrikalar Caddesi and S to Akasya Sokagi. Position along the lane +-5 m"
+obs = [
+  { lm = "r3b.kblok.ne", ath = 247.34, snapped = true },
+  { lm = "r3b.kblok.se", ath = 175.35, snapped = true },
+  { lm = "r3b.e.annex.fascia_w", ath = 255.76, sigma_deg = 0.5 },
+]
+
+[scenes.scene_428446]
+pose = "free"
+init = [6.0, -183.0, 345.0]
+prior_sigma_m = 10.0
+prior_sigma_deg = 15.0
+note = "Tip Fakultesi Hastanesi Giris: on 1. Akasya Sokagi (hospital address Akasya Sk. No:4) south of the hospital's main-entrance canopy; street axis at ath 95/275, T Blok brick wall S, Dentaydin (8001) NW with flags and ACIL sign in front, ACIL lane NW. Weak: one OSM corner, position mostly from init and arrows"
+obs = [
+  { lm = "8001#3", ath = 290.43, sigma_deg = 1.5 },
+]
+
+[scenes.scene_428447]
+pose = "free"
+init = [10.0, -167.0, 340.0]
+prior_sigma_m = 10.0
+prior_sigma_deg = 15.0
+note = "Tip Fakultesi Hastanesi Giris: in front of the hospital's curved main-entrance canopy (door at ath 4.5, tour link to 457 Hasta Kabul). Weak: one OSM corner, position mostly from init and arrows"
+obs = [
+  { lm = "8001#3", ath = 272.2, sigma_deg = 1.5 },
+]
+
+[scenes.scene_428249]
+pose = "free"
+init = [-85.0, -116.0, 90.0]
+prior_sigma_m = 25.0
+prior_sigma_deg = 15.0
+note = "Kutuphane Giris = P Blok library (Bilgi Merkezi, Birlik Cad. 17-19) on Birlik Caddesi's east sidewalk; street axis at ath ~74/248. Outside the surveyed network: no outdoor neighbour sees the same features, both tour arrows (577, 446) are route jumps. Placed by address only"
+obs = []
