@@ -36,7 +36,7 @@ export const groundColors = {
  * the order alone decides what sits on top; see GroundLayer).
  */
 export const layers = {
-  /** Lift above the base ground (m); with polygon offset this beats depth precision. */
+  /** Lift above the base ground (m); with DepthRange's near plane it beats depth precision. */
   lift: 0.05,
   areas: 1,
   greenery: 2,
@@ -47,11 +47,15 @@ export const layers = {
   route: 9,
 } as const;
 
-/** Flat overlays never write depth and are pulled towards the camera. */
+/**
+ * Flat overlays never write depth and are pulled a constant step towards the
+ * camera. No slope factor: it grows with distance and at the overview pulled
+ * the paving over the 15 cm lawns and the feet of the furniture.
+ */
 export const OVERLAY = {
   depthWrite: false,
   polygonOffset: true,
-  polygonOffsetFactor: -2,
+  polygonOffsetFactor: 0,
   polygonOffsetUnits: -2,
 } as const;
 
