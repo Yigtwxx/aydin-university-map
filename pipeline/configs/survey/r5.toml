@@ -1,5 +1,13 @@
 # Area r5: T Blok (Sosyal Bilimler Kampusu) and its sunken garden on Akasya Sokagi.
 # Sightings measured with amap look.
+# 2026-10-08 T garden pass: 784-792 resected on T's own corners (T#1 east end,
+# T#2 south corner, T#3 west corner), Biruni's corner (tie, ~2852#2) and 9833;
+# 784/785 see only T#3 over the 5 m wall, so their priors come from the near
+# depression distances (agree with the furniture.toml t-garden layout to ~1.3 m).
+# Not used: 9811#2 / 2839#1 (balconied flats over the wall; their OSM corners
+# disagree with 786's well-fixed heading by 2-6 deg, they distorted the
+# rejected attempt). Tour arrows 783<->784 follow the stair and 791->792 the
+# walk (792 is up in the forecourt behind the fence), so they stay outliers.
 
 [scenes.scene_428782]
 pose = "free"
@@ -14,91 +22,130 @@ obs = [
 
 [scenes.scene_428783]
 pose = "free"
-init = [-17.0, -205.0, 67.0]
+init = [-3.0, -204.0, 47.0]
 prior_sigma_m = 20.0
 prior_sigma_deg = 15.0
-note = "inside the turnstile pavilion, terrace in front of the glass lobby"
+note = "inside the turnstile pavilion, terrace in front of the glass lobby, ~4 m inside T's roof line (soffit overhead). 2026-10-08: L#3 is the left end of L's grey facade (the white flats left of it are another building; 782 sees the same edge), L#2 the right edge of the L BLOK pillar; T#3 is the top of T's west corner over the end of the terrace colonnade (which ends 4 deg earlier, at 206.3)"
 obs = [
-  { lm = "8001#3", ath = 278.6, sigma_deg = 0.4 },
-  { lm = "8001#2", ath = 307.6, snapped = true },
+  { lm = "8001#3", ath = 281.5, sigma_deg = 0.6 },
+  { lm = "8001#2", ath = 308.2, sigma_deg = 0.5 },
+  { lm = "T#3", ath = 210.1, sigma_deg = 1.0 },
 ]
 
 [scenes.scene_428784]
-note = "stair foot below the pavilion, garden level; no usable ties found (only arrows), position from init"
 pose = "free"
-init = [-15.6, -197.1, 191.2]
-prior_sigma_m = 10.0
+init = [-13.7, -201.7, 157.0]
+prior_sigma_m = 1.5
 prior_sigma_deg = 25.0
-obs = []
+note = "stair foot, garden level. Prior from the panorama itself: the facade foot is 1.8-2.1 m away (depression of the glass sill line at ath 62-83) and T's west corner foot ~26-28 m (depression 3.3-3.5 deg at ath 90). No other landmark is visible over the 5 m wall"
+obs = [
+  { lm = "T#3", ath = 89.75, sigma_deg = 0.6 },
+]
 
 [scenes.scene_428785]
 pose = "free"
-init = [-23.4, -195.0, 57.7]
-prior_sigma_m = 10.0
+init = [-30.5, -207.75, 28.0]
+prior_sigma_m = 1.0
 prior_sigma_deg = 25.0
+note = "NW garden walk ~1.8 m off T's NW face; prior from the west corner foot at 8.5-9.1 m (depression 10.0-10.6 deg at ath 213.6)"
 obs = [
-  { lm = "r5.corner_pier.edge", ath = 184.02 },
+  { lm = "T#3", ath = 213.6, sigma_deg = 1.0 },
 ]
 
 [scenes.scene_428786]
 pose = "free"
-init = [-26.8, -194.3, 109.6]
-prior_sigma_m = 10.0
+init = [-40.95, -211.9, 76.5]
+prior_sigma_m = 3.0
 prior_sigma_deg = 25.0
+note = "just outside T's west corner (the corner arris 3 m away at ath 19.1)"
 obs = [
-  { lm = "r5.corner_pier.edge", ath = 19.44 },
+  { lm = "T#3", ath = 19.1, sigma_deg = 1.0 },
+  { lm = "T#2", ath = 82.8, sigma_deg = 0.8 },
+  { lm = "r5.biruni.se", ath = 95.5, sigma_deg = 1.0 },
 ]
 
 [scenes.scene_428787]
 pose = "free"
-init = [-28.7, -202.2, 43.2]
-prior_sigma_m = 10.0
+init = [-32.55, -236.75, 11.0]
+prior_sigma_m = 3.0
 prior_sigma_deg = 25.0
+note = "SW garden walk ~2.5 m off T's SW face, ~25 m from the west corner"
 obs = [
-  { lm = "r5.corner_pier.edge", ath = 8.3 },
+  { lm = "T#3", ath = 337.6, sigma_deg = 0.6 },
+  { lm = "T#2", ath = 148.75, sigma_deg = 0.6 },
 ]
 
 [scenes.scene_428788]
 pose = "free"
-init = [-30.5, -209.5, 102.9]
-prior_sigma_m = 10.0
+init = [-23.9, -262.3, 69.0]
+prior_sigma_m = 5.0
 prior_sigma_deg = 25.0
-obs = []
+note = "start of T's brick arcade on the SW face (~52 m from the west corner); side doors of 756 at ath 350-21"
+obs = [
+  { lm = "T#3", ath = 274.3, sigma_deg = 0.6 },
+  { lm = "T#2", ath = 88.3, sigma_deg = 0.6 },
+  { lm = "r5.biruni.se", ath = 118.5, sigma_deg = 0.8 },
+  { lm = "r5.sidedoor.jamb_nw", ath = 350.5, sigma_deg = 0.6 },
+  { lm = "r5.sidedoor.jamb_se", ath = 12.46, sigma_deg = 0.6 },
+]
 
 [scenes.scene_428789]
 pose = "free"
-init = [-32.5, -217.8, 113.2]
-prior_sigma_m = 10.0
+init = [-17.9, -279.3, 79.0]
+prior_sigma_m = 6.0
 prior_sigma_deg = 25.0
-obs = []
+note = "along the SW arcade between 788 and the south corner"
+obs = [
+  { lm = "T#3", ath = 262.85, sigma_deg = 0.6 },
+  { lm = "T#2", ath = 75.1, sigma_deg = 0.6 },
+  { lm = "r5.sidedoor.jamb_nw", ath = 275.9, sigma_deg = 1.0 },
+  { lm = "r5.biruni.se", ath = 121.8, sigma_deg = 0.8 },
+]
 
 [scenes.scene_428790]
 pose = "free"
-init = [-33.7, -225.1, 37.0]
-prior_sigma_m = 10.0
+init = [-11.9, -296.9, 3.0]
+prior_sigma_m = 5.0
 prior_sigma_deg = 25.0
-obs = []
+note = "outside T's south corner pier (arris 3.3 m away at ath 34.5); the walk turns from the SW face (789 at ath 338) to the SE face (791 at ath 66)"
+obs = [
+  { lm = "T#3", ath = 339.6, sigma_deg = 0.6 },
+  { lm = "T#2", ath = 34.5, sigma_deg = 1.0 },
+  { lm = "r5.biruni.se", ath = 246.2, sigma_deg = 0.6 },
+]
 
 [scenes.scene_428791]
 pose = "free"
-init = [-33.7, -218.4, 121.5]
-prior_sigma_m = 10.0
+init = [11.0, -288.5, 351.0]
+prior_sigma_m = 4.0
 prior_sigma_deg = 25.0
-obs = []
+note = "fenced walk along T's SE face, ~1.5 m out; side door to the foyer (727) at ath 41. Its arrow to 792 (ath 77) points along the walk, not at 792 in the forecourt"
+obs = [
+  { lm = "T#2", ath = 263.4, sigma_deg = 0.6 },
+  { lm = "r5.biruni.se", ath = 258.3, sigma_deg = 0.6 },
+]
 
 
 [scenes.scene_428756]
 pose = "free"
-init = [-25.0, -211.0, 161.0]
-prior_sigma_m = 12.0
-prior_sigma_deg = 25.0
-note = "T Blok Yan Giris: at the glass side doors of the west colonnade, ~6 m ESE of 428788 (tour arrow). No sightings: position is init + arrows only"
-obs = []
+init = [-19.2, -260.7, 128.0]
+prior_sigma_m = 5.0
+prior_sigma_deg = 30.0
+note = "T Blok Yan Giris: indoors, in the lobby behind the side glass doors on the SW arcade (788's arrow at ath 2); the outer glass wall's jambs (dark inside, aluminium outside) at ath 113.0 (SE) and 134.6 (NW), the inner sliding doors between them"
+obs = [
+  { lm = "r5.sidedoor.jamb_se", ath = 113.0, sigma_deg = 1.0 },
+  { lm = "r5.sidedoor.jamb_nw", ath = 134.6, sigma_deg = 1.0 },
+]
 
 [scenes.scene_428792]
 pose = "free"
-init = [-35.0, -224.0, 120.0]
-prior_sigma_m = 12.0
-prior_sigma_deg = 90.0
-note = "T Blok Giris at the SW corner porch, ~5 m SSW of 428791 (tour arrow 791->792 at ath 77). No sightings: init + arrows only"
-obs = []
+init = [22.0, -296.0, 4.0]
+prior_sigma_m = 8.0
+prior_sigma_deg = 30.0
+note = "T Blok Giris: forecourt ~13 m out from T's SE face, in front of the glass rotunda (ath 320-350; arrow to the foyer at 339); street with parked cars at ath 60-250; 9833#3 = left edge of the white block with the roof terrace across the street. T#1 = T's east end against the pink building, T#2 = the south corner; Biruni's corner is a silhouette edge (its SW or SE corner from here), hence 1.5 deg"
+obs = [
+  { lm = "T#1", ath = 50.55, sigma_deg = 0.5 },
+  { lm = "T#2", ath = 270.95, sigma_deg = 0.6 },
+  { lm = "r5.biruni.se", ath = 257.9, sigma_deg = 1.5 },
+  { lm = "9833#3", ath = 138.45, sigma_deg = 1.0 },
+]
