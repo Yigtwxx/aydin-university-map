@@ -6,7 +6,7 @@ from typing import Annotated, Any
 
 import typer
 
-from amap_contracts.graph import Graph
+from amap_contracts.graph import Graph, Node, NodeKind
 from amap_pipeline import paths
 from amap_pipeline.export.furniture import build_furniture, read_furniture
 from amap_pipeline.geo.align import footprint_union
@@ -69,19 +69,41 @@ def merge_poses(georefs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {scene: record for scene, (_, record) in best.items()}
 
 
-def largest_component(graph: Graph) -> tuple[Graph, list[list[str]]]:
-    """Only the main walking network: a place on an island could never be reached."""
+def is_door(node: Node) -> bool:
+    """An entrance whose position is measured, not borrowed."""
+    return node.kind is NodeKind.ENTRANCE and not node.approximate
+
+
+def is_site(graph: Graph, component: list[str]) -> bool:
+    """A separate site: an island with a measured entrance of its own.
+
+    The girls' dormitory stands ~600 m from the campus; the tour reaches it
+    only through teleport links, so it is an island, yet a real place with a
+    measured door that people walk to along the street.
+    """
+    members = set(component)
+    return any(n.id in members and is_door(n) for n in graph.nodes)
+
+
+def main_network(graph: Graph) -> tuple[Graph, list[list[str]], list[list[str]]]:
+    """The main walking network plus separate sites; drop the other islands.
+
+    A stray island (no measured door) could never be reached and is dropped;
+    returns the kept graph, the dropped islands and the kept sites.
+    """
     comps = components(graph)
     if len(comps) <= 1:
-        return graph, []
-    keep = set(comps[0])
+        return graph, [], []
+    sites = [c for c in comps[1:] if is_site(graph, c)]
+    islands = [c for c in comps[1:] if not is_site(graph, c)]
+    keep = set(comps[0]).union(*sites)
     kept = graph.model_copy(
         update={
             "nodes": [n for n in graph.nodes if n.id in keep],
             "edges": [e for e in graph.edges if e.source in keep and e.target in keep],
         }
     )
-    return kept, comps[1:]
+    return kept, islands, sites
 
 
 @app.command("export")
@@ -92,7 +114,11 @@ def graph_export(
     max_link_m: Annotated[float, typer.Option(help="Longer links are teleports.")] = 60,
     infer_radius_m: Annotated[float, typer.Option(help="Line-of-sight radius.")] = 35,
     keep_islands: Annotated[
-        bool, typer.Option(help="Keep components cut off from the main network.")
+        bool,
+        typer.Option(
+            help="Keep every island; by default only separate sites with a "
+            "measured entrance (the dormitory) stay beside the main network."
+        ),
     ] = False,
     indoor: Annotated[
         bool, typer.Option(help="Add indoor panoramas through the tour's links.")
@@ -154,8 +180,12 @@ def graph_export(
     if climbing:
         typer.echo(f"outdoor stairs: {len(climbing)} edges over {len(flights)} flights")
     islands: list[list[str]] = []
+    sites: list[list[str]] = []
     if not keep_islands:
-        graph, islands = largest_component(graph)
+        graph, islands, sites = main_network(graph)
+    for site in sites:
+        doors = [n.label.en for n in graph.nodes if n.id in site and is_door(n)]
+        typer.echo(f"separate site: {len(site)} nodes, door {', '.join(doors)}")
     blocked = blocked_edges(graph, footprints)
     if blocked:
         raise typer.BadParameter(f"edges cut through buildings: {blocked}")
@@ -177,6 +207,7 @@ def graph_export(
                 "snapped": report.snapped,
                 "detoured": report.detoured,
                 "islands": islands,
+                "sites": sites,
                 "bridges": report.bridged,
                 "passages": [e.id for e in graph.edges if e.passage],
                 "menu_jumps": report.indoor.menu_jumps,

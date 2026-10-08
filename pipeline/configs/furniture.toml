@@ -188,15 +188,21 @@ edge = "wall"
 # face, a pocket bench 7.7 m before it and the vent box (r 2.5-6.3) 18.8 m back.
 # The 2026-10-08 survey poses of 784 (24 m from 783), 787 and 788 (r ~5-6, 1 m
 # apart) contradict these views. The south end (r 52) is uncertain by +-5 m.
+# 2026-10-08 (survey r5 solved): the walk goes on at the same level past 788,
+# round T's south corner and along the SE face to the forecourt wall 10.4 m
+# past 791; the outline follows fence-t-5 and fence-t-6 there (no step on the
+# way: 788 @90, 789 @80, 790 @335, 791 @75).
 outline = [
   [-12.9, -203.5], [-14.5, -199.0], [-46.8, -208.0], [-44.7, -214.5], [-38.3, -237.6],
-  [-36.3, -246.5], [-30.1, -264.5], [-21.2, -261.4], [-38.1, -212.2],
+  [-36.3, -246.5], [-30.1, -264.5], [-23.6, -265.4], [-21.5, -271.9], [-26.2, -273.7],
+  [-15.6, -300.3], [21.3, -286.6], [19.9, -282.8], [-10.0, -293.1], [-38.1, -212.2],
 ]
 note = "sunken garden walk round T's west corner, one storey (16 risers, ~2.9 m) below the entrance canopy and the street"
 evidence = [
   { scene = "scene_428784", ath = 268, note = "16 risers of 0.18 m (tread 0.30 m) fitted to the nosing angles: the walk is ~2.9 m below the canopy floor at 783; arrow to 'T Blok -1.Kat'" },
   { scene = "scene_428786", ath = 0, note = "west corner: NW-face walk 3.4 m wide to the lawn kerb, SW-face walk with the bench row; legs 90 deg apart" },
   { scene = "scene_428788", ath = 270, note = "south end: lawn ends 1.5 m before 788, brick arcade and a gate in the wall begin" },
+  { scene = "scene_428791", ath = 78, note = "SE walk ends at a 1.8 m brick wall up to the forecourt, foot 8.5 deg down -> 10.4 m" },
 ]
 
 # ------------------------------------------------------------------ stairs
@@ -674,6 +680,40 @@ line = [[-38.3, -237.6], [-36.3, -246.5], [-33.0, -256.0]]
 height_m = 2.0
 base_z = -2.9
 evidence = [{ scene = "scene_428788", ath = 110, note = "plinth fence at the walk's level receding north-west from a corner pier 2.7 m away; sliding gate east of it" }]
+
+# T garden south of 788, 2026-10-08, measured on the local panoramas with the
+# solved r5 poses; r = metres along T's SW face from its west corner, off =
+# metres out from the face (SE run: along the SE face from the south corner).
+[[railings]]
+id = "fence-t-5"
+style = "fence"
+# SW walk: along the walk edge from the gate pier (r 55, off 3.7) to r 62, out
+# round the guard kiosk's yard, then behind the lawn (off 8.9 -> 7.6) to the
+# corner past T's south corner (r 90.6)
+line = [[-23.6, -265.4], [-21.5, -271.9], [-26.2, -273.7], [-15.6, -300.3]]
+height_m = 2.0
+base_z = -2.9
+evidence = [
+  { scene = "scene_428788", ath = 123, note = "gate pier 2.9 m (foot 28.3 deg down); plinth foot on the paving, piers at 5.9 m (ath 108, 14.9 deg) and 9.5 m (ath 102, 9.4 deg), 1.6-1.7 m from the walk line; lawn and hedge start behind the last pier" },
+  { scene = "scene_428789", ath = 254, note = "the walk-edge piers recede north-west where the lawn ends; the run behind the lawn turns out to them past the kiosk" },
+  { scene = "scene_428789", ath = 160, note = "plinth foot behind the lawn 7.0-7.6 m (ath 141-184, 11.6-12.7 deg down): 8.6-9.1 m off the SW face at r 66-71" },
+  { scene = "scene_428790", ath = 216, note = "corner of the plinth 5.7 m (foot 14.9 deg down on the bark bed); the SW run passes 5.1 m away at ath 251 (7.9 m off the face)" },
+]
+
+[[railings]]
+id = "fence-t-6"
+style = "fence"
+# SE walk: from the corner along T's SE face (off 5.0 -> 4.0) to the last pier
+# at the forecourt wall, 31.7 m along; arched iron sections at the corner and
+# at 791, all on the plinth
+line = [[-15.6, -300.3], [21.3, -286.6]]
+height_m = 2.0
+base_z = -2.9
+evidence = [
+  { scene = "scene_428790", ath = 140, note = "the run leaves the corner 5.0 m off the SE face; arched iron section between piers at ath 110 and 175" },
+  { scene = "scene_428791", ath = 100, note = "piers at ath 92.5, 99.7 and 120.5 fit a line 4.0 m off the SE face at 3.8 m spacing; the last one meets the forecourt wall 10.4 m along the walk (ath 78)" },
+  { scene = "scene_428791", ath = 124, note = "bed kerb 1.5 m from the walk line, plinth behind the shrubs (feet hidden)" },
+]
 
 # ----------------------------------------------------------------- seating
 
