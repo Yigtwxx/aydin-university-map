@@ -44,6 +44,8 @@ export interface GraphEdge {
   target_yaw_deg?: number | null;
   /** A walk through a building between two doors: never drawn on the map. */
   passage?: boolean;
+  /** The line crosses seating or a hedge, or a wall with no flight noted. */
+  crosses?: 'soft' | 'barrier' | null;
   /** 'tour': walked between two panoramas; 'inferred': added by line of sight. */
   origin?: 'tour' | 'inferred';
 }

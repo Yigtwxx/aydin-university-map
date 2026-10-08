@@ -10,6 +10,7 @@ import {
   gapDoors,
   mapNodeId,
   routeMapIds,
+  routeMatchesGraph,
   routeParts,
   shownFloor,
   spellsOtherFloor,
@@ -106,6 +107,25 @@ describe('routeParts', () => {
     // Into a room: the door is the destination pin's place already.
     const inside = [gate, door, hall, lab];
     expect(gapDoors(routeParts(inside, graph(false)))).toEqual([]);
+  });
+});
+
+describe('routeMatchesGraph', () => {
+  const graph = graphOf([
+    edge('door', 'gate', { kind: 'outdoor' }),
+    edge('door', 'hall'),
+  ]);
+
+  it('accepts a route over the graph’s own nodes and edges', () => {
+    expect(routeMatchesGraph(['gate', 'door', 'hall'], graph)).toBe(true);
+  });
+
+  it('rejects a hop the graph has no edge for (a newer graph)', () => {
+    expect(routeMatchesGraph(['gate', 'hall'], graph)).toBe(false);
+  });
+
+  it('rejects a node the graph does not have', () => {
+    expect(routeMatchesGraph(['gate', 'door', 'annex'], graph)).toBe(false);
   });
 });
 

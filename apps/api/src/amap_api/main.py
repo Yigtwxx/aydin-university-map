@@ -7,6 +7,8 @@ module (tests, OpenAPI export) never reads the local ``.env``.
 import logging
 import math
 import os
+import threading
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -18,6 +20,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 from amap_api import __version__
 from amap_api.assistant.agent import (
@@ -30,7 +33,7 @@ from amap_api.assistant.knowledge import Knowledge
 from amap_api.assistant.testing import offline_model
 from amap_api.db import Database
 from amap_api.directions import instruction
-from amap_api.graph_store import GraphStore, load_graph, load_pois
+from amap_api.graph_store import GraphStore, load_graph, load_pois, source_version
 from amap_api.http_cache import CachedJson
 from amap_api.places import Place, build_places, search_places
 from amap_api.rate_limit import TokenBucket
@@ -56,8 +59,11 @@ log = logging.getLogger("amap_api")
 os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
 
 MAX_CHAT_CHARS = 1000
-# The graph and the place directory change only when the API restarts.
+# The graph and the place directory change when a new graph is published.
 CACHE_MAX_AGE_S = 300
+# A published graph is picked up this soon by a running instance: a local
+# file is checked every second, the asset host (a HEAD request) twice a minute.
+GRAPH_RECHECK_S = {"path": 1.0, "url": 30.0}
 # About three questions a minute per visitor, with a short burst.
 CHAT_BUCKET = TokenBucket(capacity=6, refill_per_s=1 / 20)
 
@@ -81,7 +87,112 @@ def _last_user_chars(body: dict[str, Any]) -> int:
     return 0
 
 
+def place_out(place: Place) -> PlaceOut:
+    return PlaceOut(
+        id=place.id,
+        name_tr=place.name_tr,
+        name_en=place.name_en,
+        kind=place.kind,
+        building=place.building,
+        node_ids=list(place.node_ids),
+        floor=place.floor,
+        area_tr=place.area_tr,
+        area_en=place.area_en,
+        category=PoiCategory(place.category) if place.category else None,
+        brand=place.brand,
+        aliases=list(place.aliases),
+        pin_enu=place.pin_enu,
+        pin_source=PinSource(place.pin_source) if place.pin_source else None,
+    )
+
+
+class GraphWatch:
+    """Reloads the graph (and what is built from it) when its source changes.
+
+    A warm instance would otherwise route on the graph it started with while
+    the map draws the newly published one: a route over an edge the map does
+    not have breaks the line.
+    """
+
+    def __init__(self, source: str, version: str | None) -> None:
+        self.source = source
+        self.version = version
+        self.checked_at = time.monotonic()
+        is_url = source.startswith(("http://", "https://"))
+        self.interval_s = GRAPH_RECHECK_S["url" if is_url else "path"]
+        self._lock = threading.Lock()
+
+    def refresh(self, app: FastAPI) -> None:
+        if time.monotonic() - self.checked_at < self.interval_s:
+            return
+        if not self._lock.acquire(blocking=False):
+            return  # another request is checking
+        try:
+            self.checked_at = time.monotonic()
+            version = source_version(self.source)
+            if version is None or version == self.version:
+                return
+            try:
+                loaded = load_graph(self.source)
+            except (OSError, httpx.HTTPError, ValueError) as exc:
+                log.warning("walking graph not reloaded: %s", exc)
+                return
+            install_graph(app, loaded, load_pois_or_none(app.state.pois_source))
+            self.version = version
+            log.info("walking graph reloaded (%s)", version)
+        finally:
+            self._lock.release()
+
+
+def load_pois_or_none(source: str) -> list[Any]:
+    try:
+        return load_pois(source)
+    except (OSError, httpx.HTTPError, ValueError) as exc:
+        log.warning("POIs not loaded from %s: %s", source, exc)
+        return []
+
+
+def install_graph(app: FastAPI, loaded: GraphStore | None, pois: list[Any]) -> None:
+    """The graph and the place directory built from it, swapped in at once."""
+    places = build_places(loaded, pois) if loaded else []
+    place_nodes = {
+        p.id: p.node_ids[0]
+        for p in places
+        if p.id.startswith(POI_PLACE_PREFIX) and p.node_ids
+    }
+    # 1.1 MB of GeoJSON: serialised once, compressed per request.
+    graph_json = CachedJson.of(loaded.graph.to_geojson()) if loaded else None
+    # The map lists open areas and doors at measured spots, and every
+    # business or service with a pin (wherever its own panorama is).
+    directory = [
+        place_out(p)
+        for p in places
+        if loaded
+        and not p.closed
+        and (
+            (p.is_poi and p.pin_enu is not None)
+            or (
+                p.kind is not NodeKind.INDOOR
+                and p.id in loaded.nodes
+                and not loaded.nodes[p.id].approximate
+            )
+        )
+    ]
+    app.state.places = places
+    app.state.place_nodes = place_nodes
+    app.state.graph_json = graph_json
+    app.state.directory = directory
+    app.state.store = loaded
+
+
+def fresh_graph(request: Request) -> None:
+    watch: GraphWatch | None = getattr(request.app.state, "graph_watch", None)
+    if watch is not None:
+        watch.refresh(request.app)
+
+
 def require_store(request: Request) -> GraphStore:
+    fresh_graph(request)
     loaded: GraphStore | None = request.app.state.store
     if loaded is None:
         raise HTTPException(503, "walking graph is not loaded")
@@ -111,46 +222,20 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         loaded = store
+        app.state.graph_watch = None
+        app.state.pois_source = cfg.pois_location
         if loaded is None:
+            version = source_version(cfg.graph_source)
             try:
                 loaded = load_graph(cfg.graph_source)
             except (OSError, httpx.HTTPError, ValueError) as exc:
                 log.warning(
                     "walking graph not loaded from %s: %s", cfg.graph_source, exc
                 )
-        app.state.store = loaded
-        pois = []
-        if loaded:
-            try:
-                pois = load_pois(cfg.pois_location)
-            except (OSError, httpx.HTTPError, ValueError) as exc:
-                log.warning("POIs not loaded from %s: %s", cfg.pois_location, exc)
-        app.state.places = build_places(loaded, pois) if loaded else []
-        app.state.place_nodes = {
-            p.id: p.node_ids[0]
-            for p in app.state.places
-            if p.id.startswith(POI_PLACE_PREFIX) and p.node_ids
-        }
-        # 1.1 MB of GeoJSON: serialised once, compressed per request.
-        app.state.graph_json = (
-            CachedJson.of(loaded.graph.to_geojson()) if loaded else None
+            app.state.graph_watch = GraphWatch(cfg.graph_source, version)
+        install_graph(
+            app, loaded, load_pois_or_none(cfg.pois_location) if loaded else []
         )
-        # The map lists open areas and doors at measured spots, and every
-        # business or service with a pin (wherever its own panorama is).
-        app.state.directory = [
-            place_out(p)
-            for p in app.state.places
-            if loaded
-            and not p.closed
-            and (
-                (p.is_poi and p.pin_enu is not None)
-                or (
-                    p.kind is not NodeKind.INDOOR
-                    and p.id in loaded.nodes
-                    and not loaded.nodes[p.id].approximate
-                )
-            )
-        ]
         app.state.http = httpx.AsyncClient()
         app.state.weather = WeatherService(app.state.http, ttl_s=cfg.weather_ttl_s)
         db = database
@@ -188,24 +273,6 @@ def create_app(
         allow_headers=["Content-Type", "X-Amap-Locale"],
         expose_headers=["x-vercel-ai-ui-message-stream"],
     )
-
-    def place_out(place: Place) -> PlaceOut:
-        return PlaceOut(
-            id=place.id,
-            name_tr=place.name_tr,
-            name_en=place.name_en,
-            kind=place.kind,
-            building=place.building,
-            node_ids=list(place.node_ids),
-            floor=place.floor,
-            area_tr=place.area_tr,
-            area_en=place.area_en,
-            category=PoiCategory(place.category) if place.category else None,
-            brand=place.brand,
-            aliases=list(place.aliases),
-            pin_enu=place.pin_enu,
-            pin_source=PinSource(place.pin_source) if place.pin_source else None,
-        )
 
     @app.get("/health", response_model=Health)
     async def health(request: Request) -> Health:
@@ -254,6 +321,7 @@ def create_app(
         measured spots); rooms and doors known only from the tour are found
         by searching.
         """
+        await run_in_threadpool(fresh_graph, request)
         all_places: list[Place] = request.app.state.places
         if not q:
             directory: list[PlaceOut] = request.app.state.directory
@@ -279,6 +347,7 @@ def create_app(
     )
     def place_by_id(request: Request, place_id: str) -> PlaceOut:
         """One place by id: a node id or a business's ``poi:<slug>``."""
+        fresh_graph(request)
         found = next(
             (p for p in request.app.state.places if p.id == place_id and not p.closed),
             None,

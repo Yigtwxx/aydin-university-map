@@ -7,10 +7,14 @@ import {
   FILL,
   type FreeView,
   freeView,
+  hiddenShare,
   mainCluster,
+  type Mass,
+  MAX_HIDDEN,
   OVERVIEW,
   type OverviewFrame,
   overviewFrame,
+  routeView,
 } from './framing';
 
 /** A filled rectangle of points about every `step` metres, edges included. */
@@ -199,5 +203,75 @@ describe('overviewFrame', () => {
     const wide = overviewFrame(points, freeView(1440, 900, 0, 0, 34), 0);
     const narrow = overviewFrame(points, freeView(400, 900, 0, 0, 34), 0);
     expect(narrow.distance).toBeGreaterThan(wide.distance);
+  });
+});
+
+describe('routeView', () => {
+  const view: FreeView = { tanH: 0.6, tanV: 0.4 };
+  // A 20 m route running east, 3 m north of a 12 m block: the overview looks
+  // from the south-south-east, over the block.
+  const route: EnuPoint[] = [
+    [0, 13],
+    [20, 13],
+  ];
+  const block: Mass = {
+    ring: [
+      [-10, -10],
+      [30, -10],
+      [30, 10],
+      [-10, 10],
+    ],
+    height: 12,
+  };
+
+  it('keeps the overview’s own look when nothing hides the route', () => {
+    const { direction } = routeView(route, route, view, 60, []);
+    expect(direction).toEqual(OVERVIEW);
+  });
+
+  it('looks down more steeply at a route behind a tall block', () => {
+    const plain = overviewFrame(route, view, 60);
+    expect(hiddenShare(route, plain, OVERVIEW, [block])).toBeGreaterThan(
+      MAX_HIDDEN,
+    );
+    const { frame, direction } = routeView(route, route, view, 60, [block]);
+    expect(direction[1]).toBeGreaterThan(OVERVIEW[1]);
+    // Same bearing: only the pitch changes.
+    expect(direction[0] / direction[2]).toBeCloseTo(OVERVIEW[0] / OVERVIEW[2]);
+    expect(hiddenShare(route, frame, direction, [block])).toBeLessThanOrEqual(
+      MAX_HIDDEN,
+    );
+  });
+
+  it('looks from the other side at a route hugging a tall block', () => {
+    const tower: Mass = { ...block, height: 40 };
+    const hugging: EnuPoint[] = [
+      [0, 11],
+      [20, 11],
+    ];
+    const { frame, direction } = routeView(hugging, hugging, view, 60, [tower]);
+    // Seen from the north: the camera stands north of the route.
+    expect(direction[2]).toBeLessThan(0);
+    expect(hiddenShare(hugging, frame, direction, [tower])).toBeLessThanOrEqual(
+      MAX_HIDDEN,
+    );
+  });
+
+  it('sees under a raised slab', () => {
+    // A strip just south of the route: solid it hides the route; raised on
+    // columns 20 m up the eye passes under it.
+    const ring: EnuPoint[] = [
+      [-10, 9],
+      [30, 9],
+      [30, 11],
+      [-10, 11],
+    ];
+    const plain = overviewFrame(route, view, 60);
+    const solid = hiddenShare(route, plain, OVERVIEW, [{ ring, height: 25 }]);
+    const slab = hiddenShare(route, plain, OVERVIEW, [
+      { ring, height: 25, base: 20 },
+    ]);
+    expect(solid).toBeGreaterThan(MAX_HIDDEN);
+    expect(slab).toBe(0);
   });
 });

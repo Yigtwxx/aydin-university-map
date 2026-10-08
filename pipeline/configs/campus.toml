@@ -789,6 +789,9 @@ name = { tr = "Güney Kapı", en = "South Gate" }
 outline = [[3.2, -41.8], [4.5, -45.3], [-7.2, -51.5], [-8.4, -46.9]]
 levels = 1
 height_m = 5.5
+# 2026-10-08: the way in from the south road: steps up from the sidewalk
+# (576 @ 100, south-gate-steps), turnstiles under the roof (536 @ 190).
+walk_through = true
 # brick towers with dark roofs
 [blocks.GATE_S.facade]
 wall = "#8a3f2e"

@@ -86,6 +86,9 @@ ENTRANCE_PASS_S = 6.0
 # this on top of its walk: outdoor routes cut through only as a last resort
 # (a flat minute, so a short passage never beats a sensible walk outside).
 PASSAGE_S = 60.0
+# A line through café seating or a hedge, or over a wall or fence with no
+# flight or gate noted, is only taken when a clean walk costs more than this.
+CROSSING_S = {"soft": 10.0, "barrier": 30.0}
 # Turns are read off the walking line after smoothing away this much wobble.
 LINE_TOLERANCE_M = 1.5
 # Bends up to this many degrees read as walking straight on.
@@ -124,8 +127,12 @@ def shortest_route(
     } - {None}
 
     def weight(u: str, v: str, data: dict[str, object]) -> float | None:
-        if avoid_stairs and data["kind"] in _STAIRS:
-            return None  # hides the edge from the search
+        if avoid_stairs and (
+            data["kind"] in _STAIRS or data.get("crosses") == "barrier"
+        ):
+            # Hides the edge from the search; a line over a wall or a level
+            # change with no flight or ramp noted is no step-free walk either.
+            return None
         cost = float(data["cost_s"])  # type: ignore[arg-type]
         for node_id in (u, v):
             if node_id not in ends and store.nodes[node_id].kind is NodeKind.ENTRANCE:
@@ -138,6 +145,9 @@ def shortest_route(
             )
         ):
             cost += PASSAGE_S
+        crosses = data.get("crosses")
+        if isinstance(crosses, str):
+            cost += CROSSING_S.get(crosses, 0.0)
         return cost
 
     def heuristic(u: str, v: str) -> float:

@@ -35,8 +35,10 @@ import {
   type FreeView,
   freeView,
   mainCluster,
+  type Mass,
   OVERVIEW,
   overviewFrame,
+  routeView,
 } from './framing';
 import { type Credit, GoogleTiles } from './GoogleTiles';
 import { Greenery } from './Greenery';
@@ -199,6 +201,16 @@ function SceneContents({
       ]),
     [graph, buildings],
   );
+  // What can hide a route from the camera.
+  const masses = useMemo(
+    () =>
+      buildings.map((b): Mass => ({
+        ring: b.outline,
+        height: b.height_m,
+        base: b.base_m,
+      })),
+    [buildings],
+  );
   useLayoutEffect(() => {
     // Phones: the map controls' column covers the right edge.
     const controls = size.width < 768 ? 56 : 0;
@@ -324,22 +336,27 @@ function SceneContents({
       );
       return;
     }
-    // A route frames all of itself, wherever it goes.
-    const { centre, distance } = overviewFrame(
-      hasRoute
-        ? [
-            ...route.map((n): EnuPoint => [n.enu[0], n.enu[1]]),
-            ...(routeExtent ?? []),
-          ]
-        : campusFrame,
-      view.current,
-      hasRoute ? ROUTE_MIN_M : OVERVIEW_MIN_M,
-    );
+    // A route frames all of itself, wherever it goes, from steep enough
+    // that the buildings do not hide it.
+    const routeLine = route.map((n): EnuPoint => [n.enu[0], n.enu[1]]);
+    const { frame, direction } = hasRoute
+      ? routeView(
+          [...routeLine, ...(routeExtent ?? [])],
+          routeLine,
+          view.current,
+          ROUTE_MIN_M,
+          masses,
+        )
+      : {
+          frame: overviewFrame(campusFrame, view.current, OVERVIEW_MIN_M),
+          direction: OVERVIEW,
+        };
+    const { centre, distance } = frame;
     const [cx, , cz] = enuToWorld(centre[0], centre[1]);
     void ctl.setLookAt(
-      cx + distance * OVERVIEW[0],
-      distance * OVERVIEW[1],
-      cz + distance * OVERVIEW[2],
+      cx + distance * direction[0],
+      distance * direction[1],
+      cz + distance * direction[2],
       cx,
       0,
       cz,
@@ -359,6 +376,7 @@ function SceneContents({
     playsOpening,
     measured,
     campusFrame,
+    masses,
   ]);
 
   // The opening's grade; a pass-through afterwards, so it stays mounted

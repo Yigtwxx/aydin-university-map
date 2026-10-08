@@ -60,6 +60,9 @@ class Block:
     base_m: float | None = None
     height_source: str = "pano"
     facade: Mapping[str, Any] = field(default_factory=dict)
+    # A gate hall walked through (turnstiles under its roof): the walking
+    # graph does not route round it as it does round a building.
+    walk_through: bool = False
 
     @property
     def map_name(self) -> str:
@@ -130,6 +133,7 @@ def parse_campus(data: Mapping[str, Any]) -> Registry:
             base_m=float(entry["base_m"]) if "base_m" in entry else None,
             height_source=str(entry.get("height_source", "pano")),
             facade=_facade(str(code), entry.get("facade")),
+            walk_through=bool(entry.get("walk_through", False)),
         )
     return Registry(blocks=blocks, remove=tuple(str(i) for i in data.get("remove", ())))
 

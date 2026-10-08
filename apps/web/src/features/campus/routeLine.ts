@@ -117,8 +117,8 @@ export function resample(points: XY[], step: number): XY[] {
 /**
  * The smooth, evenly sampled line the route ribbon is drawn along. Node
  * jitter is simplified away first; resampling every 2 m before rounding keeps
- * each corner cut within ~0.35 m, well inside the 1.2 m clearance detours
- * keep from walls.
+ * each corner cut within ~0.35 m, inside the 0.9 m the walking graph keeps
+ * lines off walls (1.2 m at detour corners) and clear of hedges and seating.
  */
 export function smoothRoute(points: XY[]): XY[] {
   return resample(chaikin(resample(simplify(points, 0.6), 2), 3), 0.75);

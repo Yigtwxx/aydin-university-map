@@ -58,6 +58,7 @@ class GraphStore:
                 path_enu=edge.path_enu,
                 length_source=edge.length_source.value,
                 passage=edge.passage,
+                crosses=edge.crosses.value if edge.crosses else None,
             )
         nodes = {n.id: n for n in graph.nodes}
         return cls(
@@ -77,6 +78,24 @@ def load_graph(source: str) -> GraphStore:
     else:
         data = json.loads(Path(source).read_text(encoding="utf-8"))
     return GraphStore.from_graph(Graph.from_geojson(data))
+
+
+def source_version(source: str) -> str | None:
+    """A token that changes whenever the graph at ``source`` does.
+
+    A local file's modification time and size; for a URL its ``ETag`` (or
+    ``Last-Modified``) from a HEAD request. None when it cannot be told.
+    """
+    try:
+        if source.startswith(("http://", "https://")):
+            response = httpx.head(source, timeout=5.0, follow_redirects=True)
+            if response.status_code != 200:
+                return None
+            return response.headers.get("etag") or response.headers.get("last-modified")
+        stat = Path(source).stat()
+        return f"{stat.st_mtime_ns}:{stat.st_size}"
+    except (OSError, httpx.HTTPError):
+        return None
 
 
 def load_pois(source: str) -> list[Poi]:

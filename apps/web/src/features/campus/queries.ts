@@ -43,11 +43,13 @@ export function useCampusGraph() {
   return useQuery<CampusGraph>({
     queryKey: ['graph'],
     queryFn: async () => {
-      const response = await fetch(`${assetBaseUrl}/graph.geojson`).catch(
-        (cause: unknown) => {
-          throw new RouteError('unavailable', `graph: ${String(cause)}`);
-        },
-      );
+      // Revalidate (304 when unchanged): a graph published since the last
+      // visit must not meet routes from the new one.
+      const response = await fetch(`${assetBaseUrl}/graph.geojson`, {
+        cache: 'no-cache',
+      }).catch((cause: unknown) => {
+        throw new RouteError('unavailable', `graph: ${String(cause)}`);
+      });
       if (!response.ok)
         throw new RouteError('unavailable', `graph: HTTP ${response.status}`);
       return parseGraph(

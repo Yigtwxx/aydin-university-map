@@ -19,6 +19,46 @@ export const OVERVIEW: readonly [number, number, number] = [0.32, 0.92, 0.62];
 /** Share of the free view the framed points may fill. */
 export const FILL = 0.86;
 
+const OVERVIEW_PITCH_DEG =
+  (Math.atan2(OVERVIEW[1], Math.hypot(OVERVIEW[0], OVERVIEW[2])) * 180) /
+  Math.PI;
+/**
+ * Looks at a route, tried in turn until one sees enough of it past the
+ * buildings: from the overview's own side, ever steeper (80 degrees at most:
+ * steeper reads as the 2D view), then, for a route hugging the far side of
+ * a tall block, from the other sides. [bearing turn, pitch] in degrees.
+ */
+export const ROUTE_LOOKS: readonly (readonly [number, number])[] = [
+  [0, OVERVIEW_PITCH_DEG],
+  [0, 64],
+  [0, 72],
+  [0, 80],
+  [180, OVERVIEW_PITCH_DEG],
+  [90, OVERVIEW_PITCH_DEG],
+  [-90, OVERVIEW_PITCH_DEG],
+  [180, 72],
+  [90, 72],
+  [-90, 72],
+];
+/** A route view may hide this share of the route behind buildings. */
+export const MAX_HIDDEN = 0.1;
+
+/**
+ * Camera offset per unit distance: OVERVIEW's bearing turned `turnDeg`
+ * (clockwise seen from above) at `pitchDeg` above the horizon.
+ */
+export function overviewDirection(
+  pitchDeg: number,
+  turnDeg = 0,
+): readonly [number, number, number] {
+  const flat = Math.hypot(OVERVIEW[0], OVERVIEW[2]);
+  const t = (turnDeg * Math.PI) / 180;
+  // Clockwise from above: east to south (three.js +x to +z).
+  const x = OVERVIEW[0] * Math.cos(t) - OVERVIEW[2] * Math.sin(t);
+  const z = OVERVIEW[0] * Math.sin(t) + OVERVIEW[2] * Math.cos(t);
+  return [x, flat * Math.tan((pitchDeg * Math.PI) / 180), z];
+}
+
 /**
  * The points of the largest cluster: points chain into one cluster while each
  * is within `gap` of another (single linkage), so a campus spread over a few
@@ -124,9 +164,10 @@ export function overviewFrame(
   points: readonly EnuPoint[],
   view: FreeView,
   minDistance: number,
+  direction: readonly [number, number, number] = OVERVIEW,
 ): OverviewFrame {
   if (points.length === 0) return { centre: [0, 0], distance: minDistance };
-  const [ox, oy, oz] = OVERVIEW;
+  const [ox, oy, oz] = direction;
   const length = Math.hypot(ox, oy, oz);
   const flat = Math.hypot(ox, oz);
   // ENU (east, north, up) axes of the camera. OVERVIEW is in three.js world
@@ -201,4 +242,165 @@ export function overviewFrame(
     centre: [te, tn],
     distance: Math.max(minDistance, d / length),
   };
+}
+
+/** A building's mass for line-of-sight tests: its ring, height and underside. */
+export interface Mass {
+  ring: readonly EnuPoint[];
+  height: number;
+  /** A raised slab (a canopy) lets the eye through below it. */
+  base?: number;
+}
+
+function inRing(e: number, n: number, ring: readonly EnuPoint[]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [ei, ni] = ring[i]!;
+    const [ej, nj] = ring[j]!;
+    if (ni > n !== nj > n && e < ((ej - ei) * (n - ni)) / (nj - ni) + ei)
+      inside = !inside;
+  }
+  return inside;
+}
+
+/** The route ribbon's height above the ground (RouteRibbon's lift), metres. */
+const EYE_M = 0.3;
+/** Parapets, cornices and roof boxes stand this much above `height`. */
+const ROOF_MARGIN_M = 1.5;
+
+/**
+ * Share of `route` (sampled every ~2 m) that buildings hide from a camera
+ * framing it as `frame` from `direction` (setLookAt's offset, three.js axes:
+ * x east, y up, z south).
+ */
+export function hiddenShare(
+  route: readonly EnuPoint[],
+  frame: OverviewFrame,
+  direction: readonly [number, number, number],
+  allMasses: readonly Mass[],
+): number {
+  let masses = allMasses;
+  const samples: EnuPoint[] = [];
+  for (let i = 0; i < route.length; i++) {
+    const a = route[i]!;
+    const b = route[i + 1];
+    samples.push(a);
+    if (!b) break;
+    const steps = Math.floor(Math.hypot(b[0] - a[0], b[1] - a[1]) / 2);
+    for (let k = 1; k < steps; k++)
+      samples.push([
+        a[0] + ((b[0] - a[0]) * k) / steps,
+        a[1] + ((b[1] - a[1]) * k) / steps,
+      ]);
+  }
+  if (samples.length === 0) return 0;
+  const camE = frame.centre[0] + frame.distance * direction[0];
+  const camN = frame.centre[1] - frame.distance * direction[2];
+  const camU = frame.distance * direction[1];
+  // Only masses near the route can stand between it and the camera: within
+  // the run of a ray up to the tallest roof (at the shallowest pitch tried).
+  let minE = Infinity;
+  let maxE = -Infinity;
+  let minN = Infinity;
+  let maxN = -Infinity;
+  for (const [e, n] of samples) {
+    minE = Math.min(minE, e);
+    maxE = Math.max(maxE, e);
+    minN = Math.min(minN, n);
+    maxN = Math.max(maxN, n);
+  }
+  const allTallest = allMasses.reduce((m, b) => Math.max(m, b.height), 0);
+  const slope = direction[1] / Math.hypot(direction[0], direction[2]);
+  const margin = (allTallest + ROOF_MARGIN_M) / Math.max(slope, 0.1) + 2;
+  const near = masses.filter((b) => {
+    let bMinE = Infinity;
+    let bMaxE = -Infinity;
+    let bMinN = Infinity;
+    let bMaxN = -Infinity;
+    for (const [e, n] of b.ring) {
+      bMinE = Math.min(bMinE, e);
+      bMaxE = Math.max(bMaxE, e);
+      bMinN = Math.min(bMinN, n);
+      bMaxN = Math.max(bMaxN, n);
+    }
+    return (
+      bMaxE >= minE - margin &&
+      bMinE <= maxE + margin &&
+      bMaxN >= minN - margin &&
+      bMinN <= maxN + margin
+    );
+  });
+  masses = near;
+  const tallest =
+    masses.reduce((m, b) => Math.max(m, b.height), 0) + ROOF_MARGIN_M;
+  const boxes = masses.map((b) => {
+    let minE = Infinity;
+    let maxE = -Infinity;
+    let minN = Infinity;
+    let maxN = -Infinity;
+    for (const [e, n] of b.ring) {
+      minE = Math.min(minE, e);
+      maxE = Math.max(maxE, e);
+      minN = Math.min(minN, n);
+      maxN = Math.max(maxN, n);
+    }
+    return { minE, maxE, minN, maxN };
+  });
+  let hidden = 0;
+  for (const [pe, pn] of samples) {
+    const flat = Math.hypot(camE - pe, camN - pn);
+    // Past the tallest roof the ray is clear; walk it in 1 m steps till then.
+    const rise = (camU - EYE_M) / Math.max(flat, 1e-6);
+    const reach = Math.min(flat, (tallest - EYE_M) / Math.max(rise, 1e-6));
+    let blocked = false;
+    for (let t = 0.5; t <= reach && !blocked; t += 1) {
+      const e = pe + ((camE - pe) * t) / flat;
+      const n = pn + ((camN - pn) * t) / flat;
+      const u = EYE_M + rise * t;
+      blocked = masses.some((m, i) => {
+        const box = boxes[i]!;
+        return (
+          m.height + ROOF_MARGIN_M > u &&
+          (m.base ?? 0) < u &&
+          e >= box.minE &&
+          e <= box.maxE &&
+          n >= box.minN &&
+          n <= box.maxN &&
+          inRing(e, n, m.ring)
+        );
+      });
+    }
+    if (blocked) hidden += 1;
+  }
+  return hidden / samples.length;
+}
+
+/**
+ * The view of a route: the first of ROUTE_LOOKS that hides at most
+ * MAX_HIDDEN of it behind buildings (else the clearest one), so a route
+ * along the far side of a tall block is not drawn only as dashes.
+ */
+export function routeView(
+  points: readonly EnuPoint[],
+  route: readonly EnuPoint[],
+  view: FreeView,
+  minDistance: number,
+  masses: readonly Mass[],
+): { frame: OverviewFrame; direction: readonly [number, number, number] } {
+  let best:
+    | {
+        frame: OverviewFrame;
+        direction: readonly [number, number, number];
+        hidden: number;
+      }
+    | undefined;
+  for (const [i, [turn, pitch]] of ROUTE_LOOKS.entries()) {
+    const direction = i === 0 ? OVERVIEW : overviewDirection(pitch, turn);
+    const frame = overviewFrame(points, view, minDistance, direction);
+    const hidden = hiddenShare(route, frame, direction, masses);
+    if (hidden <= MAX_HIDDEN) return { frame, direction };
+    if (!best || hidden < best.hidden - 1e-9)
+      best = { frame, direction, hidden };
+  }
+  return { frame: best!.frame, direction: best!.direction };
 }

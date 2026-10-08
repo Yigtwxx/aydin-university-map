@@ -137,7 +137,9 @@ def test_build_graph_bridges_an_island_by_a_walk_outside(
     # d's tour link is a teleport (100 m), but open ground lies between d
     # and c (84 m): the island joins by an inferred walk, not the teleport.
     assert report.dropped["teleport"] == ["a|d"], report.dropped
-    assert report.bridged == ["c|d"], f"Got {report.bridged}"
+    # The shortest walk first; another to a spot well apart (f, behind the
+    # building) so routes south need not turn back at c.
+    assert report.bridged == ["c|d", "d|f"], f"Got {report.bridged}"
     bridge = next(e for e in graph.edges if e.id == "c|d")
     assert bridge.origin is EdgeOrigin.INFERRED, bridge.origin
     assert [len(c) for c in components(graph)] == [7], "one network"

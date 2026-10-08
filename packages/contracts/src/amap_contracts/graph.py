@@ -34,6 +34,13 @@ class NodeKind(StrEnum):
     INDOOR = "indoor"
 
 
+class EdgeCrossing(StrEnum):
+    """What a drawn walking line passes through besides open ground."""
+
+    SOFT = "soft"  # café seating, hedges, benches: walked through when needed
+    BARRIER = "barrier"  # a wall or fence with no flight or gate noted there
+
+
 class EdgeKind(StrEnum):
     OUTDOOR = "outdoor"
     ENTRANCE = "entrance"
@@ -137,6 +144,10 @@ class Edge(BaseModel):
     # another door, or a room off another door): the tour links them, but no
     # line outside does. Clients must not draw it; routes avoid it when they can.
     passage: bool = False
+    # The drawn line crosses seating or a hedge, or (a walk the tour proves
+    # where the notebook has no flight or gate) a wall or the fence. Routes
+    # prefer edges without one; the walking time is unchanged.
+    crosses: EdgeCrossing | None = None
 
 
 class GraphMeta(BaseModel):

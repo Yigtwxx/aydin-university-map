@@ -73,6 +73,22 @@ export function routeMapIds(nodes: GraphNode[]): string[] {
   return ids;
 }
 
+/**
+ * Whether the map's graph holds every node and hop of a route. It does not
+ * when a graph was published after one side loaded it (the browser's copy,
+ * or a warm API instance): the line would break at the missing edge.
+ */
+export function routeMatchesGraph(
+  nodeIds: readonly string[],
+  graph: CampusGraph,
+): boolean {
+  return nodeIds.every(
+    (id, i) =>
+      graph.byId.has(id) &&
+      (i === 0 || edgeBetween(graph, nodeIds[i - 1]!, id) !== undefined),
+  );
+}
+
 export function edgeBetween(
   graph: CampusGraph,
   a: string,

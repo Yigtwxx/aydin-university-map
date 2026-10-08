@@ -58,6 +58,7 @@ import {
   gapDoors,
   isIndoorSpot,
   routeMapIds,
+  routeMatchesGraph,
   routeParts,
   shownFloor,
   viewYaw,
@@ -214,6 +215,19 @@ export function MapApp({ opening = false }: { opening?: boolean }) {
         .filter((n): n is GraphNode => !!n),
     [routeData, graph.data],
   );
+  // A route over a node or hop the map's graph lacks: one side loaded the
+  // graph before a new one was published. Fetch both again, once per route.
+  const resynced = useRef<string | undefined>(undefined);
+  const refetchGraph = graph.refetch;
+  const refetchRoute = route.refetch;
+  useEffect(() => {
+    if (!routeData || !graph.data) return;
+    const key = routeData.node_ids.join(',');
+    if (resynced.current === key) return;
+    if (routeMatchesGraph(routeData.node_ids, graph.data)) return;
+    resynced.current = key;
+    void refetchGraph().then(() => refetchRoute());
+  }, [routeData, graph.data, refetchGraph, refetchRoute]);
   // Indoor spots stand at the entrance they hang off: the map draws and
   // pins measured nodes only, and puts indoor ones on their entrance.
   const parts = useMemo(

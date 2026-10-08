@@ -13,7 +13,11 @@ import type { CampusGraph, GraphNode } from './types';
 const DRAW_S = 1.2;
 /** Above every flat ground layer (they sit at 0.05 m with polygon offset). */
 const LIFT_M = 0.3;
-const WIDTH_M = 3.2;
+/**
+ * 2.4 m: half of it fits the 0.9 m the walking graph keeps lines off walls
+ * (plus Chaikin's ~0.35 m corner cut), so the ribbon stays on the paving.
+ */
+const WIDTH_M = 2.4;
 
 type XY = [number, number];
 
@@ -36,7 +40,7 @@ function extendEnds(points: XY[], by: number): XY[] {
 
 /**
  * Width grows with camera distance so the route stays readable zoomed out
- * (about 3.2 m up close, never thinner than ~7 px on screen).
+ * (2.4 m up close, never thinner than ~7 px on screen).
  */
 const vertexShader = /* glsl */ `
   attribute vec3 aCenter;

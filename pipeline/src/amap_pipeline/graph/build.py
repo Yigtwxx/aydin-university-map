@@ -16,6 +16,12 @@ Nodes standing inside a footprint (SfM vs OSM disagreement) are first moved
 just outside its nearest wall (:mod:`amap_pipeline.graph.clearance`). Only
 indoor panoramas may be inside buildings.
 
+Besides buildings, lines keep out of the furniture notebook's barriers
+(:mod:`amap_pipeline.graph.barriers`): a retaining wall is climbed only where
+a flight or ramp opens it, the fence is passed only at its gates, and hedges,
+benches and café seating are walked round when that costs little (a tour
+link with no such walk keeps the shorter line through them).
+
 Islands of the measured network (SfM models no tour link joins) are bridged
 to the main one by the shortest reasonable walk outside, if there is one.
 
@@ -26,6 +32,7 @@ Lengths are 3D distances between camera centres (local metres), measured
 along the detour when there is one.
 """
 
+import itertools
 import math
 import re
 from collections.abc import Iterable, Mapping
@@ -36,12 +43,14 @@ from typing import Any
 
 import numpy as np
 from scipy.spatial import KDTree
+from shapely.geometry import LineString, Point
 from shapely.geometry.base import BaseGeometry
 
 from amap_contracts import CAMPUS_ORIGIN_LAT, CAMPUS_ORIGIN_LNG
 from amap_contracts.graph import (
     WALKING_SPEED_MPS,
     Edge,
+    EdgeCrossing,
     EdgeKind,
     EdgeOrigin,
     Graph,
@@ -52,8 +61,10 @@ from amap_contracts.graph import (
     NodeKind,
     PoseSource,
 )
+from amap_pipeline.graph.barriers import Barriers
 from amap_pipeline.graph.clearance import (
     Obstacles,
+    WalkingArea,
     path_length,
     snap_point,
     walk_around,
@@ -79,11 +90,27 @@ class GraphParams:
     # Inferred links may bend round a building corner when that costs little.
     corner_ratio: float = 1.2
     corner_vertices: int = 2
+    # The walk round soft obstacles (hedges, café seating) and a stride off
+    # walls is taken over the shortest allowed line when it is at most this
+    # much longer (ratio, or metres, whichever allows more).
+    # 12 m: about what crossing costs a route (CROSSING_S in the API's router).
+    soft_detour_ratio: float = 1.25
+    soft_detour_extra_m: float = 12.0
     # Hang indoor panoramas off the network through the tour's links.
     indoor: bool = True
     # An island of the measured network joins the main one by a walk outside
     # at most this far (straight line), round buildings as tour links do.
     bridge_max_m: float = 120.0
+    # Up to this many bridges per island, to spots this far apart, no more
+    # than this much longer than the shortest.
+    bridge_count: int = 3
+    bridge_spread_m: float = 20.0
+    bridge_spread_ratio: float = 1.5
+    # A tour link passing this close to another measured spot walks past it:
+    # the link is split there (the route can stop at it, not turn back).
+    pass_by_m: float = 1.0
+    # ...and this far from either end (closer, it is that end's own spot).
+    pass_by_end_m: float = 3.0
 
 
 @dataclass(slots=True)
@@ -91,11 +118,24 @@ class BuildReport:
     tour_links_kept: int = 0
     inferred_links: int = 0
     dropped: dict[str, list[str]] = field(
-        default_factory=lambda: {"teleport": [], "crosses_building": [], "unposed": []}
+        default_factory=lambda: {
+            "teleport": [],
+            "crosses_building": [],
+            "unposed": [],
+        }
     )
     snapped: dict[str, float] = field(default_factory=dict)  # node -> metres moved
+    # Nodes left inside a building: moving them out would jump a wall/fence.
+    unsnapped: list[str] = field(default_factory=list)
+    # Drawn edges that could not keep clear of soft obstacles or wall margins.
+    soft_fallback: list[str] = field(default_factory=list)
+    # Drawn edges over a wall or the fence: tour walks the notebook has no
+    # opening for yet (a missing flight or gate to survey).
+    barrier_fallback: list[str] = field(default_factory=list)
     detoured: list[str] = field(default_factory=list)
     bridged: list[str] = field(default_factory=list)  # islands joined outside
+    shortcuts: list[str] = field(default_factory=list)  # hooks cut short
+    passed_by: list[str] = field(default_factory=list)  # "a|b via m"
     indoor: IndoorReport = field(default_factory=IndoorReport)
 
 
@@ -183,6 +223,8 @@ def snap_nodes(
         x, y = snap_point(_xy(node), obstacles)
         dx, dy = x - node.enu[0], y - node.enu[1]
         if dx == 0.0 and dy == 0.0:
+            if obstacles.union.contains(Point(x, y)):
+                report.unsnapped.append(node.id)
             snapped.append(node)
             continue
         report.snapped[node.id] = round(math.hypot(dx, dy), 2)
@@ -195,19 +237,13 @@ def snap_nodes(
     return snapped
 
 
-def outdoor_line(
+def _walk(
     a: tuple[float, float],
     b: tuple[float, float],
     obstacles: Obstacles,
     params: GraphParams,
-    bends_ok: bool = False,
+    bends_ok: bool,
 ) -> list[tuple[float, float]] | None:
-    """The walk outside from a to b, round buildings; None when unreasonable.
-
-    A detour may be ``max_detour_ratio`` longer (or ``max_detour_extra_m``
-    for short links); a long link that has to bend at all is a teleport to
-    another block's door unless ``bends_ok`` (island bridges look for walks).
-    """
     straight = math.dist(a, b)
     path = walk_around(a, b, obstacles)
     allowed = max(
@@ -221,20 +257,128 @@ def outdoor_line(
     return path
 
 
+def outdoor_line(
+    a: tuple[float, float],
+    b: tuple[float, float],
+    area: WalkingArea,
+    params: GraphParams,
+    bends_ok: bool = False,
+    through_barriers: bool = False,
+) -> list[tuple[float, float]] | None:
+    """The walk outside from a to b, round obstacles; None when unreasonable.
+
+    A detour may be ``max_detour_ratio`` longer (or ``max_detour_extra_m``
+    for short links); a long link that has to bend at all is a teleport to
+    another block's door unless ``bends_ok`` (island bridges look for walks).
+
+    The shortest line that crosses no building, wall or fence is the bound;
+    the walk that also keeps a stride off walls (or half one, in a narrow
+    lane) and goes round hedges and seating replaces it when that costs at
+    most ``soft_detour_ratio``/``soft_detour_extra_m``.
+
+    ``through_barriers``: a walk known to exist (a tour link, a bridge) that
+    finds no opening in a wall or the fence keeps the line round buildings
+    alone; the notebook lacks that flight or gate, and the export lists it.
+    """
+    lenient = _walk(a, b, area.lenient, params, bends_ok)
+    if lenient is not None and area.leaks(lenient):
+        lenient = None
+    if lenient is None:
+        if through_barriers:
+            return _walk(a, b, area.through_barriers, params, bends_ok)
+        return None
+    bound = path_length(lenient)
+    allowed = max(bound * params.soft_detour_ratio, bound + params.soft_detour_extra_m)
+    for tier in (area.preferred(a, b), area.snug(a, b)):
+        path = _walk(a, b, tier, params, bends_ok)
+        if path is not None and path_length(path) <= allowed and not area.leaks(path):
+            return path
+    return lenient
+
+
+def walked_past(
+    tour_links: Iterable[tuple[str, str]],
+    by_id: Mapping[str, Node],
+    params: GraphParams,
+    report: BuildReport,
+    area: WalkingArea,
+) -> list[tuple[str, str]]:
+    """Tour links, each split at the measured spots it passes on its way.
+
+    The photographer walking from one panorama to the next passes others on
+    the line between: a route to such a spot stops there instead of walking
+    on to the far end and coming back. Only a link walked straight counts
+    (no teleport, no line through a building, which is walked round).
+    """
+    walkers = [
+        n for n in by_id.values() if n.kind in (NodeKind.OUTDOOR, NodeKind.ENTRANCE)
+    ]
+    out: list[tuple[str, str]] = []
+    for a_id, b_id in tour_links:
+        a, b = by_id.get(a_id), by_id.get(b_id)
+        if (
+            a is None
+            or b is None
+            or not {a.kind, b.kind}
+            <= {
+                NodeKind.OUTDOOR,
+                NodeKind.ENTRANCE,
+            }
+        ):
+            out.append((a_id, b_id))
+            continue
+        line = LineString([_xy(a), _xy(b)])
+        length = line.length
+        if length > params.max_link_m or not area.through_barriers.clear(
+            [_xy(a), _xy(b)]
+        ):
+            out.append((a_id, b_id))
+            continue
+        on_way = sorted(
+            (line.project(Point(_xy(m))), m.id)
+            for m in walkers
+            if m.id not in (a_id, b_id)
+            and length > 0
+            and line.distance(Point(_xy(m))) <= params.pass_by_m
+            and params.pass_by_end_m
+            < line.project(Point(_xy(m)))
+            < length - params.pass_by_end_m
+        )
+        if not on_way:
+            out.append((a_id, b_id))
+            continue
+        chain = [a_id, *(m for _, m in on_way), b_id]
+        out.extend(pairwise(chain))
+        passed = (
+            f"{'|'.join(sorted((a_id, b_id)))} via {', '.join(m for _, m in on_way)}"
+        )
+        if passed not in report.passed_by:  # links are listed from both ends
+            report.passed_by.append(passed)
+    return out
+
+
+def walking_area(
+    footprints: BaseGeometry, barriers: Barriers | None = None
+) -> WalkingArea:
+    barriers = barriers if barriers is not None else Barriers.none()
+    return WalkingArea.of(footprints, barriers.hard, barriers.soft, barriers.leaks)
+
+
 def make_edges(
     nodes: list[Node],
     tour_links: Iterable[tuple[str, str]],
     footprints: BaseGeometry,
     params: GraphParams = GraphParams(),  # noqa: B008 - frozen dataclass
     report: BuildReport | None = None,
+    barriers: Barriers | None = None,
 ) -> tuple[list[Edge], BuildReport]:
     by_id = {n.id: n for n in nodes}
-    obstacles = Obstacles.of(footprints)
+    area = walking_area(footprints, barriers)
     report = report if report is not None else BuildReport()
     edges: dict[str, Edge] = {}
 
     seen: set[str] = set()
-    for a_id, b_id in tour_links:
+    for a_id, b_id in walked_past(tour_links, by_id, params, report, area):
         key = "|".join(sorted((a_id, b_id)))
         if key in seen:  # links are listed from both ends
             continue
@@ -255,7 +399,7 @@ def make_edges(
             )
             report.tour_links_kept += 1
             continue
-        path = outdoor_line(_xy(a), _xy(b), obstacles, params)
+        path = outdoor_line(_xy(a), _xy(b), area, params, through_barriers=True)
         if path is None:
             report.dropped["crosses_building"].append(key)
             continue
@@ -272,21 +416,29 @@ def make_edges(
             key = "|".join(sorted((a.id, b.id)))
             if key in edges:
                 continue
-            if not obstacles.crosses(_xy(a), _xy(b)):
-                edges[key] = _edge(a, b, EdgeOrigin.INFERRED)
-                report.inferred_links += 1
-                continue
-            # Round the corner of a block instead of visiting a door to turn.
-            path = walk_around(_xy(a), _xy(b), obstacles)
+            # Densification only: a line of sight clear of every obstacle, a
+            # stride off walls (half one in a narrow lane), or a short bend
+            # round a corner; no lenient fallback (tour links carry that).
             straight = math.dist(_xy(a), _xy(b))
-            if (
-                path is not None
-                and len(path) <= 2 + params.corner_vertices
-                and path_length(path) <= straight * params.corner_ratio
-            ):
-                edges[key] = _edge(a, b, EdgeOrigin.INFERRED, path)
-                report.inferred_links += 1
-                report.detoured.append(key)
+            for tier in (area.preferred(_xy(a), _xy(b)), area.snug(_xy(a), _xy(b))):
+                if not tier.crosses(_xy(a), _xy(b)) and not area.leaks(
+                    [_xy(a), _xy(b)]
+                ):
+                    edges[key] = _edge(a, b, EdgeOrigin.INFERRED)
+                    report.inferred_links += 1
+                    break
+                # Round the corner of a block instead of visiting a door to turn.
+                path = walk_around(_xy(a), _xy(b), tier)
+                if (
+                    path is not None
+                    and len(path) <= 2 + params.corner_vertices
+                    and path_length(path) <= straight * params.corner_ratio
+                    and not area.leaks(path)
+                ):
+                    edges[key] = _edge(a, b, EdgeOrigin.INFERRED, path)
+                    report.inferred_links += 1
+                    report.detoured.append(key)
+                    break
 
     for dropped in report.dropped.values():
         dropped.sort()
@@ -309,9 +461,47 @@ def blocked_edges(graph: Graph, footprints: BaseGeometry) -> list[str]:
         if edge.passage or position_of(a) == position_of(b):
             continue
         line = edge.path_enu or [_xy(a), _xy(b)]
-        if any(obstacles.crosses(p, q) for p, q in pairwise(line)):
+        if not obstacles.clear(line):
             blocked.append(edge.id)
     return blocked
+
+
+def mark_crossings(graph: Graph, area: WalkingArea) -> Graph:
+    """Edges whose drawn line crosses a wall or fence, or seating or a hedge
+    (one a spot stands in included): routes take them only when they must."""
+    by_id = {n.id: n for n in graph.nodes}
+    edges: list[Edge] = []
+    for edge in graph.edges:
+        a, b = by_id[edge.source], by_id[edge.target]
+        crosses: EdgeCrossing | None = None
+        if not edge.passage and position_of(a) != position_of(b):
+            line = LineString(edge.path_enu or [_xy(a), _xy(b)])
+            if not area.lenient.clear(list(line.coords)) or area.leaks(
+                list(line.coords)
+            ):
+                crosses = EdgeCrossing.BARRIER
+            elif any(part.intersects(line) for part in area.soft_for(_xy(a), _xy(b))):
+                crosses = EdgeCrossing.SOFT
+        edges.append(edge.model_copy(update={"crosses": crosses}))
+    return graph.model_copy(update={"edges": edges})
+
+
+def crossings(graph: Graph, area: WalkingArea) -> tuple[list[str], list[str]]:
+    """Drawn edges over a wall or the fence, and those (only) through soft
+    obstacles or a stride from walls: ``(barrier, soft)``."""
+    by_id = {n.id: n for n in graph.nodes}
+    barrier: list[str] = []
+    soft: list[str] = []
+    for edge in graph.edges:
+        a, b = by_id[edge.source], by_id[edge.target]
+        if edge.passage or position_of(a) == position_of(b):
+            continue
+        line = edge.path_enu or [_xy(a), _xy(b)]
+        if not area.lenient.clear(line) or area.leaks(line):
+            barrier.append(edge.id)
+        elif not area.preferred(_xy(a), _xy(b)).clear(line):
+            soft.append(edge.id)
+    return barrier, soft
 
 
 def bridge_islands(
@@ -320,6 +510,7 @@ def bridge_islands(
     footprints: BaseGeometry,
     params: GraphParams = GraphParams(),  # noqa: B008 - frozen dataclass
     report: BuildReport | None = None,
+    barriers: Barriers | None = None,
 ) -> list[Edge]:
     """Join islands of the measured network to the main one, walking outside.
 
@@ -329,7 +520,7 @@ def bridge_islands(
     tried over the nearest pairs within ``bridge_max_m``; none if no walk
     is reasonable (the outdoor link rules).
     """
-    obstacles = Obstacles.of(footprints)
+    area = walking_area(footprints, barriers)
     walkers = {
         n.id: n for n in nodes if n.kind in (NodeKind.OUTDOOR, NodeKind.ENTRANCE)
     }
@@ -360,24 +551,126 @@ def bridge_islands(
             for b in sorted(main)
             if b in walkers
         )
-        best: tuple[float, str, str, list[tuple[float, float]]] | None = None
+        walks: list[tuple[float, str, str, list[tuple[float, float]]]] = []
         for straight, a, b in pairs[:24]:
             if straight > params.bridge_max_m:
                 break
             line = outdoor_line(
-                _xy(walkers[a]), _xy(walkers[b]), obstacles, params, bends_ok=True
+                _xy(walkers[a]),
+                _xy(walkers[b]),
+                area,
+                params,
+                bends_ok=True,
+                through_barriers=True,
             )
-            if line is not None and (best is None or path_length(line) < best[0]):
-                best = (path_length(line), a, b, line)
-        if best is None:
+            if line is not None:
+                walks.append((path_length(line), a, b, line))
+        if not walks:
             continue
-        _, a, b, line = best
-        bridge = _edge(walkers[a], walkers[b], EdgeOrigin.INFERRED, line)
-        bridges.append(bridge)
+        # The shortest walk, and a few more to other parts of the network: a
+        # single bridge makes every route from the island visit its far end,
+        # turning back there when it heads elsewhere.
+        walks.sort(key=lambda w: (w[0], w[1], w[2]))
+        chosen: list[tuple[float, str, str, list[tuple[float, float]]]] = []
+        for walk in walks:
+            if len(chosen) == params.bridge_count:
+                break
+            if chosen and walk[0] > chosen[0][0] * params.bridge_spread_ratio:
+                break
+            if any(
+                math.dist(_xy(walkers[walk[2]]), _xy(walkers[c[2]]))
+                < params.bridge_spread_m
+                for c in chosen
+            ):
+                continue
+            chosen.append(walk)
+        for _, a, b, line in chosen:
+            bridge = _edge(walkers[a], walkers[b], EdgeOrigin.INFERRED, line)
+            bridges.append(bridge)
+            if report is not None:
+                report.bridged.append(bridge.id)
         main |= set(island)
-        if report is not None:
-            report.bridged.append(bridge.id)
     return bridges
+
+
+# A route turning back sharper than this at a spot draws a hook there.
+HOOK_TURN_DEG = 120.0
+
+
+def _heading(line: list[tuple[float, float]]) -> tuple[float, float] | None:
+    dx, dy = line[-1][0] - line[-2][0], line[-1][1] - line[-2][1]
+    length = math.hypot(dx, dy)
+    return (dx / length, dy / length) if length > 1e-6 else None
+
+
+def shortcut_hooks(
+    nodes: list[Node],
+    edges: list[Edge],
+    footprints: BaseGeometry,
+    params: GraphParams = GraphParams(),  # noqa: B008 - frozen dataclass
+    report: BuildReport | None = None,
+    barriers: Barriers | None = None,
+) -> list[Edge]:
+    """Direct walks past the spots routes would hook round.
+
+    A spot reached round a corner (a detour's last bend beyond it) sends a
+    route through it back the way it came: p -> m -> q turns sharper than
+    ``HOOK_TURN_DEG`` at m. Where p and q see each other past every
+    obstacle (or round a corner or two), the walk between them joins them
+    directly, shorter than the hook.
+    """
+    area = walking_area(footprints, barriers)
+    by_id = {n.id: n for n in nodes}
+    walked = {NodeKind.OUTDOOR, NodeKind.ENTRANCE}
+    lines: dict[str, dict[str, list[tuple[float, float]]]] = {}
+    for edge in edges:
+        a, b = by_id[edge.source], by_id[edge.target]
+        if edge.passage or a.kind not in walked or b.kind not in walked:
+            continue
+        line = list(edge.path_enu or [_xy(a), _xy(b)])
+        lines.setdefault(a.id, {})[b.id] = line
+        lines.setdefault(b.id, {})[a.id] = line[::-1]
+    known = {e.id for e in edges}
+    added: list[Edge] = []
+    for m in sorted(lines):
+        for p, q in itertools.combinations(sorted(lines[m]), 2):
+            key = "|".join(sorted((p, q)))
+            if key in known:
+                continue
+            into = _heading(lines[p][m])  # p -> m, arriving at m
+            out = _heading(lines[m][q][::-1])  # q -> m, arriving at m
+            if into is None or out is None:
+                continue
+            # Leaving m towards q is the reverse of arriving from q.
+            cos = -(into[0] * out[0] + into[1] * out[1])
+            if cos > math.cos(math.radians(HOOK_TURN_DEG)):
+                continue
+            via = path_length(lines[p][m]) + path_length(lines[m][q])
+            a, b = _xy(by_id[p]), _xy(by_id[q])
+            walk = None
+            # A narrow lane may only take the lenient line (as tour links
+            # do); never one over a wall or the fence.
+            for tier in (area.preferred(a, b), area.snug(a, b), area.lenient):
+                walk = walk_around(a, b, tier)
+                if (
+                    walk is not None
+                    and path_length(walk) < via
+                    and not area.leaks(walk)
+                ):
+                    break
+                walk = None
+            if (
+                walk is None
+                or len(walk) > 2 + params.corner_vertices
+                or path_length(walk) >= via
+            ):
+                continue
+            edge = _edge(by_id[p], by_id[q], EdgeOrigin.INFERRED, walk)
+            added.append(edge)
+            known.add(key)
+            if report is not None:
+                report.shortcuts.append(f"{key} past {m}")
+    return added
 
 
 def step_free_conflicts(graph: Graph) -> list[str]:
@@ -440,14 +733,19 @@ def build_graph(
     footprints: BaseGeometry,
     run_id: str,
     params: GraphParams = GraphParams(),  # noqa: B008 - frozen dataclass
+    barriers: Barriers | None = None,
 ) -> tuple[Graph, BuildReport]:
     report = BuildReport()
-    obstacles = Obstacles.of(footprints)
-    nodes = snap_nodes(make_nodes(posed, scenes), obstacles, report)
+    area = walking_area(footprints, barriers)
+    nodes = snap_nodes(make_nodes(posed, scenes), area.lenient, report)
     tour_links = [(a, b) for a in posed for b in scenes[a]["links"]]
-    edges, report = make_edges(nodes, tour_links, footprints, params, report)
+    edges, report = make_edges(nodes, tour_links, footprints, params, report, barriers)
+    edges = [
+        *edges,
+        *bridge_islands(nodes, edges, footprints, params, report, barriers),
+    ]
     edges = sorted(
-        [*edges, *bridge_islands(nodes, edges, footprints, params, report)],
+        [*edges, *shortcut_hooks(nodes, edges, footprints, params, report, barriers)],
         key=lambda e: e.id,
     )
 
@@ -455,7 +753,7 @@ def build_graph(
         """Two doors at different positions: a walk outside, as tour links."""
         if math.dist(a.enu, b.enu) > params.max_link_m:
             return None
-        return outdoor_line(_xy(a), _xy(b), obstacles, params)
+        return outdoor_line(_xy(a), _xy(b), area, params, through_barriers=True)
 
     if params.indoor:
         nodes, indoor_edges, report.indoor = attach_indoor(nodes, scenes, walkable)
@@ -470,7 +768,9 @@ def build_graph(
         origin_lat=CAMPUS_ORIGIN_LAT,
         origin_lng=CAMPUS_ORIGIN_LNG,
     )
-    return Graph(meta=meta, nodes=nodes, edges=edges), report
+    graph = mark_crossings(Graph(meta=meta, nodes=nodes, edges=edges), area)
+    report.barrier_fallback, report.soft_fallback = crossings(graph, area)
+    return graph, report
 
 
 def summarise(graph: Graph, report: BuildReport) -> dict[str, Any]:
@@ -488,6 +788,9 @@ def summarise(graph: Graph, report: BuildReport) -> dict[str, Any]:
         "inferred_links": report.inferred_links,
         "dropped": {k: len(v) for k, v in report.dropped.items()},
         "snapped_nodes": len(report.snapped),
+        "unsnapped_nodes": len(report.unsnapped),
+        "soft_fallback_edges": len(report.soft_fallback),
+        "barrier_fallback_edges": len(report.barrier_fallback),
         "detoured_edges": len(report.detoured),
         "components": [len(c) for c in comps],
         "median_edge_m": round(float(np.median(lengths)), 2) if lengths else None,

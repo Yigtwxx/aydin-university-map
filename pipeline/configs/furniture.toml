@@ -78,10 +78,15 @@ z_m = 4.0
 edge = "wall"
 # 2026-10-08: the east edge stops 0.5 m inside the campus ring along İnönü
 # (it was a straight x 90 edge reaching ~15 m past the street's far kerb up north).
+# 2026-10-08: the 2.8 m lane from the NW gate down to B's door is cut out: it
+# climbs from the street to the square as one gentle slope (lane-nw-gate-ramp),
+# not past a wall across its mouth.
 outline = [
   [-44.5, -55.0], [-30.0, -49.6], [-15.6, -46.0], [-14.4, -44.2], [-10.5, -44.0], [-10.5, -52.8],
   [45.0, -34.4], [90.0, -22.0], [90.0, 7.4], [73.9, 92.0], [64.0, 92.0],
-  [38.5, 82.0], [31.4, 78.4], [-12.1, 62.4], [-27.2, 58.6], [-13.2, 12.0], [-12.5, 7.2],
+  [38.5, 82.0], [31.4, 78.4], [-12.1, 62.4],
+  [-12.3, 62.35], [-7.31, 46.83], [-9.97, 45.97], [-15.02, 61.66],
+  [-27.2, 58.6], [-13.2, 12.0], [-12.5, 7.2],
   [-11.9, 3.8], [-18.7, 2.5], [-29.7, -7.9], [-56.7, -17.8], [-57.0, -19.6],
 ]
 note = "the central campus plateau: the square, B/N/A, E and its front platform, J; the gate plaza is cut out as a child"
@@ -141,7 +146,10 @@ edge = "wall"
 # 2026-10-08: the campus's north pedestrian entrance lies under the deck slab,
 # at the café square's level; its turnstiles step up to the lane (3.2) at
 # x ~ -34.5. Camera heights: 565 and 564 within 0.1 m of each other.
-outline = [[-34.5, 57.5], [-47.5, 57.5], [-47.5, 70.0], [-44.2, 70.0], [-44.2, 68.0], [-41.0, 69.6], [-38.7, 69.8], [-38.7, 67.6], [-37.2, 66.1], [-35.7, 66.6], [-34.5, 66.6]]
+# 2026-10-08: the west edge meets the café square's east edge (it stopped at
+# x -47.5, leaving a strip at street level and a wall on each side of it):
+# 564 sees one floor running from the square under the deck's columns.
+outline = [[-34.5, 57.5], [-52.0, 57.0], [-51.5, 70.0], [-44.2, 70.0], [-44.2, 68.0], [-41.0, 69.6], [-38.7, 69.8], [-38.7, 67.6], [-37.2, 66.1], [-35.7, 66.6], [-34.5, 66.6]]
 note = "sunken entrance hall under the north deck: turnstiles, guard room, glass lift"
 evidence = [
   { scene = "scene_428565", ath = 0, note = "turnstiles and x-ray 2.7-5.3 m east under the timber canopy; deck slab overhead" },
@@ -393,6 +401,18 @@ note = "stairs from the cobbled deck by D Blok's sign down to the sunken, canopi
 evidence = [{ scene = "scene_428559", ath = 38, note = "covered ramp and stairs, steel rails, 5 m (survey note: 559 @0-30)" }]
 
 [[stairs]]
+id = "south-gate-steps"
+# 2026-10-08: up from the south road's sidewalk into the gate hall (GATE_S),
+# across its south face; the turnstiles stand under the roof behind them.
+foot = [-1.49, -50.87]
+top = [-1.8, -49.92]
+width_m = 6.0
+steps = 4
+base_z = 3.2
+rise_m = 0.8
+evidence = [{ scene = "scene_428576", ath = 100, note = "low steps up to the gate doors under the canopy, between the brick towers" }, { scene = "scene_428536", ath = 270, note = "the hall's turnstiles at the square's level, paving running flat to them" }]
+
+[[stairs]]
 id = "e-court-steps"
 foot = [-27.4, -50.1]
 top = [-27.2, -48.6]
@@ -509,6 +529,16 @@ rise_m = 0.8
 railings = "both"
 note = "2026-10-08: upper leg of the curved café-south ramp, running east along the south end of the tiers to the plaza; its inner rail meets the tiers' rim railing at ~(53,-25.4), triangulated 509 @79 x 508 @108 and 509 x 510 @70. Where it lands on the plaza is +-2 m"
 evidence = [{ scene = "scene_428509", ath = 11, note = "ramp rails reaching the rim railing at bearing 79" }, { scene = "scene_428508", ath = 132, note = "ramp rail high point at bearing 108" }, { scene = "scene_428521", ath = 290, note = "ramp top railing curving behind the grass beyond the tiers' south end" }]
+
+[[ramps]]
+id = "lane-nw-gate-ramp"
+foot = [-13.95, 62.9]
+top = [-8.64, 46.4]
+width_m = 2.8
+base_z = 3.2
+rise_m = 0.8
+note = "2026-10-08: the paved lane between B and the block west of it, from just inside the NW sliding gate (558) to where it opens on the square by B's door (557). Flat to the eye, no step anywhere: the square's 0.8 m over 17 m (~5 %). Axis and width from the two facades (2.95 m apart east-west)"
+evidence = [{ scene = "scene_428558", ath = 0, note = "straight cobbled lane running away south between the two blocks, no step" }, { scene = "scene_428557", ath = 203, note = "the lane leaving the square at B's north-west corner, same paving, no step" }]
 
 # ---------------------------------------------------------------- railings
 
