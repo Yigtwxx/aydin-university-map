@@ -35,14 +35,24 @@ export class RouteError extends Error {
   }
 }
 
+/**
+ * The walking graph, straight from the asset host: the same file the API
+ * loads, so the map never waits on an API cold start to appear.
+ */
 export function useCampusGraph() {
   return useQuery<CampusGraph>({
     queryKey: ['graph'],
     queryFn: async () => {
-      const { data, error } = await api.GET('/graph');
-      if (error || !data)
-        throw new RouteError('unavailable', 'graph not available');
-      return parseGraph(data as Parameters<typeof parseGraph>[0]);
+      const response = await fetch(`${assetBaseUrl}/graph.geojson`).catch(
+        (cause: unknown) => {
+          throw new RouteError('unavailable', `graph: ${String(cause)}`);
+        },
+      );
+      if (!response.ok)
+        throw new RouteError('unavailable', `graph: HTTP ${response.status}`);
+      return parseGraph(
+        (await response.json()) as Parameters<typeof parseGraph>[0],
+      );
     },
     staleTime: Infinity,
   });
