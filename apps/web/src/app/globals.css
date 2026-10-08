@@ -23,6 +23,12 @@
 
   --ochre: #dfa53c;
   --ochre-ink: #1d1505;
+  /* Ice blue: the logomark's centre stone only. Bright on dark surfaces, deep
+     on light ones; `ice` follows the theme, `ice-inverse` suits ink tiles. */
+  --ice-bright: #a8e0ff;
+  --ice-deep: #2a8bbf;
+  --ice: var(--ice-deep);
+  --ice-inverse: var(--ice-bright);
   --brick: #c4432d;
   --plane: #557a4c;
   --marmara: #2d5d7c;
@@ -92,6 +98,8 @@
   --hairline: rgb(255 255 255 / 0.08);
 
   --ochre: #f2b84b;
+  --ice: var(--ice-bright);
+  --ice-inverse: var(--ice-deep);
   --brick: #e8705a;
   --plane: #3e5a3c;
   --marmara: #7fb0cf;

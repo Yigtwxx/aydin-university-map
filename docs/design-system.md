@@ -50,8 +50,9 @@ screen), plus the campus and signal colours. Tokens live in
 | `hairline` | ink 8% | white 8% | dividers, inner edges |
 | `route` | `#1F5FD6` | `#5AA2FF` | the route, the primary action, focus |
 | `on-route` | `#FFFFFF` | `#07111F` | text on route blue (5.6:1 / 7.4:1) |
-| `ochre` | `#DFA53C` | `#F2B84B` | campus facades, block badges, entrance rims, logomark |
+| `ochre` | `#DFA53C` | `#F2B84B` | campus facades, block badges, entrance rims |
 | `ochre-ink` | `#1D1505` | `#1D1505` | letters on ochre, both themes |
+| `ice` | `#2A8BBF` | `#A8E0FF` | the logomark's centre stone only (`ice-inverse` on ink tiles) |
 | `brick` | `#C4432D` | `#E8705A` | destination pin, errors |
 | `plane` / `marmara` | `#557A4C` / `#2D5D7C` | `#3E5A3C` / `#7FB0CF` | vegetation; moon, water |
 

@@ -338,7 +338,7 @@ function CampusLabel({
         data-label
         className="flex -translate-1/2 items-center gap-1.5 rounded-full bg-stone-raised/90 py-1 pr-3 pl-1 text-sm font-semibold tracking-heading whitespace-nowrap text-ink shadow-elevation-1 ring-1 ring-hairline backdrop-blur-md"
       >
-        <span className="flex size-6 items-center justify-center rounded-full bg-ink text-stone-raised">
+        <span className="flex size-6 items-center justify-center rounded-full bg-ink text-stone-raised [--mark-accent:var(--ice-inverse)]">
           <FanMark className="size-3.5" />
         </span>
         {t('campus')}

@@ -605,7 +605,7 @@ export function MapApp({ opening = false }: { opening?: boolean }) {
                     !desktop && 'sr-only',
                   )}
                 >
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-ink text-stone-raised shadow-thumb">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-ink text-stone-raised shadow-thumb [--mark-accent:var(--ice-inverse)]">
                     <FanMark className="size-4.5" />
                   </span>
                   <h1 className="truncate text-base font-semibold tracking-heading">
