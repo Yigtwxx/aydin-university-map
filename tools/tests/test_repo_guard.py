@@ -12,6 +12,8 @@ from tools.repo_guard import MAX_BYTES, check_paths
         "data/tiles/scene_1/f.jpg",
         "pipeline/out/campus.glb",
         "apps/web/src/pano.jpg",
+        "apps/web/src/app/pano.png",
+        "apps/web/src/app/[locale]/apple-icon.png",
     ],
 )
 def test_check_paths_forbidden_file_reports_violation(
@@ -28,6 +30,9 @@ def test_check_paths_forbidden_file_reports_violation(
         "pipeline/src/amap_pipeline/cli.py",
         "packages/contracts/fixtures/tiny.png",
         "apps/web/public/favicon.png",
+        "apps/web/src/app/apple-icon.png",
+        "apps/web/src/app/icon.png",
+        "apps/web/src/app/opengraph-image.png",
     ],
 )
 def test_check_paths_allowed_file_passes(path: str, tmp_path: Path) -> None:

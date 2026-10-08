@@ -25,7 +25,17 @@ BINARY_ALLOWED_PREFIXES = (
     "apps/web/public/",
     "docs/assets/",
 )
+# Next.js metadata images must sit in the app root, not under public/.
+APP_ICON_DIR = "apps/web/src/app/"
+APP_ICON_STEMS = frozenset({"icon", "apple-icon", "opengraph-image", "twitter-image"})
 SIZE_EXEMPT = frozenset({"uv.lock", "pnpm-lock.yaml"})
+
+
+def _binary_allowed(path: str) -> bool:
+    if path.startswith(BINARY_ALLOWED_PREFIXES):
+        return True
+    pure = PurePosixPath(path)
+    return f"{pure.parent}/" == APP_ICON_DIR and pure.stem in APP_ICON_STEMS
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,7 +52,7 @@ def check_paths(paths: Iterable[str], root: Path) -> list[Violation]:
             violations.append(Violation(path, "data/ must never be committed"))
             continue
         suffix = PurePosixPath(path).suffix.lower()
-        if suffix in BINARY_SUFFIXES and not path.startswith(BINARY_ALLOWED_PREFIXES):
+        if suffix in BINARY_SUFFIXES and not _binary_allowed(path):
             violations.append(Violation(path, f"binary {suffix} outside allowed dirs"))
         file = root / path
         if path not in SIZE_EXEMPT and file.is_file():
