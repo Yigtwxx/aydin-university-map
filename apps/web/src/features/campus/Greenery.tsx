@@ -18,6 +18,7 @@ import { openRing } from './geometry';
 import { useTerrain } from './queries';
 import { raisedAreaGeometry, type RaisedStyle } from './raisedAreas';
 import type { Terrain } from './terrain';
+import { type TreeRecord, treeShape } from './treeShape';
 import type { Greenery as GreeneryData } from './types';
 
 const AREA_COLORS: Record<string, string> = {
@@ -47,12 +48,6 @@ const RAISED: Record<string, RaisedStyle> = {
 };
 const CANOPY = '#5F8F4E';
 const TRUNK = '#6E5A44';
-
-/** Stable pseudo-random value per tree so sizes don't change between renders. */
-function hash(i: number): number {
-  const x = Math.sin(i * 12.9898) * 43758.5453;
-  return x - Math.floor(x);
-}
 
 export function Greenery({ data }: { data: GreeneryData }) {
   const terrain = useTerrain();
@@ -154,13 +149,7 @@ function RaisedAreas({
   );
 }
 
-function Trees({
-  trees,
-  terrain,
-}: {
-  trees: [number, number][];
-  terrain: Terrain;
-}) {
+function Trees({ trees, terrain }: { trees: TreeRecord[]; terrain: Terrain }) {
   const canopy = useRef<InstancedMesh>(null);
   const trunk = useRef<InstancedMesh>(null);
 
@@ -168,23 +157,30 @@ function Trees({
     if (!canopy.current || !trunk.current) return;
     const dummy = new Object3D();
     const tint = new Color();
-    trees.forEach(([east, north], i) => {
-      const size = 0.8 + hash(i) * 0.5;
+    trees.forEach((tree, i) => {
+      const [east, north] = tree;
+      const shape = treeShape(tree);
       const [x, ground, z] = enuToWorld(
         east,
         north,
         terrain.heightAt(east, north),
       );
-      dummy.position.set(x, ground + 6.5 * size, z);
-      dummy.scale.setScalar(size);
-      dummy.rotation.set(0, hash(i + 7) * Math.PI, 0);
+      // Unit crown (radius 1) and unit trunk (height 1, foot radius 1).
+      dummy.position.set(x, ground + shape.crownY, z);
+      dummy.scale.set(
+        shape.crownRadius,
+        shape.crownHalfHeight,
+        shape.crownRadius,
+      );
+      dummy.rotation.set(0, shape.yaw, 0);
       dummy.updateMatrix();
       canopy.current!.setMatrixAt(i, dummy.matrix);
       canopy.current!.setColorAt(
         i,
-        tint.set(CANOPY).offsetHSL(0, 0, (hash(i + 3) - 0.5) * 0.08),
+        tint.set(CANOPY).offsetHSL(0, 0, shape.shade),
       );
-      dummy.position.set(x, ground + 2.2 * size, z);
+      dummy.position.set(x, ground + shape.trunkHeight / 2, z);
+      dummy.scale.set(shape.trunkRadius, shape.trunkHeight, shape.trunkRadius);
       dummy.updateMatrix();
       trunk.current!.setMatrixAt(i, dummy.matrix);
     });
@@ -206,7 +202,7 @@ function Trees({
         castShadow
         receiveShadow
       >
-        <icosahedronGeometry args={[4, 1]} />
+        <icosahedronGeometry args={[1, 1]} />
         <meshStandardMaterial roughness={0.9} flatShading />
       </instancedMesh>
       <instancedMesh
@@ -214,7 +210,7 @@ function Trees({
         args={[undefined, undefined, trees.length]}
         castShadow
       >
-        <cylinderGeometry args={[0.35, 0.5, 4.4, 6]} />
+        <cylinderGeometry args={[0.7, 1, 1, 6]} />
         <meshStandardMaterial color={TRUNK} roughness={1} />
       </instancedMesh>
     </>

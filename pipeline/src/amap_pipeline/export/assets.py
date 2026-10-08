@@ -109,15 +109,25 @@ def export_panos(
     return written
 
 
+# Default total tree heights, metres (ground to crown top). The campus trees
+# are young, clipped trees in beds and planters; OSM's single trees around the
+# campus are street and park trees, a little taller.
+CAMPUS_TREE_M = 5.5
+CITY_TREE_M = 8.0
+
+
 def greenery_json(
     greenery: Greenery,
     radius_m: float = 450.0,
-    extra_trees: Sequence[tuple[float, float]] = (),
+    extra_trees: Sequence[tuple[float, float, float | None]] = (),
 ) -> dict[str, Any]:
     """Parks/grass polygons and tree points near the campus, in local metres.
 
-    ``extra_trees`` are trees seen on the panoramas (configs/greenery.toml);
-    one within 1.5 m of an OSM tree is that tree and is not added twice.
+    Trees are ``[east, north, height_m]``, the height being the whole tree
+    (ground to crown top). OSM trees get ``CITY_TREE_M``. ``extra_trees`` are
+    trees seen on the panoramas (configs/greenery.toml), ``(x, y, height_m)``
+    with ``None`` meaning ``CAMPUS_TREE_M``; one within 1.5 m of an OSM tree is
+    that tree and is not added twice, but its surveyed height wins.
     """
     origin = Point(0.0, 0.0)
     areas = [
@@ -128,13 +138,16 @@ def greenery_json(
         for kind, outline in greenery.areas
         if outline.distance(origin) <= radius_m
     ]
-    points = list(greenery.trees)
-    for x, y in extra_trees:
-        if all(math.hypot(x - tx, y - ty) > 1.5 for tx, ty in points):
-            points.append((x, y))
+    points = [[x, y, CITY_TREE_M] for x, y in greenery.trees]
+    for x, y, height in extra_trees:
+        same = next((p for p in points if math.hypot(x - p[0], y - p[1]) <= 1.5), None)
+        if same is None:
+            points.append([x, y, height if height is not None else CAMPUS_TREE_M])
+        elif height is not None:
+            same[2] = height
     trees = [
-        [round(x, 2), round(y, 2)]
-        for x, y in points
+        [round(x, 2), round(y, 2), round(h, 2)]
+        for x, y, h in points
         if Point(x, y).distance(origin) <= radius_m
     ]
     return {

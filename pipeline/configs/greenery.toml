@@ -1,6 +1,9 @@
 # Trees seen on the panoramas that OSM does not map. Read by
 # `amap export greenery` and added to OSM's trees (one within 1.5 m of an OSM
-# tree is that tree). Local metres [east, north].
+# tree is that tree). Local metres [east, north]. A tree may set `height_m`,
+# the whole tree from the ground to the crown top; without it a campus tree
+# is 5.5 m (export/assets.py CAMPUS_TREE_M). Set only where the evidence says
+# small or large.
 #
 # Found with `amap furniture detect --queries landmarks` (OWLv2, 94 outdoor
 # panoramas) and `amap furniture locate`, then checked on the review sheets
@@ -16,6 +19,7 @@ evidence = "blue spruce in the bed behind the south gate, by the rhino statue; 3
 
 [[trees]]
 at = [1.46, -49.73]
+height_m = 8.0
 evidence = "old plane tree in the pavement at the south gate; one panorama, monoplot"
 
 # ---------------------------------------------------------------- lawns
@@ -179,6 +183,7 @@ evidence = "plane tree in the pavement beside the store steps; rays from 428504 
 
 [[trees]]
 at = [-4.2, -12.5]
+height_m = 6.5
 evidence = "large olive in the crescent bed west of the square; trunk at the predicted base on 428504 (11 m) and 428515"
 
 [[trees]]
@@ -226,20 +231,25 @@ evidence = "L-shaped lawn strip with a colourful low shrub border between T's ga
 
 [[trees]]
 at = [-37.5, -233.6]
+height_m = 3.5
 evidence = "red-leaved small tree in the SW lawn strip just behind the shrub border; trunk from scene_428787 in two views (5.5 m, ath 297 and 309)"
 
 [[trees]]
 at = [-33.5, -205.9]
+height_m = 3.0
 evidence = "small tree in a black planter on the NW lawn edge of T's garden, 9.6 m from scene_428786 (ath 340)"
 
 [[trees]]
 at = [-37.9, -231.2]
+height_m = 3.0
 evidence = "small tree in a black planter behind a bench of T's garden, 7.5 m from scene_428787 (ath 305 and 311)"
 
 [[trees]]
 at = [-36.3, -235.4]
+height_m = 3.0
 evidence = "small tree in the north planter of the seating pocket in T's garden, 3.6 m from scene_428787 (ath 282)"
 
 [[trees]]
 at = [-34.9, -240.1]
+height_m = 3.0
 evidence = "small tree in the south planter of the seating pocket in T's garden, 3.8 m from scene_428787 (ath 200)"

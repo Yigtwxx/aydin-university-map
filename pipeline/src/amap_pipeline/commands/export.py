@@ -107,10 +107,20 @@ def _greenery_config(path: Path = GREENERY_CONFIG) -> dict[str, Any]:
     return tomllib.loads(path.read_text("utf-8")) if path.is_file() else {}
 
 
-def _surveyed_trees(path: Path = GREENERY_CONFIG) -> list[tuple[float, float]]:
-    """Trees seen on the panoramas that OSM lacks (``[[trees]] at = [x, y]``)."""
+def _surveyed_trees(
+    path: Path = GREENERY_CONFIG,
+) -> list[tuple[float, float, float | None]]:
+    """Trees seen on the panoramas that OSM lacks.
+
+    ``[[trees]] at = [x, y]`` with an optional ``height_m`` (whole tree, metres);
+    without it the tree gets the default campus height.
+    """
     return [
-        (float(t["at"][0]), float(t["at"][1]))
+        (
+            float(t["at"][0]),
+            float(t["at"][1]),
+            float(t["height_m"]) if "height_m" in t else None,
+        )
         for t in _greenery_config(path).get("trees", [])
     ]
 

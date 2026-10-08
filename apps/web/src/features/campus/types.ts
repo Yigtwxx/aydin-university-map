@@ -185,8 +185,11 @@ export interface Building {
 
 export interface Greenery {
   areas: { kind: string; outline: [number, number][] }[];
-  /** Tree positions in local metres [east, north]. */
-  trees: [number, number][];
+  /**
+   * Trees in local metres: [east, north] or [east, north, height_m], the
+   * height being the whole tree, ground to crown top (see treeShape.ts).
+   */
+  trees: ([number, number] | [number, number, number])[];
 }
 
 /** OSM streets, footpaths and ground areas (pipeline: `amap export ground`). */

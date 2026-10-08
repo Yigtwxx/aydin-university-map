@@ -7,6 +7,8 @@ from shapely.geometry import Polygon
 
 from amap_pipeline.acquire.store import FACES
 from amap_pipeline.export.assets import (
+    CAMPUS_TREE_M,
+    CITY_TREE_M,
     SMALL_FACE_PX,
     MassingParams,
     building_height_m,
@@ -66,12 +68,25 @@ def test_greenery_json_keeps_nearby_areas_and_trees() -> None:
         Greenery([("grass", near), ("park", far)], [(1.0, 2.0), (8000.0, 0.0)])
     )
     assert [a["kind"] for a in data["areas"]] == ["grass"], data["areas"]
-    assert data["trees"] == [[1.0, 2.0]], data["trees"]
+    assert data["trees"] == [[1.0, 2.0, CITY_TREE_M]], data["trees"]
 
 
 def test_greenery_json_adds_surveyed_trees_once() -> None:
     data = greenery_json(
-        Greenery([], [(1.0, 2.0)]), extra_trees=[(1.3, 2.2), (30.0, 40.0)]
+        Greenery([], [(1.0, 2.0)]),
+        extra_trees=[(1.3, 2.2, None), (30.0, 40.0, None)],
     )
     # A surveyed tree within 1.5 m of an OSM one is the same tree.
-    assert data["trees"] == [[1.0, 2.0], [30.0, 40.0]], data["trees"]
+    assert data["trees"] == [
+        [1.0, 2.0, CITY_TREE_M],
+        [30.0, 40.0, CAMPUS_TREE_M],
+    ], data["trees"]
+
+
+def test_greenery_json_surveyed_height_wins() -> None:
+    data = greenery_json(
+        Greenery([], [(1.0, 2.0)]),
+        extra_trees=[(1.3, 2.2, 3.0), (30.0, 40.0, 4.25)],
+    )
+    # The surveyed height replaces OSM's default on the same tree.
+    assert data["trees"] == [[1.0, 2.0, 3.0], [30.0, 40.0, 4.25]], data["trees"]
