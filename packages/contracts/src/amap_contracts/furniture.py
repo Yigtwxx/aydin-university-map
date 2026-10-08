@@ -44,6 +44,7 @@ class ItemKind(StrEnum):
     TOPIARY = "topiary"  # a shrub clipped to a ball
     STATUE = "statue"  # a life-size bronze animal; heading = where its head points
     SIGN = "sign"  # a free-standing board or totem; length_m = its width
+    STAND = "stand"  # a red info lectern: an angled board on a post
     HEDGE = "hedge"  # a clipped box hedge; length_m along it, heading across
 
 
@@ -52,6 +53,11 @@ class Side(StrEnum):
     LEFT = "left"  # seen walking up from the foot
     RIGHT = "right"
     BOTH = "both"
+
+
+class RailingStyle(StrEnum):
+    STEEL = "steel"  # posts with a top and a mid rail
+    FENCE = "fence"  # the campus boundary: brick plinth and piers, iron bars
 
 
 class Edge(StrEnum):
@@ -124,6 +130,7 @@ class Railing(BaseModel):
     line: list[Point] = Field(min_length=2)
     height_m: float = Field(default=1.0, gt=0.2, le=3.0)
     base_z: float = 0.0
+    style: RailingStyle = RailingStyle.STEEL
 
 
 class Item(BaseModel):

@@ -472,6 +472,141 @@ height_m = 1.0
 base_z = 3.2
 evidence = [{ scene = "scene_428540", ath = 341, note = "curved steel rail round the pool at the E court (detector railing_19)" }]
 
+# Campus boundary fence, 2026-10-08: red-brick plinth with stone bands, brick
+# piers ~3 m apart with white globe lamps, black iron bars with gold spears.
+# One entry per straight run; openings left at the gates. Feet from depression
+# angles (camera 1.53 m; 1.38 m for street panoramas looking at the raised
+# sidewalk). base_z is the terrace the foot stands on, checked against the
+# m0/m1 camera heights. T Blok runs follow the t-garden wall (survey poses there
+# are unusable).
+
+[[railings]]
+id = "fence-east-1"
+style = "fence"
+# GATE_MAIN_N's east face north to the J gate's south pier; flagpoles of 529 just inside
+line = [[74.2, 35.5], [71.9, 58.0], [69.6, 71.8]]
+height_m = 2.0
+base_z = 5.7
+evidence = [
+  { scene = "scene_428529", ath = 306, note = "plinth foot 2.4-6 m east of the camera behind the flagpoles; runs south to GATE_MAIN_N" },
+  { scene = "scene_428530", ath = 215, note = "south pier of the J gate 1.7 m away; next pier at (70.9, 67.1)" },
+]
+
+[[railings]]
+id = "fence-east-2"
+style = "fence"
+line = [[69.0, 75.0], [67.6, 80.5]]
+height_m = 2.0
+base_z = 5.7
+evidence = [{ scene = "scene_428530", ath = 120, note = "north pier of the J gate (3.2 m opening) 2.6 m away; fence runs on behind the café terrace to a lamp pier ~7.5 m north, further hidden" }]
+
+[[railings]]
+id = "fence-east-3"
+style = "fence"
+# south of the main gate passage, from the black IAU name wall south along the sidewalk
+line = [[81.7, 10.8], [83.7, 3.5], [85.2, -3.0]]
+height_m = 2.0
+base_z = 5.7
+evidence = [
+  { scene = "scene_428518", ath = 278, note = "plinth foot on the sidewalk 13.7-27.6 m south of the camera (dep 6.4-3.2 deg); far end +-1.5 m" },
+  { scene = "scene_428520", ath = 190, note = "lamp piers behind the hedges east of the lawn, feet hidden" },
+]
+
+[[railings]]
+id = "fence-south-1"
+style = "fence"
+# south road: from the south gate hall's west end west to the hospital bridge stair
+line = [[-7.9, -50.6], [-13.0, -55.2], [-17.0, -56.6], [-21.5, -58.3], [-26.5, -60.4], [-31.4, -61.9]]
+height_m = 2.0
+base_z = 3.2
+evidence = [
+  { scene = "scene_428539", ath = 272, note = "plinth foot 1.5-7 m from the camera, inside" },
+  { scene = "scene_428577", ath = 133, note = "from the street: foot 6.5-18 m, ends at GATE_S's west face" },
+  { scene = "scene_428540", ath = 62, note = "ends at the glass bridge stair 4.4 m south-west of the camera" },
+]
+
+[[railings]]
+id = "fence-south-2"
+style = "fence"
+# south road east of the south gate hall, from its brick tower to the hospital-entrance sliding gate
+line = [[4.4, -46.2], [11.0, -43.7], [15.5, -40.4], [22.2, -36.3]]
+height_m = 2.0
+base_z = 4.0
+evidence = [
+  { scene = "scene_428460", ath = 31, note = "across the road, foot 9-16 m; sliding vehicle gate after the east pier" },
+  { scene = "scene_428576", ath = 137, note = "starts at GATE_S's east tower 10 m away" },
+]
+
+[[railings]]
+id = "fence-north-1"
+style = "fence"
+# D/N lane: from the pier by the blue footbridge stair to the lane gate
+line = [[-72.3, 45.6], [-68.4, 48.2], [-60.8, 52.4]]
+height_m = 2.0
+base_z = 3.2
+evidence = [
+  { scene = "scene_428566", ath = 54, note = "plinth foot 2.5-10 m; arched pedestrian gate between piers at bearings 48.5 and 53.7" },
+  { scene = "scene_428566", ath = 329, note = "west end pier beside the blue footbridge stair, 2.5 m; fence continues behind the stair" },
+]
+
+[[railings]]
+id = "fence-north-2"
+style = "fence"
+# from the lane gate east to the NW gate's west pier
+line = [[-57.1, 53.8], [-47.8, 55.8], [-41.3, 57.4], [-34.0, 57.8], [-29.6, 58.5]]
+height_m = 2.0
+base_z = 3.2
+evidence = [
+  { scene = "scene_428559", ath = 123, note = "foot 3-19 m west along the street; west pier of the NW gate 2.6 m" },
+  { scene = "scene_428566", ath = 99, note = "piers receding east of the lane gate (bearings only)" },
+]
+
+[[railings]]
+id = "fence-north-3"
+style = "fence"
+# east of the NW gate's sliding vehicle gate, along N; planters hide the rest
+line = [[-14.7, 65.3], [-11.2, 68.9]]
+height_m = 2.0
+base_z = 4.0
+evidence = [{ scene = "scene_428558", ath = 225, note = "east pier of the sliding gate 2.6 m, plinth to 7.6 m, then hidden behind planters" }]
+
+[[railings]]
+id = "fence-t-1"
+style = "fence"
+# on top of the t-garden's NW retaining wall, stair to the west corner
+line = [[-14.5, -199.0], [-46.8, -208.0]]
+height_m = 2.0
+base_z = 0.0
+evidence = [
+  { scene = "scene_428784", ath = 130, note = "fence on top of the brick wall by the granite stair" },
+  { scene = "scene_428786", ath = 300, note = "continuous on the NW wall top toward the stair" },
+]
+
+[[railings]]
+id = "fence-t-2"
+style = "fence"
+line = [[-46.8, -208.0], [-45.6, -211.8]]
+height_m = 2.0
+base_z = 0.0
+evidence = [{ scene = "scene_428786", ath = 200, note = "wall corner to the arched gate on the SW wall top (piers at ath 157 and 197, ~4.4 m away)" }]
+
+[[railings]]
+id = "fence-t-3"
+style = "fence"
+line = [[-44.6, -214.9], [-38.3, -237.6]]
+height_m = 2.0
+base_z = 0.0
+evidence = [{ scene = "scene_428786", ath = 120, note = "fence on the SW wall top south of the gate" }]
+
+[[railings]]
+id = "fence-t-4"
+style = "fence"
+# south end: the garden walk reaches the outside level, fence on a ground plinth
+line = [[-38.3, -237.6], [-36.3, -246.5], [-33.0, -256.0]]
+height_m = 2.0
+base_z = -2.9
+evidence = [{ scene = "scene_428788", ath = 110, note = "plinth fence at the walk's level receding north-west from a corner pier 2.7 m away; sliding gate east of it" }]
+
 # ----------------------------------------------------------------- seating
 
 [[seating]]
@@ -1131,6 +1266,25 @@ at = [-30.4, -255.0]
 heading_deg = 251.0
 length_m = 13.1
 evidence = [{ scene = "scene_428788", ath = 262, note = "same border up to the lawn's south end 1.5 m before 788 (kerb 2.2-2.3 m out from 788); r 36-50 uncertain by +-5 m" }]
+
+[[items]]
+id = "stand-info-gate-plaza"
+kind = "stand"
+at = [49.7, 23.7]
+heading_deg = 130.0
+length_m = 0.9
+evidence = [
+  { scene = "scene_428524", ath = 11, note = "red angled info board on a post at the lawn's edge, face toward the camera; foot 16.1 deg down -> 5.3 m" },
+  { scene = "scene_428523", ath = 57, note = "same board in profile, low edge to the right; foot 9.4 deg down -> 9.2 m (agrees within 0.2 m)" },
+]
+
+[[items]]
+id = "sign-recycling-f-stair"
+kind = "sign"
+at = [-65.4, -16.1]
+heading_deg = 342.7
+length_m = 1.6
+evidence = [{ scene = "scene_428563", ath = 201, note = "blue 'Geri Donusum Unitesi' kiosk at the foot of F's steel fire stair, back to F's NW wall; foot 7.3 deg down -> 11.9 m, snapped onto the wall line" }]
 
 [[items]]
 id = "booth-utm-gate"

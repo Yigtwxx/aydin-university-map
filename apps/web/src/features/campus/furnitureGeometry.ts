@@ -73,6 +73,11 @@ export const furnitureColors = {
   plinth: '#F2EFE8',
   letters: '#F7F7F5',
   bronze: '#5E6B64',
+  fenceBrick: '#8E3B2B',
+  fenceBand: '#ECE7DC',
+  iron: '#1E2124',
+  gilt: '#C9A245',
+  standRed: '#C42A30',
   hedge: '#4E7D3A',
   hedgeTop: '#5E8F45',
 } as const;
@@ -701,6 +706,7 @@ export function railingGeometry(
     }
   }
   for (const railing of furniture.railings) {
+    if (railing.style === 'fence') continue;
     const line = railing.line;
     const base = railing.base_z;
     const top = base + railing.height_m;
@@ -734,10 +740,153 @@ export function railingGeometry(
   return merged;
 }
 
+// ------------------------------------------------------------------ fence
+
+/** The campus boundary fence: plinth and piers in brick, iron between. */
+export const FENCE = {
+  pierSpacing: 3,
+  pier: 0.5,
+  plinth: 0.7,
+  plinthWidth: 0.36,
+  barSpacing: 0.18,
+  bar: 0.025,
+  globe: 0.17,
+} as const;
+
+/** Pier feet along a fence line: at every corner and at most 3 m apart. */
+export function fencePiers(line: readonly XY[]): XY[] {
+  const out: XY[] = [];
+  for (let i = 0; i < line.length; i++) {
+    const [e, n] = line[i]!;
+    if (i > 0) {
+      const [pe, pn] = line[i - 1]!;
+      const spans = Math.max(
+        1,
+        Math.ceil(Math.hypot(e - pe, n - pn) / FENCE.pierSpacing),
+      );
+      for (let k = 1; k < spans; k++)
+        out.push([pe + ((e - pe) * k) / spans, pn + ((n - pn) * k) / spans]);
+    }
+    out.push([e, n]);
+  }
+  return out;
+}
+
+/**
+ * Every boundary fence (railings with style "fence"): a brick plinth with a
+ * white coping, brick piers banded in white, black iron bars with gilded
+ * tips between them. Vertex-coloured, one geometry; the piers' globe lamps
+ * are instances ('globe'), so they glow with the lanterns at night.
+ */
+export function fenceGeometry(
+  furniture: Furniture,
+): BufferGeometry | undefined {
+  const c = furnitureColors;
+  const parts: BufferGeometry[] = [];
+  const box = (
+    p: XY,
+    angle: number,
+    size: [number, number, number],
+    bottom: number,
+    color: string,
+  ) => {
+    const g = new BoxGeometry(size[0], size[1], size[2]);
+    parts.push(
+      piece(
+        g,
+        color,
+        new Matrix4().compose(
+          new Vector3(p[0], bottom + size[1] / 2, -p[1]),
+          new Quaternion().setFromEuler(new Euler(0, angle, 0)),
+          new Vector3(1, 1, 1),
+        ),
+      ),
+    );
+  };
+  for (const railing of furniture.railings) {
+    if (railing.style !== 'fence') continue;
+    const base = railing.base_z;
+    const height = railing.height_m;
+    const line = railing.line as XY[];
+    for (let i = 1; i < line.length; i++) {
+      const a = line[i - 1]!;
+      const b = line[i]!;
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (len < 1e-3) continue;
+      // Box x along the run: world angle from east, north is -z.
+      const angle = Math.atan2(b[1] - a[1], b[0] - a[0]);
+      const mid: XY = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      box(
+        mid,
+        angle,
+        [len, FENCE.plinth, FENCE.plinthWidth],
+        base - 0.2,
+        c.fenceBrick,
+      );
+      box(
+        mid,
+        angle,
+        [len, 0.06, FENCE.plinthWidth + 0.06],
+        base + FENCE.plinth - 0.2,
+        c.fenceBand,
+      );
+      const bars = Math.floor(len / FENCE.barSpacing);
+      const barBottom = base + FENCE.plinth - 0.14;
+      const barTop = base + height - 0.12;
+      for (let k = 1; k < bars; k++) {
+        const t = k / bars;
+        const p: XY = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+        box(
+          p,
+          angle,
+          [FENCE.bar, barTop - barBottom, FENCE.bar],
+          barBottom,
+          c.iron,
+        );
+        box(p, angle, [0.05, 0.08, 0.05], barTop, c.gilt);
+      }
+      for (const h of [barBottom + 0.12, barTop - 0.18])
+        box(mid, angle, [len, 0.04, 0.04], h, c.iron);
+    }
+    for (const p of fencePiers(line)) {
+      const angle = 0;
+      box(
+        p,
+        angle,
+        [FENCE.pier, height + 0.2, FENCE.pier],
+        base - 0.2,
+        c.fenceBrick,
+      );
+      for (const h of [0.95, 1.3])
+        box(
+          p,
+          angle,
+          [FENCE.pier + 0.03, 0.06, FENCE.pier + 0.03],
+          base + h,
+          c.fenceBand,
+        );
+      box(
+        p,
+        angle,
+        [FENCE.pier + 0.1, 0.09, FENCE.pier + 0.1],
+        base + height,
+        c.fenceBand,
+      );
+    }
+  }
+  if (parts.length === 0) return undefined;
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  merged.computeVertexNormals();
+  merged.computeBoundingSphere();
+  return merged;
+}
+
 // ------------------------------------------------------------- item models
 
 /** What one instanced mesh draws: an item kind, or a part of one. */
-export type InstanceKind = Exclude<ItemKind, 'bike_rack'> | 'hoop' | 'lens';
+export type InstanceKind =
+  Exclude<ItemKind, 'bike_rack'> | 'hoop' | 'lens' | 'globe';
 
 /** Length an item gets when the data leaves `length_m` out, metres. */
 export const DEFAULT_LENGTH: Partial<Record<ItemKind, number>> = {
@@ -1000,6 +1149,16 @@ export function itemGeometry(kind: InstanceKind): BufferGeometry {
       add(new BoxGeometry(1, 1.1, 0.08), c.board, at(0, 1.45, 0));
       for (const x of [-0.42, 0.42])
         add(new BoxGeometry(0.06, 0.95, 0.06), c.metal, at(x, 0.47, 0));
+      break;
+    case 'stand':
+      // An info lectern: a post and a red board tilted back towards +z.
+      add(new BoxGeometry(0.1, 0.9, 0.1), c.metal, at(0, 0.45, 0));
+      add(new BoxGeometry(0.75, 0.55, 0.05), c.standRed, at(0, 1.05, 0, -0.55));
+      break;
+    case 'globe':
+      // A fence pier's lamp: a white globe on a small black collar.
+      add(new CylinderGeometry(0.07, 0.09, 0.08, 10), c.metal, at(0, 0.04, 0));
+      add(new SphereGeometry(FENCE.globe, 14, 10), c.lens, at(0, 0.24, 0));
       break;
     case 'lens':
       for (const x of LANTERN_X)
@@ -1280,6 +1439,11 @@ export function furnitureInstances(
       default:
         push(item.kind, itemMatrix(item.at, base, h));
     }
+  }
+  for (const railing of furniture.railings) {
+    if (railing.style !== 'fence') continue;
+    for (const p of fencePiers(railing.line as XY[]))
+      push('globe', itemMatrix(p, railing.base_z + railing.height_m + 0.09, 0));
   }
   for (const group of furniture.seating) {
     const ring = openRing(group.outline);

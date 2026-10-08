@@ -22,6 +22,7 @@ import {
   furnitureInstances,
   type InstanceKind,
   itemGeometry,
+  fenceGeometry,
   masonryGeometry,
   railingGeometry,
 } from './furnitureGeometry';
@@ -61,6 +62,8 @@ const FADE_OF: Record<InstanceKind, 'small' | 'medium' | 'tall'> = {
   letters: 'medium',
   topiary: 'small',
   statue: 'medium',
+  globe: 'tall',
+  stand: 'small',
   hedge: 'medium',
   sign: 'medium',
   flagpole: 'tall',
@@ -196,6 +199,7 @@ function FurnitureScene({
     () => railingGeometry(furniture, terrain),
     [furniture, terrain],
   );
+  const fence = useMemo(() => fenceGeometry(furniture), [furniture]);
   const instances = useMemo(
     () => furnitureInstances(furniture, terrain),
     [furniture, terrain],
@@ -204,8 +208,9 @@ function FurnitureScene({
     () => () => {
       masonry?.dispose();
       rails?.dispose();
+      fence?.dispose();
     },
-    [masonry, rails],
+    [masonry, rails, fence],
   );
 
   const materials = useMemo(() => {
@@ -321,12 +326,24 @@ function FurnitureScene({
         </mesh>
       )}
       {rails && <mesh geometry={rails} material={materials.metal} />}
+      {fence && (
+        <mesh
+          geometry={fence}
+          material={materials.medium}
+          castShadow
+          receiveShadow
+        />
+      )}
       {[...instances].map(([kind, matrices]) => (
         <Instances
           key={kind}
           kind={kind}
           matrices={matrices}
-          material={kind === 'lens' ? materials.lens : materials[FADE_OF[kind]]}
+          material={
+            kind === 'lens' || kind === 'globe'
+              ? materials.lens
+              : materials[FADE_OF[kind]]
+          }
           castShadow={CASTS_SHADOW.has(kind)}
         />
       ))}

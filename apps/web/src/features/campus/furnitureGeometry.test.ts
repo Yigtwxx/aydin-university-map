@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { EMPTY_FURNITURE, type Furniture, type Stairs } from './furniture';
 import {
   COPING,
+  fenceGeometry,
+  fencePiers,
   flightGaps,
   flightRail,
   furnitureInstances,
@@ -397,5 +399,43 @@ describe('masts, cabins and boards', () => {
     expect(height('kiosk')).toBeLessThan(2.4);
     expect(height('sign')).toBeGreaterThan(1.8);
     expect(height('sign')).toBeLessThan(2.2);
+  });
+});
+
+describe('the boundary fence', () => {
+  const data = furniture({
+    railings: [
+      {
+        id: 'fence-1',
+        line: [
+          [0, 0],
+          [10, 0],
+        ],
+        height_m: 2,
+        base_z: 0,
+        style: 'fence',
+      },
+    ],
+  });
+
+  it('puts a pier at each end and at most 3 m apart', () => {
+    const piers = fencePiers([
+      [0, 0],
+      [10, 0],
+    ]);
+    expect(piers.map(([e]) => e)).toEqual([0, 2.5, 5, 7.5, 10]);
+  });
+
+  it('is brick and iron, not a steel rail, with a globe on every pier', () => {
+    expect(railingGeometry(data, createTerrain(data))).toBeUndefined();
+    const fence = fenceGeometry(data)!;
+    fence.computeBoundingBox();
+    expect(fence.boundingBox!.max.y).toBeGreaterThan(2);
+    expect(fence.boundingBox!.max.x - fence.boundingBox!.min.x).toBeCloseTo(
+      10.6, // the pier caps reach 0.3 m past each end
+      1,
+    );
+    const globes = furnitureInstances(data, createTerrain(data)).get('globe');
+    expect(globes).toHaveLength(5);
   });
 });

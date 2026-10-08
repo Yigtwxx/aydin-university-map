@@ -65,7 +65,10 @@ in `packages/contracts`.
     material per area would leave every area after the second undrawn.
 - **Landmarks and kiosks** are item kinds of their own, because a recolour
   would not read: `kiosk`, `emblem` (length = diameter), `letters` (length =
-  word width), `topiary` and `statue`.
+  word width), `topiary`, `statue` and `stand`.
+- **The boundary fence** is a railing with `style = "fence"`, traced on the
+  panoramas (OSM has no barrier lines here). Its piers (at corners, at most
+  3 m apart) and their globe lamps are generated from the line.
 - **Block features** gain `glass`, a box drawn as glass and never in masonry.
   A feature's `base_m` may be negative, so a column can reach ground that
   steps down below its block's ground (the north deck's entrance hall).

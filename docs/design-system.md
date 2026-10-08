@@ -137,6 +137,9 @@ badges); chips, pills and dots are round.
     bronze rhino at the south gate, and the purple book-swap kiosk.
   - Glazed pieces (vestibules, the covered road bridge) are glass framed in
     white, never brick-coursed. Columns are round and white.
+  - The boundary fence along the streets: a red-brick plinth and piers banded
+    in white, black iron bars with gilded tips, a globe lamp on every pier
+    that glows with the lanterns at night.
 - **Sunken ground:** a terrace below the street (T Blok's garden) shows
   through an opening that the street-level layers skip (stencil). Its walls
   face into the pit.

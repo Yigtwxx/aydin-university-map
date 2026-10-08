@@ -30,6 +30,7 @@ export type ItemKind =
   | 'topiary'
   | 'statue'
   | 'sign'
+  | 'stand'
   | 'hedge';
 
 /** A level area raised above (or sunk below) the street datum. */
@@ -66,11 +67,15 @@ export interface Ramp {
 }
 
 /** A free-standing rail (terrace edges, lane walls). */
+/** steel: posts and rails; fence: the campus boundary (brick and iron). */
+export type RailingStyle = 'steel' | 'fence';
+
 export interface Railing {
   id: string;
   line: Point[];
   height_m: number;
   base_z: number;
+  style?: RailingStyle;
 }
 
 /**
