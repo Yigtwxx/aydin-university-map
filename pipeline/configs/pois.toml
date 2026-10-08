@@ -40,6 +40,13 @@ brand = "Burger King"
 aliases = ["bk", "hamburger", "burger"]
 node = "scene_428553"
 landmark = "poi.burger-king"
+# 2026-10-08: its shopfront faces west under the gate plaza's railed rim, at
+# the café level south of the stair along A (556 @349: Kasap Döner, the "C"
+# door, then the Burger King sign, ~4-9 m along the rim from A's wall). The
+# storefront tie point is not measured, and the panorama hangs off A's door
+# spot (526), which put the pin on the plaza at A's door; pinned at the
+# shopfront instead (1 m in front of the rim, 8 m out from A's wall).
+pin = [30.77, 34.98]
 building = "C"
 # Not in Burger King's own store locator any more; a map listing still shows it.
 verified = { checked = 2026-10-07, status = "unknown", source = "https://www.burgerking.com.tr/restoranlar-subeler/istanbul-avrupa/kucukcekmece" }

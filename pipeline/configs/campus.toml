@@ -10,7 +10,7 @@ levels = 5
 height_m = 20.0
 height_source = "pano"
 # cream upper floors, two brick-red storeys, white string courses; the brick
-# entrance tower with its glass canopy stands on the south face (r2.a.tower.*)
+# entrance tower with its white porch stands on the south face (r2.a.tower.*)
 [blocks.A.facade]
 quoins_m = 0.8  # white corner pilasters (2026-10-08 review of the panoramas)
 wall = "#d6c5a7"
@@ -23,52 +23,67 @@ window_width = 0.4
 window_height = 0.52
 storey_m = 4.0
 ground = "same"
-ground_m = 4.2
+# 2026-10-08: A stands on the square (its west corners, the block's ground)
+# and its east half on the gate plaza 1.7 m higher (furniture.toml). The brick
+# ground floor's string course runs just above the door canopy (527 @20-46),
+# ~4.2 m above the plaza: 5.9 m above the block's ground.
+ground_m = 5.9
+# 2026-10-08 entrance, re-measured in the frame of A's drawn south face
+# ((3.58, 33.85) -> (67.92, 56.61), facing 160.5; was 162.5, 2 deg askew):
+# - tower: between the survey ties r2.a.tower.w/e (face metres 29.6 and 39.7
+#   along the wall), centre 34.7, front 0.25 m proud of the wall;
+# - columns: triangulated 527 @24.7/@43.5 x 525 @41.0/@48.3 x 526 @314.5/@29.5
+#   -> 2.0 m out from the wall, 5.9 m apart, centred on the tower;
+# - door: flush with the gate plaza (no steps; 526, 527), so every porch part
+#   stands on the plaza, 1.7 m above the block's ground (base_m).
 [[blocks.A.facade.features]]
 kind = "tower"
-at = [34.7, 47.5]
-width_m = 10.3
+at = [35.42, 48.03]
+width_m = 10.1
 depth_m = 6.0
 height_m = 24.0
-facing_deg = 162.5
+facing_deg = 160.5
 colour = "#8a3f2e"
 accent = "#6f3326"
 # 2026-10-08 (scene_428526 @0): a white pedimented canopy on two white
-# columns over a glass vestibule, not a glass canopy.
+# columns over a glass vestibule, not a glass canopy; 3.6 m above the plaza.
 [[blocks.A.facade.features]]
 kind = "canopy"
-at = [35.3, 43.2]
+at = [36.79, 44.17]
 width_m = 6.5
-depth_m = 3.0
-base_m = 3.6
+depth_m = 2.2
+base_m = 5.3
 height_m = 0.45
-facing_deg = 162.5
+facing_deg = 160.5
 colour = "#f4f1ea"
 accent = "#e2ddd2"
 [[blocks.A.facade.features]]
 kind = "glass"
-at = [35.0, 44.0]
-width_m = 4.6
-depth_m = 1.6
+at = [36.67, 44.5]
+width_m = 5.1
+depth_m = 1.5
+base_m = 1.7
 height_m = 3.3
-facing_deg = 162.5
+facing_deg = 160.5
 colour = "#4d6470"
 accent = "#f4f1ea"
 [[blocks.A.facade.features]]
 kind = "drum"
-at = [38.4, 42.6]
+at = [39.76, 44.63]
 width_m = 0.55
 depth_m = 0.55
+base_m = 1.7
 height_m = 3.6
-facing_deg = 162.5
+facing_deg = 160.5
 colour = "#f4f1ea"
 [[blocks.A.facade.features]]
 kind = "drum"
-at = [33.1, 40.9]
+at = [34.19, 42.66]
 width_m = 0.55
 depth_m = 0.55
+base_m = 1.7
 height_m = 3.6
-facing_deg = 162.5
+facing_deg = 160.5
 colour = "#f4f1ea"
 
 [blocks.B]

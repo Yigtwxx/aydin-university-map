@@ -19,9 +19,11 @@ from amap_pipeline.geo.osm import (
 from amap_pipeline.geo.overrides import (
     apply_building_overrides,
     apply_pose_overrides,
+    apply_scene_fixes,
     apply_survey_poses,
     load_pose_overrides,
     load_scene_blocks,
+    load_scene_fixes,
     load_survey_poses,
 )
 from amap_pipeline.graph.build import (
@@ -118,11 +120,16 @@ def graph_export(
             typer.echo(f"survey: {len(surveyed)} poses")
         posed = apply_survey_poses(posed, surveyed, projector)
     posed = apply_pose_overrides(posed, load_pose_overrides(), projector)
-    blocks = load_scene_blocks()
-    scenes = {
-        s["name"]: {**s, "block": blocks[s["name"]]} if s["name"] in blocks else s
-        for s in json.loads((paths.derived_dir() / "scenes.json").read_text("utf-8"))
-    }
+    scenes = apply_scene_fixes(
+        {
+            s["name"]: s
+            for s in json.loads(
+                (paths.derived_dir() / "scenes.json").read_text("utf-8")
+            )
+        },
+        load_scene_fixes(),
+        blocks=load_scene_blocks(),
+    )
     # The same footprints the map draws (amap export buildings).
     buildings = apply_building_overrides(
         parse_buildings(

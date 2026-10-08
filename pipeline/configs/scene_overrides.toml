@@ -13,3 +13,26 @@ scene_428305 = "indoor"
 scene_428561 = "D"
 # "Giriş": the hall behind D Blok's lane door (563), linked to "D Blok -1 Koridor".
 scene_428315 = "D"
+
+[scenes]
+# Panoramas whose tour kind and label belong on another spot; applied by
+# `amap graph export` (the tour build and the survey keep the tour's own data).
+#
+# A Blok's main door, checked 2026-10-08 on the local panoramas: the door is
+# the glass vestibule under the white canopy at the foot of the brick tower,
+# in the middle of the south face, flush with the gate plaza's paving (no
+# steps). 428526 stands 5.6 m in front of it, centred on it (526 @0-30 and
+# @315: vestibule, both columns and the red "A" sign within 2-6 m; the
+# conference hall and VIP lounge already hang off 526). The tour's
+# "A Blok Girişi" panorama (428525) stands 14 m out from A's plain east part,
+# 26 m east of the door (525 @45-55: the canopy far off to the west).
+[scenes.scene_428526]
+kind = "entrance"
+label = { tr = "A Blok Girişi", en = "A Block Entrance" }
+area = { tr = "A Blok", en = "A Block" }
+block = "A"
+
+[scenes.scene_428525]
+kind = "outdoor"
+label = { tr = "Kampüs", en = "Campus" }
+area = { tr = "Florya Kampüs", en = "Florya Campus" }

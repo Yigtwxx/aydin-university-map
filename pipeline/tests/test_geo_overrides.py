@@ -9,14 +9,18 @@ from amap_pipeline.geo.osm import Building, LocalProjector
 from amap_pipeline.geo.overrides import (
     DEFAULT_BUILDING_OVERRIDES,
     DEFAULT_POSE_OVERRIDES,
+    DEFAULT_SCENE_OVERRIDES,
     BuildingOverrides,
     PoseOverride,
     SurveyPose,
     apply_building_overrides,
     apply_pose_overrides,
+    apply_scene_fixes,
     apply_survey_poses,
     load_building_overrides,
     load_pose_overrides,
+    load_scene_blocks,
+    load_scene_fixes,
     load_survey_poses,
 )
 
@@ -220,3 +224,89 @@ def test_apply_survey_poses_moves_and_adds_scenes() -> None:
         (lng, lat)
     )
     assert posed["scene_1"]["x"] == 0.0  # input untouched
+
+
+SCENE_FIXES = """
+[blocks]
+door_b = "D"
+
+[scenes.door]
+kind = "entrance"
+label = { tr = "X Blok Girişi", en = "X Block Entrance" }
+area = { tr = "X Blok", en = "X Block" }
+block = "X"
+
+[scenes.square]
+kind = "outdoor"
+label = { tr = "Kampüs", en = "Campus" }
+"""
+
+
+def _scene(name: str, kind: str, label: str) -> dict[str, object]:
+    return {
+        "name": name,
+        "kind": kind,
+        "label": {"tr": label, "en": label},
+        "area": {"tr": "Kampüs", "en": "Campus"},
+    }
+
+
+def test_scene_fixes_move_an_entrance_to_the_door_panorama(tmp_path: Path) -> None:
+    path = tmp_path / "scene_overrides.toml"
+    path.write_text(SCENE_FIXES, encoding="utf-8")
+    scenes = {
+        "door": _scene("door", "outdoor", "Kampüs"),
+        "square": _scene("square", "entrance", "X Blok Girişi"),
+        "door_b": _scene("door_b", "entrance", "Giriş"),
+        "other": _scene("other", "outdoor", "Kampüs"),
+    }
+    fixed = apply_scene_fixes(
+        scenes, load_scene_fixes(path), blocks=load_scene_blocks(path)
+    )
+    assert fixed["door"]["kind"] == "entrance"
+    assert fixed["door"]["label"] == {"tr": "X Blok Girişi", "en": "X Block Entrance"}
+    assert fixed["door"]["area"] == {"tr": "X Blok", "en": "X Block"}
+    assert fixed["door"]["block"] == "X"
+    assert fixed["square"]["kind"] == "outdoor"
+    assert fixed["square"]["label"]["tr"] == "Kampüs"
+    assert fixed["door_b"]["block"] == "D"
+    assert fixed["other"] == scenes["other"]
+    assert scenes["door"]["kind"] == "outdoor"  # the input is not changed
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        ("[scenes.a]\nfloor = 2\n", "unknown scene fields"),
+        ('[scenes.a]\nkind = "door"\n', "kind must be one of"),
+        ('[scenes.a]\nlabel = { tr = "A" }\n', "label needs exactly tr and en"),
+    ],
+)
+def test_scene_fixes_reject_bad_entries(
+    tmp_path: Path, body: str, message: str
+) -> None:
+    path = tmp_path / "scene_overrides.toml"
+    path.write_text(body, encoding="utf-8")
+    with pytest.raises(ValueError, match=message):
+        load_scene_fixes(path)
+
+
+def test_scene_fixes_reject_unknown_scene() -> None:
+    with pytest.raises(ValueError, match="does not have"):
+        apply_scene_fixes({}, {"ghost": {"kind": "outdoor"}})
+
+
+def test_default_scene_fixes_put_a_blok_entrance_at_its_door() -> None:
+    fixes = load_scene_fixes(DEFAULT_SCENE_OVERRIDES)
+    door = fixes["scene_428526"]
+    assert door["kind"] == "entrance"
+    assert door["label"]["tr"] == "A Blok Girişi"
+    assert door["block"] == "A"
+    assert fixes["scene_428525"]["kind"] == "outdoor"
+    # Exactly one panorama carries the name.
+    named = [
+        scene
+        for scene, fix in fixes.items()
+        if fix.get("label", {}).get("tr") == "A Blok Girişi"
+    ]
+    assert named == ["scene_428526"]

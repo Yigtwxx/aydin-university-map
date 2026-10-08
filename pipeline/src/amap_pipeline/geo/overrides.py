@@ -103,6 +103,58 @@ def load_scene_blocks(path: Path | None = DEFAULT_SCENE_OVERRIDES) -> dict[str, 
     return {str(scene): str(code) for scene, code in data.get("blocks", {}).items()}
 
 
+# Scene fields a ``[scenes.<id>]`` table may replace in the graph export.
+_SCENE_FIELDS = frozenset({"kind", "label", "area", "block"})
+_TEXT_FIELDS = frozenset({"label", "area"})
+_SCENE_KINDS = frozenset({"outdoor", "entrance", "indoor"})
+
+
+def load_scene_fixes(
+    path: Path | None = DEFAULT_SCENE_OVERRIDES,
+) -> dict[str, dict[str, Any]]:
+    """``[scenes.<id>]``: kind, label and area ``{tr, en}``, block of a panorama.
+
+    For a door the tour names on the wrong panorama (the label sits on a spot
+    out on the square, the panorama at the door is just "Kampüs"): the graph
+    export moves the entrance to the panorama that stands at the door.
+    """
+    if path is None or not path.exists():
+        return {}
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    fixes: dict[str, dict[str, Any]] = {}
+    for scene, entry in data.get("scenes", {}).items():
+        unknown = set(entry) - _SCENE_FIELDS
+        if unknown:
+            raise ValueError(f"{scene}: unknown scene fields {sorted(unknown)}")
+        if "kind" in entry and entry["kind"] not in _SCENE_KINDS:
+            raise ValueError(f"{scene}: kind must be one of {sorted(_SCENE_KINDS)}")
+        for key in _TEXT_FIELDS & set(entry):
+            if set(entry[key]) != {"tr", "en"}:
+                raise ValueError(f"{scene}: {key} needs exactly tr and en")
+        fixes[str(scene)] = {
+            key: dict(value) if key in _TEXT_FIELDS else str(value)
+            for key, value in entry.items()
+        }
+    return fixes
+
+
+def apply_scene_fixes(
+    scenes: Mapping[str, Mapping[str, Any]],
+    fixes: Mapping[str, Mapping[str, Any]],
+    blocks: Mapping[str, str] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Scene records with ``[blocks]`` and ``[scenes.<id>]`` fixes applied."""
+    result = {name: dict(record) for name, record in scenes.items()}
+    for name, code in (blocks or {}).items():
+        if name in result:
+            result[name]["block"] = code
+    for name, fix in fixes.items():
+        if name not in result:
+            raise ValueError(f"{name}: scene fix for a scene the tour does not have")
+        result[name].update(fix)
+    return result
+
+
 def load_pose_overrides(
     path: Path | None = DEFAULT_POSE_OVERRIDES,
 ) -> dict[str, PoseOverride]:

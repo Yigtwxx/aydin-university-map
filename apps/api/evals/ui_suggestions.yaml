@@ -13,7 +13,7 @@ questions:
     category: route
     question: 'A Blok girişine nasıl giderim?'
     tools: { required: [get_route], allowed: [search_places, search_knowledge] }
-    route: { from: scene_428518, to: scene_428525 }
+    route: { from: scene_428518, to: scene_428526 }
 
   - id: ui-tr-2
     lang: tr
@@ -35,7 +35,7 @@ questions:
     category: route
     question: 'How do I get to the A Block entrance?'
     tools: { required: [get_route], allowed: [search_places, search_knowledge] }
-    route: { from: scene_428518, to: scene_428525 }
+    route: { from: scene_428518, to: scene_428526 }
 
   - id: ui-en-2
     lang: en

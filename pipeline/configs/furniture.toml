@@ -100,9 +100,18 @@ edge = "wall"
 # to the café-south ramp's landing (~y -27.8); was a straight x 45 edge.
 # 2026-10-08: the east edge stops 1 m inside the campus ring along İnönü (was
 # x 86 up to y 88, past the street); the east fence runs stay on the plaza.
+# 2026-10-08: the north-west rim (was a straight x 35.3 edge from the flight's
+# top into A, cutting A's door porch in two) is the brick-pier railing over
+# the Kasap Döner / Burger King shopfronts: from the flight's top corner
+# square to A's south face, 26.6 m along it (piers triangulated 526 @287 and
+# @273 with 527 @327: (29.1, 40.5) and (28.5, 43.0) at the head of the stair
+# down along A; 556 @349 sees the shopfronts under the railing and the stair
+# beside A). A's door is on the plaza (526, 527: flush paving, no steps); the
+# curved lawn bed south-west of the door stays inside the rim.
 outline = [
   [55.4, -18.6], [86.0, -19.0], [86.0, 25.8], [74.2, 88.0], [64.5, 88.0],
-  [38.9, 80.0], [38.4, 60.5], [35.3, 57.5], [35.3, 26.6], [35.3, 17.0], [44.8, 12.3],
+  [38.9, 80.0], [38.4, 60.5], [35.3, 57.5], [27.32, 46.49], [28.66, 42.72],
+  [35.3, 26.6], [35.3, 17.0], [44.8, 12.3],
   [44.8, 0.3], [45.0, -4.8], [46.8, -5.1], [47.7, -7.5], [48.9, -9.0], [51.6, -13.7],
   [52.8, -16.1], [53.4, -19.1], [53.3, -22.5], [53.0, -25.4], [53.2, -27.8], [55.4, -27.6],
 ]
@@ -249,6 +258,22 @@ rise_m = 1.7
 railings = "both"
 note = "wide granite flight with two twin handrails; foot line x ~ 32 from y 17.4 to 26.6 (500 @113-180)"
 evidence = [{ scene = "scene_428500", ath = 142, note = "foot edge at 2.6 m (ath 180) to 8 m (ath 113)" }, { scene = "scene_428502", ath = 347, note = "flight seen from the square, 26 m" }]
+
+[[stairs]]
+id = "a-west-stair"
+foot = [25.72, 40.41]
+top = [29.12, 41.61]
+width_m = 2.0
+steps = 11
+base_z = 4.0
+rise_m = 1.7
+railings = "right"
+note = "2026-10-08: the narrow stair along A's south wall from the café in front of A up to the plaza, 7.6 m west of A's door; A's wall on its left, a steel handrail and the plaza's brick-pier railing on its right. Run along the wall (facing 70.5), centred 1.2 m off it; head between the piers at (28.5, 43.0) and (29.1, 40.5) (526 @273/@287 x 527 @327). Rise from the terraces (square 4.0 -> plaza 5.7, as the west flight's 11 treads); 556 @349 counts more, ~15-17 risers, so the café in front of A may sit lower than the square: open. Run 3.6 m: +-1 m"
+evidence = [
+  { scene = "scene_428556", ath = 349, note = "looking straight up the flight along A's wall, the door canopy at its head; shopfronts (Kasap Döner, 'C', Burger King) under the railing on its right" },
+  { scene = "scene_428526", ath = 293, note = "head of the flight 9-10 m west, handrail down to the west between two lamp piers" },
+  { scene = "scene_428527", ath = 337, note = "railing over the shopfronts from the flight's top corner to the stair head" },
+]
 
 [[stairs]]
 id = "plaza-south-flight"
@@ -501,6 +526,19 @@ line = [[-26.0, -54.9], [-24.3, -54.3], [-22.6, -53.4]]
 height_m = 1.0
 base_z = 3.2
 evidence = [{ scene = "scene_428540", ath = 341, note = "curved steel rail round the pool at the E court (detector railing_19)" }]
+
+[[railings]]
+id = "a-plaza-rim-rail"
+# 2026-10-08: brick piers with globe lamps and stainless rails along the gate
+# plaza's north-west rim, over the shopfronts below; from the stair head along
+# A to the top corner of the wide west flight (whose own rails go on south).
+line = [[29.54, 40.59], [35.11, 27.08]]
+height_m = 1.1
+base_z = 5.7
+evidence = [
+  { scene = "scene_428526", ath = 255, note = "piers and rails behind the curved lawn bed, the café terrace below" },
+  { scene = "scene_428527", ath = 330, note = "rail running from the pier beside the camera to the stair head at A's wall" },
+]
 
 # Campus boundary fence, 2026-10-08: red-brick plinth with stone bands, brick
 # piers ~3 m apart with white globe lamps, black iron bars with gold spears.

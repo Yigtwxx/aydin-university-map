@@ -79,7 +79,7 @@ evidence = "long palm bed lawn, kerb-bounded, palms stand on it; ortho box 30,30
 [[areas]]
 kind = "lawn"
 outline = [[31.6, 34.2], [32.9, 33.9], [33.6, 30.6], [35.0, 28.2], [35.9, 28.1], [37.2, 29.5], [37.1, 31.3], [36.1, 33.6], [34.2, 34.7], [33.3, 39.6], [31.4, 40.8], [29.8, 40.8]]
-evidence = "S-shaped lawn strip between the cafe level and the plaza edge; ortho box 30,30,60,60; part shaded and next to oblique building projection, outline less sure; on the square terrace"
+evidence = "S-shaped lawn strip between the cafe level and the plaza edge; ortho box 30,30,60,60; part shaded and next to oblique building projection, outline less sure; on the gate-plaza terrace (its west edge is the plaza's railed rim; checked 2026-10-08 on 526 @250-300 and 527 @300-360)"
 
 [[areas]]
 kind = "lawn"
