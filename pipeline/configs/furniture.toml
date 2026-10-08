@@ -22,28 +22,32 @@
 id = "campus"
 z_m = 3.2
 edge = "slope"
-# 2026-10-08: the campus blocks' real edge instead of a 200 x 285 m box (the
-# bank lies 5.8 m outside this ring). It follows the OSM campus rings (relation
-# 17252918) and the streets round them, from ground.json:
-# - Birlik Cd (west) and 1. Akasya Sk (south) stay outside: the ring runs 10.3 m
-#   and 9.6 m inside their centrelines, so the bank ends at the kerb (the yard by
-#   Birlik is the datum; T Blok's street is at 0, so T and its sunken garden
-#   stay outside, as before).
+# 2026-10-08: the campus blocks' real edge instead of a 200 x 285 m box. The
+# bank lies outside this ring and no building may stand on it or across the
+# ring (test_furniture_terraces.py checks buildings.json). Facades along Birlik
+# and 1. Akasya stand 3-6 m from the kerb, so the bank is narrow (3 m, ~47 deg).
+# From ground.json and the OSM campus rings (relation 17252918):
+# - Birlik Cd (west), Ali Ağa Sk (north-west) and 1. Akasya Sk (south) stay
+#   outside: the ring runs bank + 0.3 m inside their kerbs, so the bank ends at
+#   the kerb (the yard by Birlik is the datum; T Blok's street is at 0, so T and
+#   its sunken garden stay outside). At the Birlik/Akasya corner the building
+#   is 3 m from the kerb: the ring passes 0.3 m off it.
 # - Fabrikalar Cd and Karadeniz Sk (street level 3.2 between the blocks) and
 #   İnönü Cd (its sidewalk at the main gate is at 5.7) stay inside; the ring
-#   runs 5 m east of İnönü's centreline, so the bank falls on the far verge.
-# - Cut out, as in the OSM ring: the corner block west of F (3 non-campus
-#   blocks; ring 0.5-0.6 m off F and their north faces) and the Medical Park
-#   hospital with the block north of it (ring 0.5 m off their walls, so the bank
-#   hides inside them).
-# - North: G's north face (0.5 m clear), the block between G and M, then the
-#   OSM north piece's edge past M to Birlik.
-# Now inside: K, P, L and the blocks between them (were 0 or on the bank).
+#   runs 4.8 m east of İnönü's centreline, so the bank falls on the far verge.
+# - Cut out: the Medical Park hospital and the block north of it (ring 3.5 m
+#   off their walls, so the bank lies on the open ground before them).
+# - Whole blocks where buildings stand too close to split them: the corner
+#   block west of F (F is 1 m from its neighbour) and the block north of
+#   Karadeniz up to Ali Ağa (M and the slabs west of it touch the building
+#   behind them). North of G: G's north face (0.5 m clear) and the open lot
+#   west of it.
+bank_m = 3.0
 outline = [
-  [-55.5, -190.4], [-3.0, -171.4], [-1.6, -156.9], [-9.7, -132.8], [-19.2, -104.7], [-27.4, -80.5],
-  [34.9, -59.6], [31.6, -50.4], [97.3, -27.3], [95.9, -20.1], [83.9, 44.9], [72.9, 99.9],
-  [64.0, 147.6], [-36.5, 115.9], [-51.0, 112.4], [-79.3, 103.0], [-150.0, 85.8], [-135.2, 40.2],
-  [-131.2, 28.3], [-110.8, -30.9], [-76.3, -20.8], [-60.5, -70.8], [-93.4, -82.4], [-92.3, -85.6],
+  [-40.0, -188.2], [-53.5, -193.2], [-57.4, -193.9], [-119.0, -16.4], [-168.9, 135.0], [-83.7, 165.2],
+  [-68.1, 116.6], [-36.6, 115.9], [63.9, 147.5], [97.1, -27.3], [89.2, -30.1], [88.7, -27.1],
+  [27.7, -48.5], [31.0, -57.7], [-31.2, -78.7], [-20.9, -109.0], [-18.1, -108.0], [-10.8, -129.5],
+  [-13.6, -130.4], [-3.3, -161.0], [-1.9, -160.5], [-2.8, -172.2], [-7.2, -176.2],
 ]
 note = "street level around E/F/K and the north lanes; rim banks down to the datum"
 evidence = [{ scene = "scene_428541", ath = 0, note = "street south of E: about 0.6 m below the square (5-6 steps, 538 @225-250)" }]
@@ -76,7 +80,7 @@ edge = "wall"
 # (it was a straight x 90 edge reaching ~15 m past the street's far kerb up north).
 outline = [
   [-44.5, -55.0], [-30.0, -49.6], [-15.6, -46.0], [-14.4, -44.2], [-10.5, -44.0], [-10.5, -52.8],
-  [45.0, -34.4], [90.0, -22.0], [90.0, 9.1], [83.4, 44.8], [74.0, 92.0], [64.0, 92.0],
+  [45.0, -34.4], [90.0, -22.0], [90.0, 7.4], [73.9, 92.0], [64.0, 92.0],
   [38.5, 82.0], [31.4, 78.4], [-12.1, 62.4], [-27.2, 58.6], [-13.2, 12.0], [-12.5, 7.2],
   [-11.9, 3.8], [-18.7, 2.5], [-29.7, -7.9], [-56.7, -17.8], [-57.0, -19.6],
 ]
@@ -97,7 +101,7 @@ edge = "wall"
 # 2026-10-08: the east edge stops 1 m inside the campus ring along İnönü (was
 # x 86 up to y 88, past the street); the east fence runs stay on the plaza.
 outline = [
-  [55.4, -18.6], [86.0, -19.0], [86.0, 28.0], [82.9, 44.7], [74.3, 88.0], [64.5, 88.0],
+  [55.4, -18.6], [86.0, -19.0], [86.0, 25.8], [74.2, 88.0], [64.5, 88.0],
   [38.9, 80.0], [38.4, 60.5], [35.3, 57.5], [35.3, 26.6], [35.3, 17.0], [44.8, 12.3],
   [44.8, 0.3], [45.0, -4.8], [46.8, -5.1], [47.7, -7.5], [48.9, -9.0], [51.6, -13.7],
   [52.8, -16.1], [53.4, -19.1], [53.3, -22.5], [53.0, -25.4], [53.2, -27.8], [55.4, -27.6],

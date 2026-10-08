@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { EMPTY_FURNITURE, type Furniture } from './furniture';
 import {
+  bankWidth,
   createTerrain,
   FLAT_TERRAIN,
   groundUnder,
@@ -126,6 +127,37 @@ describe('createTerrain', () => {
     expect(terrain.heightAt(10, 10)).toBe(1);
     expect(terrain.heightAt(-bank / 2, 10)).toBeCloseTo(0.5);
     expect(terrain.heightAt(-bank - 0.1, 10)).toBe(0);
+  });
+
+  it('takes a terrace’s own bank width over the climb-sized one', () => {
+    const terrain = createTerrain(
+      furniture({
+        terraces: [
+          {
+            id: 'campus',
+            outline: square(0, 0, 40),
+            z_m: 3.2,
+            edge: 'slope',
+            bank_m: 4.5,
+          },
+        ],
+      }),
+    );
+    expect(terrain.terraces[0]!.bank).toBe(4.5);
+    expect(terrain.heightAt(-2.25, 20)).toBeCloseTo(1.6);
+    expect(terrain.heightAt(-4.6, 20)).toBe(0);
+  });
+});
+
+describe('bankWidth', () => {
+  it('sizes a bank from the climb unless the terrace gives one', () => {
+    expect(bankWidth({ edge: 'slope' }, 3.2)).toBeCloseTo(5.76);
+    expect(bankWidth({ edge: 'slope', bank_m: null }, 0.2)).toBe(0.6);
+    expect(bankWidth({ edge: 'slope' }, 10)).toBe(8);
+    expect(bankWidth({ edge: 'slope', bank_m: 4.5 }, 3.2)).toBe(4.5);
+    // Walls and kerbs, and terraces level with their ground, have none.
+    expect(bankWidth({ edge: 'wall', bank_m: 4.5 }, 3.2)).toBe(0);
+    expect(bankWidth({ edge: 'slope', bank_m: 4.5 }, 0)).toBe(0);
   });
 });
 

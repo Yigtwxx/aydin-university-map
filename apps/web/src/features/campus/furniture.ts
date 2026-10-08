@@ -39,6 +39,8 @@ export interface Terrace {
   outline: Point[];
   z_m: number;
   edge: TerraceEdge;
+  /** Width of a 'slope' edge's bank (m); null sizes it from the climb. */
+  bank_m?: number | null;
 }
 
 /** A straight flight: centreline from its foot to its top. */
@@ -131,6 +133,7 @@ function normalise(raw: Partial<Furniture>): Furniture {
     terraces: (raw.terraces ?? []).map((t) => ({
       ...t,
       edge: t.edge ?? 'wall',
+      bank_m: t.bank_m ?? null,
     })),
     stairs: (raw.stairs ?? []).map((s) => ({
       ...s,

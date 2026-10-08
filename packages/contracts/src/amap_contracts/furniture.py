@@ -79,6 +79,15 @@ class Terrace(BaseModel):
     outline: list[Point] = Field(min_length=3)
     z_m: float = Field(ge=-10.0, le=20.0, description="Top above the street datum")
     edge: Edge = Edge.WALL
+    bank_m: float | None = Field(
+        default=None,
+        gt=0.0,
+        le=20.0,
+        description=(
+            "Width of a 'slope' edge's bank, out from the outline; None lets the "
+            "renderer size it from the climb"
+        ),
+    )
 
 
 class Stairs(BaseModel):

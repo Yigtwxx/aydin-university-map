@@ -1,6 +1,12 @@
 import { ShapeUtils, Vector2 } from 'three';
 
-import type { Furniture, Ramp, Stairs, TerraceEdge } from './furniture';
+import type {
+  Furniture,
+  Ramp,
+  Stairs,
+  Terrace,
+  TerraceEdge,
+} from './furniture';
 import { openRing } from './geometry';
 
 type XY = [number, number];
@@ -170,6 +176,20 @@ function triangulate(ring: XY[], holes: XY[][]): number[] {
   return out;
 }
 
+/**
+ * How far a terrace's bank reaches out from its outline: the terrace's own
+ * `bank_m` when given (where buildings or a street leave less room), else
+ * sized from the climb. Only 'slope' edges that climb have one.
+ */
+export function bankWidth(
+  terrace: Pick<Terrace, 'edge' | 'bank_m'>,
+  climb: number,
+): number {
+  if (terrace.edge !== 'slope' || climb <= 0) return 0;
+  if (terrace.bank_m != null && terrace.bank_m > 0) return terrace.bank_m;
+  return Math.min(BANK_MAX_M, Math.max(BANK_MIN_M, climb * BANK_RUN_PER_M));
+}
+
 /** Builds the terrain of a furniture collection. */
 export function createTerrain(furniture: Furniture): Terrain {
   const flights = [
@@ -213,10 +233,7 @@ export function createTerrain(furniture: Furniture): Terrain {
       area: t.area,
       bbox: t.bbox,
       triangles: triangulate(t.ring, holes),
-      bank:
-        t.source.edge === 'slope' && climb > 0
-          ? Math.min(BANK_MAX_M, Math.max(BANK_MIN_M, climb * BANK_RUN_PER_M))
-          : 0,
+      bank: bankWidth(t.source, climb),
     };
   });
 
