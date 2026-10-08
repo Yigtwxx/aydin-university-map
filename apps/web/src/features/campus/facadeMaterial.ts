@@ -333,8 +333,12 @@ export function patchFacade(
             float fy = onGround ? v / groundH : fract(above / storey);
             vec2 f = vec2(fract(bx), fy);
             vec2 cell = vec2(floor(bx), level);
-            float aa = max(fwidth(bx), fwidth(v / rowH)) * 1.2;
-            float fade = 1.0 - smoothstep(0.16, 0.42, aa);
+            // Edges ramp over ±1.6 px, wide enough that windows a few pixels
+            // across do not crawl as the camera moves; detail still fades
+            // into its average at the same size as before.
+            float px = max(fwidth(bx), fwidth(v / rowH));
+            float aa = px * 1.6;
+            float fade = 1.0 - smoothstep(0.16, 0.42, px * 1.2);
             float av = fwidth(v) * 0.75 + 0.001;
             bool topped = level > storeys + 0.5;
             float roofLine = groundH + storeys * storey;
@@ -475,8 +479,9 @@ export function patchFacade(
             float fy = above < 0.0 ? v / groundH : fract(above / storey);
             vec2 f = vec2(fract(bx), fy);
             vec2 cell = vec2(floor(bx), level);
-            float aa = max(fwidth(bx), fwidth(v / storey)) * 1.2;
-            float fade = 1.0 - smoothstep(0.16, 0.42, aa);
+            float px = max(fwidth(bx), fwidth(v / storey));
+            float aa = px * 1.6;
+            float fade = 1.0 - smoothstep(0.16, 0.42, px * 1.2);
             bool topped = level > storeys + 0.5;
 
             vec3 wall = diffuseColor.rgb;
@@ -507,7 +512,9 @@ export function patchFacade(
                 float fascia = facadeBox(f, vec2(0.0, 0.8), vec2(1.0, 0.97), aa);
                 vec3 sign = mix(vec3(0.16, 0.2, 0.26), vec3(0.62, 0.18, 0.14), step(0.6, facadeHash(cell + seed)));
                 wall = mix(wall, sign, fascia * 0.85);
-                shopLit = win;
+                // Far away the shop windows glow as a strip, not as
+                // pixel-sized panes that flicker.
+                shopLit = mix(0.6, win, fade);
               } else if (C.x > 0.5) {
                 // Ribbon glazing: continuous bands with thin mullions.
                 float band = facadeBox(vec2(0.5, f.y), vec2(0.0, A.w), vec2(1.0, A.w + A.z), aa);

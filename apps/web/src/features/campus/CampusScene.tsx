@@ -68,6 +68,14 @@ const SMOOTH_S = 0.6;
 /** Closest overview distances: the campus, and a short route. */
 const OVERVIEW_MIN_M = 260;
 const ROUTE_MIN_M = 170;
+/** Nearest the near plane comes; also its value close to the ground. */
+const NEAR_MIN_M = 2;
+/**
+ * Heights no solid geometry rises above: the drawn blocks top out at ~35 m,
+ * the photoreal tiles carry the district's towers. Rain may be clipped near
+ * the camera, which only drops streaks too close to read.
+ */
+const CEILING_M = { drawn: 60, photoreal: 160 } as const;
 
 /** Screen area (CSS px) covered by panels; the view centres on the rest. */
 export interface SceneInsets {
@@ -127,7 +135,12 @@ export function CampusScene(props: SceneProps) {
     <Canvas
       shadows="percentage"
       dpr={[1, 2]}
-      camera={{ fov: 34, near: 2, far: 5200, position: INTRO_POSITION }}
+      camera={{
+        fov: 34,
+        near: NEAR_MIN_M,
+        far: 5200,
+        position: INTRO_POSITION,
+      }}
       gl={{ antialias: false, powerPreference: 'high-performance' }}
     >
       <SceneContents {...props} />
@@ -356,6 +369,7 @@ function SceneContents({
   return (
     <>
       <ViewOffset insets={insets} reducedMotion={reducedMotion} />
+      <DepthRange ceiling={photoreal ? CEILING_M.photoreal : CEILING_M.drawn} />
       <SkyRig sun={sky.sun} phase={sky.phase} condition={condition} />
       <SkyEnvironment phase={sky.phase} sun={sky.sun.direction} />
       {photoreal ? (
@@ -470,6 +484,24 @@ function ViewOffset({
     );
   });
   useEffect(() => () => camera.clearViewOffset(), [camera]);
+  return null;
+}
+
+/**
+ * Pushes the near plane out as the camera climbs. A fixed 2 m near plane
+ * leaves the depth buffer ~7 cm steps a kilometre and more away, coarser than
+ * the 5 cm the roads and areas sit above the ground, so they flickered
+ * through it when zooming. Nothing solid comes closer than the gap between the
+ * camera and the scene's ceiling; half of it keeps the view's corners clear.
+ */
+function DepthRange({ ceiling }: { ceiling: number }) {
+  useFrame(({ camera }) => {
+    const near = Math.max(NEAR_MIN_M, (camera.position.y - ceiling) * 0.5);
+    const perspective = camera as PerspectiveCamera;
+    if (Math.abs(near - perspective.near) <= perspective.near * 0.02) return;
+    perspective.near = near;
+    perspective.updateProjectionMatrix();
+  });
   return null;
 }
 
