@@ -105,6 +105,13 @@ class Node(BaseModel):
             "reached through tour links); None = the position is measured"
         ),
     )
+    amid_obstacles: bool = Field(
+        default=False,
+        description=(
+            "Taken among café tables, a hedge or planting: routes walk through "
+            "it only when they must (they may still start or end there)"
+        ),
+    )
 
     @property
     def approximate(self) -> bool:

@@ -317,3 +317,15 @@ def test_barriers_leaks_a_level_change_off_the_flight() -> None:
     assert not barriers.leaks([(10.0, 0.0), (10.0, 20.0)]), "up the flight"
     assert barriers.leaks([(15.0, 0.0), (15.0, 10.5), (19.5, 25.0)])
     assert not barriers.leaks([(-5.0, 0.0), (-5.0, 20.0)]), "level ground"
+
+
+def test_build_graph_marks_a_spot_among_tables() -> None:
+    seating = [(-3.0, -3.0), (3.0, -3.0), (3.0, 3.0), (-3.0, 3.0)]
+    barriers = build_barriers(
+        _furniture(seating=[{"id": "c", "outline": seating, "tables": 4}])
+    )
+    posed, scenes = _graph_inputs({"cafe": (0.0, 0.0), "out": (15.0, 0.0)}, {})
+    graph, report = build_graph(posed, scenes, NOWHERE, "test", barriers=barriers)
+    amid = {n.id for n in graph.nodes if n.amid_obstacles}
+    assert amid == {"cafe"}, amid
+    assert report.amid == ["cafe"], report.amid

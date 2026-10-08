@@ -278,6 +278,7 @@ def graph_export(
                 "unsnapped": report.unsnapped,
                 "soft_fallback": report.soft_fallback,
                 "barrier_fallback": report.barrier_fallback,
+                "amid_obstacles": report.amid,
                 "detoured": report.detoured,
                 "islands": islands,
                 "sites": sites,

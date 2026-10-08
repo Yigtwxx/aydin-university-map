@@ -81,3 +81,24 @@ def test_shortest_route_step_free_never_crosses_a_wall(graph: Graph) -> None:
     store = GraphStore.from_graph(graph.model_copy(update={"edges": edges}))
     with pytest.raises(NoRouteError):
         shortest_route(store, "a", "d", avoid_stairs=True)
+
+
+def _amid(graph: Graph, node_id: str) -> GraphStore:
+    nodes = [
+        n.model_copy(update={"amid_obstacles": True}) if n.id == node_id else n
+        for n in graph.nodes
+    ]
+    return GraphStore.from_graph(graph.model_copy(update={"nodes": nodes}))
+
+
+def test_shortest_route_walks_round_a_spot_among_tables(graph: Graph) -> None:
+    # a-b-c and a-d-c are both 40 m; b was taken among café tables.
+    route = shortest_route(_amid(graph, "b"), "a", "c")
+    assert route.node_ids == ["a", "d", "c"], route.node_ids
+    assert route.duration_s == pytest.approx(40.0 / 1.3)
+
+
+def test_shortest_route_still_starts_and_ends_among_tables(graph: Graph) -> None:
+    store = _amid(graph, "b")
+    assert shortest_route(store, "a", "b").node_ids == ["a", "b"]
+    assert shortest_route(store, "b", "c").node_ids == ["b", "c"]

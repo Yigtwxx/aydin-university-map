@@ -89,6 +89,9 @@ PASSAGE_S = 60.0
 # A line through café seating or a hedge, or over a wall or fence with no
 # flight or gate noted, is only taken when a clean walk costs more than this.
 CROSSING_S = {"soft": 10.0, "barrier": 30.0}
+# A spot taken among café tables or planting: walking through it (neither
+# end of the route) crosses them as much as such a line does.
+AMID_PASS_S = CROSSING_S["soft"]
 # Turns are read off the walking line after smoothing away this much wobble.
 LINE_TOLERANCE_M = 1.5
 # Bends up to this many degrees read as walking straight on.
@@ -135,8 +138,13 @@ def shortest_route(
             return None
         cost = float(data["cost_s"])  # type: ignore[arg-type]
         for node_id in (u, v):
-            if node_id not in ends and store.nodes[node_id].kind is NodeKind.ENTRANCE:
+            if node_id in ends:
+                continue
+            node = store.nodes[node_id]
+            if node.kind is NodeKind.ENTRANCE:
                 cost += ENTRANCE_PASS_S / 2  # half per edge end: once per pass
+            if node.amid_obstacles:
+                cost += AMID_PASS_S / 2
         if data.get("passage") and (
             _menu_jump(store, u, v)
             or not (

@@ -143,6 +143,8 @@ class BuildReport:
     detoured: list[str] = field(default_factory=list)
     bridged: list[str] = field(default_factory=list)  # islands joined outside
     shortcuts: list[str] = field(default_factory=list)  # hooks cut short
+    # Spots standing in a soft obstacle (a panorama among café tables).
+    amid: list[str] = field(default_factory=list)
     passed_by: list[str] = field(default_factory=list)  # "a|b via m"
     indoor: IndoorReport = field(default_factory=IndoorReport)
 
@@ -624,6 +626,21 @@ def _drawn_on_ground(
     return ground if on_floor else None
 
 
+def mark_amid(graph: Graph, area: WalkingArea) -> Graph:
+    """Spots standing in café seating, a hedge or a flowerbed: a route through
+    one crosses it (the walk out of it is free only for routes that start or
+    end there)."""
+    nodes = [
+        node.model_copy(update={"amid_obstacles": True})
+        if node.kind in (NodeKind.OUTDOOR, NodeKind.ENTRANCE)
+        and node.anchor is None
+        and any(part.intersects(Point(_xy(node))) for part in area.soft)
+        else node
+        for node in graph.nodes
+    ]
+    return graph.model_copy(update={"nodes": nodes})
+
+
 def mark_crossings(
     graph: Graph, area: WalkingArea, decks: Mapping[str, Deck] | None = None
 ) -> Graph:
@@ -948,6 +965,8 @@ def build_graph(
         origin_lng=CAMPUS_ORIGIN_LNG,
     )
     graph = mark_crossings(Graph(meta=meta, nodes=nodes, edges=edges), area, decks)
+    graph = mark_amid(graph, area)
+    report.amid = sorted(n.id for n in graph.nodes if n.amid_obstacles)
     report.barrier_fallback, report.soft_fallback = crossings(graph, area, decks)
     return graph, report
 
@@ -970,6 +989,7 @@ def summarise(graph: Graph, report: BuildReport) -> dict[str, Any]:
         "unsnapped_nodes": len(report.unsnapped),
         "soft_fallback_edges": len(report.soft_fallback),
         "barrier_fallback_edges": len(report.barrier_fallback),
+        "amid_obstacles": len(report.amid),
         "detoured_edges": len(report.detoured),
         "components": [len(c) for c in comps],
         "median_edge_m": round(float(np.median(lengths)), 2) if lengths else None,
