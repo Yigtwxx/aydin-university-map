@@ -103,7 +103,8 @@ def _labelled_floor(
 
 
 def _labelled_block(scene: Mapping[str, Any]) -> str | None:
-    return block_of(scene["label"]["tr"], scene["area"]["tr"])
+    """The block set for the scene by hand, else the one its label names."""
+    return scene.get("block") or block_of(scene["label"]["tr"], scene["area"]["tr"])
 
 
 def with_entrance_floors(

@@ -29,6 +29,7 @@ DEFAULT_BUILDING_OVERRIDES = (
     Path(__file__).parents[3] / "configs" / "building_overrides.toml"
 )
 DEFAULT_POSE_OVERRIDES = Path(__file__).parents[3] / "configs" / "pose_overrides.toml"
+DEFAULT_SCENE_OVERRIDES = Path(__file__).parents[3] / "configs" / "scene_overrides.toml"
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +93,14 @@ class PoseOverride:
     x: float  # local metres east
     y: float  # local metres north
     heading_deg: float  # compass bearing of the panorama's front face
+
+
+def load_scene_blocks(path: Path | None = DEFAULT_SCENE_OVERRIDES) -> dict[str, str]:
+    """``[blocks]``: scene -> block code, for doors whose label names none."""
+    if path is None or not path.exists():
+        return {}
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    return {str(scene): str(code) for scene, code in data.get("blocks", {}).items()}
 
 
 def load_pose_overrides(

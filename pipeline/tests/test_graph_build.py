@@ -169,3 +169,12 @@ def test_make_nodes_keeps_a_manual_pose_source() -> None:
     nodes = {n.id: n for n in make_nodes(posed, _scenes())}
     assert nodes["b"].pose_source is PoseSource.MANUAL
     assert nodes["a"].pose_source is PoseSource.SFM
+
+
+def test_scene_block_names_the_building_its_label_does_not() -> None:
+    scenes = _scenes()
+    scenes["e"] = {**scenes["e"], "label": {"tr": "Giriş", "en": "Entrance"}}
+    assert make_nodes(_posed(), scenes)[4].building is None
+    scenes["e"] = {**scenes["e"], "block": "D"}
+    (e,) = [n for n in make_nodes(_posed(), scenes) if n.id == "e"]
+    assert e.building == "D", e.building

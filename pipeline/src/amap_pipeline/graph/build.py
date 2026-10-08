@@ -123,7 +123,8 @@ def make_nodes(
                 pose_source=PoseSource(pose.get("pose_source", PoseSource.SFM)),
                 label=LocalizedText(tr=meta["label"]["tr"], en=meta["label"]["en"]),
                 area=LocalizedText(tr=meta["area"]["tr"], en=meta["area"]["en"]),
-                building=building_of(meta["label"]["tr"]),
+                # A block set in configs/scene_overrides.toml wins over the label.
+                building=meta.get("block") or building_of(meta["label"]["tr"]),
             )
         )
     return nodes

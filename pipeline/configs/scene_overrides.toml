@@ -4,3 +4,12 @@
 [overrides]
 # "Konferans Salonu Giriş" is an indoor corridor in A Blok, not a doorway.
 scene_428305 = "indoor"
+
+[blocks]
+# Doors whose tour label names no block (checked 2026-10-08 on the panoramas
+# and the tour's links); rooms reached through them inherit the block.
+# "Muayenehane Giriş": the sunken, canopied door under the "D BLOK" sign that
+# the stairs from 559 lead down to; its next spots are D Blok's.
+scene_428561 = "D"
+# "Giriş": the hall behind D Blok's lane door (563), linked to "D Blok -1 Koridor".
+scene_428315 = "D"
