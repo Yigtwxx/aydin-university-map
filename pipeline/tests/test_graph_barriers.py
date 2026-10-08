@@ -170,6 +170,7 @@ def test_walk_around_passes_the_fence_at_its_gate() -> None:
     path = walk_around((-10.0, -8.0), (-10.0, 8.0), obstacles)
     assert path is not None and len(path) > 2
     crossing = LineString(path).intersection(LineString([(-40, 0), (40, 0)]))
+    assert isinstance(crossing, Point), f"crossed the fence line at {crossing}"
     assert -2.0 < crossing.x < 2.0, f"crossed the fence at {crossing}"
 
 

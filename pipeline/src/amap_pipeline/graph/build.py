@@ -475,10 +475,9 @@ def mark_crossings(graph: Graph, area: WalkingArea) -> Graph:
         a, b = by_id[edge.source], by_id[edge.target]
         crosses: EdgeCrossing | None = None
         if not edge.passage and position_of(a) != position_of(b):
-            line = LineString(edge.path_enu or [_xy(a), _xy(b)])
-            if not area.lenient.clear(list(line.coords)) or area.leaks(
-                list(line.coords)
-            ):
+            path = edge.path_enu or [_xy(a), _xy(b)]
+            line = LineString(path)
+            if not area.lenient.clear(path) or area.leaks(path):
                 crosses = EdgeCrossing.BARRIER
             elif any(part.intersects(line) for part in area.soft_for(_xy(a), _xy(b))):
                 crosses = EdgeCrossing.SOFT
