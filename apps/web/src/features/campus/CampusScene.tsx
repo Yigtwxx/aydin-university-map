@@ -45,6 +45,8 @@ import { Greenery } from './Greenery';
 import { GroundLayer } from './GroundLayer';
 import { IntroGradeEffect } from './openingGrade';
 import { buildMassing, massingRecipes } from './massing';
+import { panBounds } from './mapGestures';
+import { MapPointer } from './MapPointer';
 import { OverlayProjector } from './OverlayProjector';
 import { Precipitation } from './Precipitation';
 import { RouteRibbon } from './RouteRibbon';
@@ -194,6 +196,17 @@ function SceneContents({
   const campusFrame = useMemo(
     () =>
       mainCluster([
+        ...graph.nodes.map((n): EnuPoint => [n.enu[0], n.enu[1]]),
+        ...buildings
+          .filter((b) => b.campus)
+          .flatMap((b) => b.outline.map((p): EnuPoint => [p[0], p[1]])),
+      ]),
+    [graph, buildings],
+  );
+  // Where panning may take the view: every spot (far sites too) and block.
+  const bounds = useMemo(
+    () =>
+      panBounds([
         ...graph.nodes.map((n): EnuPoint => [n.enu[0], n.enu[1]]),
         ...buildings
           .filter((b) => b.campus)
@@ -447,6 +460,11 @@ function SceneContents({
         maxDistance={1400}
         maxPolarAngle={Math.PI * 0.42}
         smoothTime={SMOOTH_S}
+      />
+      <MapPointer
+        controls={controls}
+        bounds={bounds}
+        restSmoothTime={SMOOTH_S}
       />
       <EffectComposer multisampling={4} enableNormalPass={false} stencilBuffer>
         <N8AO

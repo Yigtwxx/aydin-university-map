@@ -42,6 +42,8 @@ export function MapAnchor({
   return (
     <div
       ref={element}
+      // Map drags and the wheel pass through markers (MapPointer).
+      data-map-anchor
       // The projector fades occluded anchors through opacity; ease it.
       className="absolute top-0 left-0 transition-opacity duration-200 ease-out-soft will-change-transform"
       // Off-screen until the projector places it on the next frame.
