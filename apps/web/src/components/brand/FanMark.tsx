@@ -1,27 +1,15 @@
 /**
- * Logomark from the plaza's fan-shaped cobblestones (coda di pavone):
- * three nested arcs opening upwards, like the paving seen from above.
+ * Logomark: a map pin with the plaza's fan-shaped cobblestones (coda di
+ * pavone) cut into its head, the fan resting on a flat base like the paving
+ * seen from above. Single colour: it follows `currentColor` everywhere.
  */
 export function FanMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden fill="none">
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
       <path
-        d="M4 26a12 12 0 0 1 24 0"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9 26a7 7 0 0 1 14 0"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M14 26a2 2 0 0 1 4 0"
-        stroke="var(--ochre)"
-        strokeWidth="2.8"
-        strokeLinecap="round"
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M16 30.8c-.6 0-1.15-.27-1.53-.73C9.8 24.5 4.2 19.6 4.2 13.2a11.8 11.8 0 0 1 23.6 0c0 6.4-5.6 11.3-10.27 16.87-.38.46-.93.73-1.53.73zM7.9 17.6a8.1 8.1 0 0 1 16.2 0h-2.6a5.5 5.5 0 0 0-11 0zM11.9 17.6a4.1 4.1 0 0 1 8.2 0zM13.2 17.6a2.8 2.8 0 0 1 5.6 0z"
       />
     </svg>
   );
