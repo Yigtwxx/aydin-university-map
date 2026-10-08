@@ -446,16 +446,19 @@ export function MapApp({ opening = false }: { opening?: boolean }) {
   // above the sheet's snap, and its projection eases there as the sheet
   // springs, so the two move together.
   const panoHeight = Math.min(480, viewport.height * 0.58);
-  const insets = useMemo(
+  const frameInsets = useMemo(
     () =>
-      // During the opening the view is centred on the whole screen; the
-      // panel's offset eases in afterwards.
-      playing
-        ? { left: 0, bottom: 0 }
-        : desktop
-          ? { left: PANEL_EDGE_PX, bottom: panoNode ? panoHeight + 32 : 0 }
-          : { left: 0, bottom: sheetCover },
-    [playing, desktop, panoNode, panoHeight, sheetCover],
+      desktop
+        ? { left: PANEL_EDGE_PX, bottom: panoNode ? panoHeight + 32 : 0 }
+        : { left: 0, bottom: sheetCover },
+    [desktop, panoNode, panoHeight, sheetCover],
+  );
+  // During the opening the view is centred on the whole screen; the panel's
+  // offset eases in afterwards. The camera frames for the settled layout all
+  // along, so the opening lands with the campus fitting the uncovered view.
+  const insets = useMemo(
+    () => (playing ? { left: 0, bottom: 0 } : frameInsets),
+    [playing, frameInsets],
   );
   const controlsHidden =
     !desktop && viewport.height - sheetCover < MOBILE_CONTROLS_BOTTOM_PX;
@@ -550,6 +553,7 @@ export function MapApp({ opening = false }: { opening?: boolean }) {
                 sky={sky}
                 condition={condition}
                 insets={insets}
+                frameInsets={frameInsets}
                 reducedMotion={reducedMotion}
                 assemble={
                   assembling
