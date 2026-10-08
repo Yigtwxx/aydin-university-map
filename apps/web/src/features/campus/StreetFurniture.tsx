@@ -8,6 +8,7 @@ import {
   Color,
   InstancedMesh,
   Matrix4,
+  type MeshDepthMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
   ShaderMaterial,
@@ -26,26 +27,18 @@ import {
   masonryGeometry,
   railingGeometry,
 } from './furnitureGeometry';
+import {
+  cartographic,
+  cartographicDepth,
+  FADE,
+  type FurnitureClass,
+  makeViewer,
+} from './furnitureScale';
 import { useFurniture } from './queries';
 import { type Terrain, terrainOf } from './terrain';
 
-/**
- * Camera distances (m) over which each class of object dissolves away, so
- * the overview never shimmers with sub-pixel chairs. Stairs and terraces
- * are part of the ground and always stay.
- */
-const FADE = {
-  /** Chairs, tables, bins, bollards, bike racks. */
-  small: [150, 240],
-  /** Benches, planters, umbrellas, railings. */
-  medium: [280, 430],
-  /** Lamp posts. */
-  tall: [480, 720],
-  /** Light pools under the lamps at night. */
-  pools: [650, 950],
-} as const satisfies Record<string, readonly [number, number]>;
-
-const FADE_OF: Record<InstanceKind, 'small' | 'medium' | 'tall'> = {
+/** How each kind grows and fades with distance (see furnitureScale). */
+const CLASS_OF: Record<InstanceKind, FurnitureClass> = {
   chair: 'small',
   table: 'small',
   bin: 'small',
@@ -53,20 +46,20 @@ const FADE_OF: Record<InstanceKind, 'small' | 'medium' | 'tall'> = {
   hoop: 'small',
   bench: 'medium',
   planter: 'medium',
-  umbrella: 'medium',
-  lamp: 'tall',
-  lens: 'tall',
-  booth: 'medium',
-  kiosk: 'medium',
-  emblem: 'medium',
-  letters: 'medium',
+  umbrella: 'large',
+  lamp: 'large',
+  lens: 'large',
+  booth: 'large',
+  kiosk: 'large',
+  emblem: 'large',
+  letters: 'large',
   topiary: 'small',
-  statue: 'medium',
-  globe: 'tall',
+  statue: 'large',
+  globe: 'large',
   stand: 'small',
   hedge: 'medium',
   sign: 'medium',
-  flagpole: 'tall',
+  flagpole: 'large',
 };
 
 /**
@@ -88,33 +81,6 @@ const CASTS_SHADOW = new Set<InstanceKind>([
 const POOL_RADIUS_M = 6.5;
 const POOL_COLOR = '#FFB86A';
 const LENS_GLOW = '#FFCF8A';
-
-/**
- * Dissolves fragments between `near` and `far` metres from the camera with a
- * screen-space dither (no transparency, so no sorting) and drops them past it.
- */
-function dissolveWithDistance(
-  material: MeshStandardMaterial,
-  [near, far]: readonly [number, number],
-): MeshStandardMaterial {
-  const fade = { value: new Vector2(near, far) };
-  material.onBeforeCompile = (shader) => {
-    shader.uniforms.uFade = fade;
-    shader.vertexShader = `varying float vFadeDistance;\n${shader.vertexShader.replace(
-      '#include <project_vertex>',
-      '#include <project_vertex>\n\tvFadeDistance = length(mvPosition.xyz);',
-    )}`;
-    shader.fragmentShader = `uniform vec2 uFade;\nvarying float vFadeDistance;\n${shader.fragmentShader.replace(
-      '#include <clipping_planes_fragment>',
-      /* glsl */ `#include <clipping_planes_fragment>
-	float fadeK = smoothstep(uFade.x, uFade.y, vFadeDistance);
-	float fadeNoise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-	if (fadeK >= 1.0 || fadeK > fadeNoise) discard;`,
-    )}`;
-  };
-  material.customProgramCacheKey = () => 'furniture-dissolve';
-  return material;
-}
 
 const poolVertex = /* glsl */ `
   varying vec2 vUv;
@@ -213,36 +179,44 @@ function FurnitureScene({
     [masonry, rails, fence],
   );
 
+  // Where the camera is, for the furniture that grows with distance.
+  const viewer = useMemo(() => makeViewer(), []);
+  useFrame(({ camera }) => viewer.value.copy(camera.position));
+
   const materials = useMemo(() => {
-    const make = (fade: keyof typeof FADE) =>
-      dissolveWithDistance(
+    const make = (cls: FurnitureClass) =>
+      cartographic(
         new MeshStandardMaterial({
           vertexColors: true,
           roughness: 0.72,
           metalness: 0.05,
         }),
-        FADE[fade],
+        viewer,
+        cls,
       );
     return {
       small: make('small'),
       medium: make('medium'),
-      tall: make('tall'),
-      metal: dissolveWithDistance(
+      large: make('large'),
+      metal: cartographic(
         new MeshStandardMaterial({
           color: furnitureColors.metal,
           roughness: 0.45,
           metalness: 0.55,
         }),
-        FADE.medium,
+        viewer,
+        'medium',
+        FADE.rails,
       ),
-      lens: dissolveWithDistance(
+      lens: cartographic(
         new MeshStandardMaterial({
           vertexColors: true,
           roughness: 0.35,
           emissive: new Color(LENS_GLOW),
           emissiveIntensity: 0,
         }),
-        FADE.tall,
+        viewer,
+        'large',
       ),
       pool: new ShaderMaterial({
         vertexShader: poolVertex,
@@ -260,12 +234,22 @@ function FurnitureScene({
         polygonOffsetUnits: -3,
       }),
     };
-  }, []);
+  }, [viewer]);
+  // Shadows of the furniture that casts them, grown with it.
+  const depths = useMemo(
+    () => ({
+      small: cartographicDepth(viewer, 'small'),
+      medium: cartographicDepth(viewer, 'medium'),
+      large: cartographicDepth(viewer, 'large'),
+    }),
+    [viewer],
+  );
   useEffect(
     () => () => {
       for (const material of Object.values(materials)) material.dispose();
+      for (const material of Object.values(depths)) material.dispose();
     },
-    [materials],
+    [materials, depths],
   );
 
   // Lamps glow and pool light on the paving over dusk, instead of switching.
@@ -342,8 +326,9 @@ function FurnitureScene({
           material={
             kind === 'lens' || kind === 'globe'
               ? materials.lens
-              : materials[FADE_OF[kind]]
+              : materials[CLASS_OF[kind]]
           }
+          depthMaterial={depths[CLASS_OF[kind]]}
           castShadow={CASTS_SHADOW.has(kind)}
         />
       ))}
@@ -357,11 +342,13 @@ function Instances({
   kind,
   matrices,
   material,
+  depthMaterial,
   castShadow,
 }: {
   kind: InstanceKind;
   matrices: Matrix4[];
   material: MeshStandardMaterial;
+  depthMaterial: MeshDepthMaterial;
   castShadow: boolean;
 }) {
   const geometry = useMemo<BufferGeometry>(() => itemGeometry(kind), [kind]);
@@ -371,9 +358,10 @@ function Instances({
     instanced.instanceMatrix.needsUpdate = true;
     instanced.computeBoundingSphere();
     instanced.castShadow = castShadow;
+    instanced.customDepthMaterial = depthMaterial;
     instanced.receiveShadow = true;
     return instanced;
-  }, [geometry, material, matrices, castShadow]);
+  }, [geometry, material, depthMaterial, matrices, castShadow]);
   useEffect(() => () => mesh.dispose(), [mesh]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return <primitive object={mesh} />;
