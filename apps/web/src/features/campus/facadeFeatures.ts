@@ -263,18 +263,20 @@ function glassBox(
   meta: BuildingMeta,
 ) {
   const angle = planAngle(f.facing_deg);
+  // Framed, the glass stands between the slabs: sharing their outer faces,
+  // the two colours would fight for the same plane and flicker.
+  const slab = f.accent ? Math.min(0.3, f.height_m * 0.1) : 0;
   builder.box(
     at,
-    [f.width_m, f.depth_m, f.height_m],
+    [f.width_m, f.depth_m, f.height_m - slab * 2],
     angle,
-    f.base_m,
+    f.base_m + slab,
     new Color(f.colour),
     meta,
-    f.base_m > 0,
+    !f.accent && f.base_m > 0,
   );
   if (!f.accent) return;
   const frame = new Color(f.accent);
-  const slab = Math.min(0.3, f.height_m * 0.1);
   const size: [number, number, number] = [
     f.width_m + 0.1,
     f.depth_m + 0.1,

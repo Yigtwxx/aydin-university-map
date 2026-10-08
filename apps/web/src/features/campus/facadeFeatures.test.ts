@@ -97,6 +97,32 @@ describe('buildFeatures', () => {
     );
   });
 
+  it('keeps a framed glass box free of coplanar caps in two colours', () => {
+    // A bridge walk: its glass top and its frame's roof in one plane flicker.
+    const g = build(
+      featureOf({
+        kind: 'glass',
+        base_m: 4.8,
+        height_m: 3,
+        colour: '#9fb7c2',
+        accent: '#f2f2f0',
+      }),
+    )!;
+    const position = g.getAttribute('position');
+    const normal = g.getAttribute('normal');
+    const color = g.getAttribute('color');
+    const colours = new Map<string, Set<string>>();
+    for (let i = 0; i < position.count; i++) {
+      if (Math.abs(normal.getY(i)) < 0.99) continue;
+      const plane = `${Math.sign(normal.getY(i))}@${position.getY(i).toFixed(3)}`;
+      const rgb = [color.getX(i), color.getY(i), color.getZ(i)]
+        .map((c) => c.toFixed(3))
+        .join(',');
+      colours.set(plane, (colours.get(plane) ?? new Set()).add(rgb));
+    }
+    for (const [plane, set] of colours) expect(set.size, plane).toBe(1);
+  });
+
   it('builds a drum with a lip, and an accent stripe', () => {
     const lip = DRUM_SIDE + 2 * DRUM_CAP;
     expect(count(build(featureOf({ kind: 'drum' })))).toBe(DRUM_SIDE + lip);
