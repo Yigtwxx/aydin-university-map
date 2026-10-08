@@ -59,6 +59,11 @@ describe('packRecipe', () => {
     expect(packRecipe(facadeOf())[7]).toBe(0);
   });
 
+  it('carries the corner pilaster width, none by default', () => {
+    expect(packRecipe(facadeOf())[11]).toBe(0);
+    expect(packRecipe(facadeOf({ quoins_m: 0.8 }))[11]).toBeCloseTo(0.8);
+  });
+
   it('keeps the window inside its storey', () => {
     for (const h of [0.2, 0.5, 0.9, 1.0]) {
       expect(sillShare(h)).toBeGreaterThan(0);

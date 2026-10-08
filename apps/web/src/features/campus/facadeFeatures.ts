@@ -251,6 +251,39 @@ function portal(
   );
 }
 
+/**
+ * A glazed box (a vestibule, an enclosed bridge walk): the glass in one
+ * colour, never in masonry; the accent frames it with a floor slab and a
+ * roof edge.
+ */
+function glassBox(
+  builder: Builder,
+  f: FacadeFeature,
+  at: Point,
+  meta: BuildingMeta,
+) {
+  const angle = planAngle(f.facing_deg);
+  builder.box(
+    at,
+    [f.width_m, f.depth_m, f.height_m],
+    angle,
+    f.base_m,
+    new Color(f.colour),
+    meta,
+    f.base_m > 0,
+  );
+  if (!f.accent) return;
+  const frame = new Color(f.accent);
+  const slab = Math.min(0.3, f.height_m * 0.1);
+  const size: [number, number, number] = [
+    f.width_m + 0.1,
+    f.depth_m + 0.1,
+    slab,
+  ];
+  builder.box(at, size, angle, f.base_m, frame, meta, f.base_m > 0);
+  builder.box(at, size, angle, f.base_m + f.height_m - slab, frame, meta);
+}
+
 /** A coloured stripe round the whole block. */
 function band(
   builder: Builder,
@@ -317,6 +350,9 @@ export function buildFeatures(
         break;
       case 'portal':
         portal(builder, f, f.at, plain, glass);
+        break;
+      case 'glass':
+        glassBox(builder, f, f.at, plain);
         break;
     }
   }

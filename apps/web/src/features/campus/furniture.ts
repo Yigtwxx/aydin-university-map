@@ -21,7 +21,16 @@ export type ItemKind =
   | 'bollard'
   | 'bin'
   | 'lamp'
-  | 'bike_rack';
+  | 'bike_rack'
+  | 'flagpole'
+  | 'booth'
+  | 'kiosk'
+  | 'emblem'
+  | 'letters'
+  | 'topiary'
+  | 'statue'
+  | 'sign'
+  | 'hedge';
 
 /** A level area raised above (or sunk below) the street datum. */
 export interface Terrace {

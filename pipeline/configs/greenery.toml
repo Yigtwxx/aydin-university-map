@@ -1,0 +1,245 @@
+# Trees seen on the panoramas that OSM does not map. Read by
+# `amap export greenery` and added to OSM's trees (one within 1.5 m of an OSM
+# tree is that tree). Local metres [east, north].
+#
+# Found with `amap furniture detect --queries landmarks` (OWLv2, 94 outdoor
+# panoramas) and `amap furniture locate`, then checked on the review sheets
+# on 2026-10-08; positions are triangulated unless noted.
+
+[[trees]]
+at = [1.54, 2.71]
+evidence = "conifer in the yellow-kerbed bed by the B Blok steps; 2 panoramas"
+
+[[trees]]
+at = [5.21, -33.2]
+evidence = "blue spruce in the bed behind the south gate, by the rhino statue; 3 panoramas"
+
+[[trees]]
+at = [1.46, -49.73]
+evidence = "old plane tree in the pavement at the south gate; one panorama, monoplot"
+
+# ---------------------------------------------------------------- lawns
+# Grass beds (yellow-kerbed) traced on 2026-10-08 from ground orthomosaics
+# (`amap look ortho --res 0.05 --tripod 1.46`, 30 m boxes over x -80..110, y -60..110;
+# green + yellow-kerb segmentation, then checked by eye), cut back to the
+# building footprints and the stairs/ramps in furniture.toml. Counter-clockwise,
+# local metres [east, north], about +-0.5 m. The clipped hedges and topiary that
+# look green on the ortho (cafe path hedge, the box mass south-west of the square,
+# the dark strips at x 22-25 / y 28-35) are not lawns and are left out.
+
+[[areas]]
+kind = "lawn"
+outline = [[-4.0, 5.8], [-5.9, 5.1], [-5.6, 4.1], [-6.0, 3.8], [-4.6, 3.0], [-0.5, 1.7], [2.5, 1.9], [3.9, 3.8], [6.0, 7.8], [8.7, 10.8], [3.5, 9.8], [-0.6, 8.7]]
+evidence = "yellow-kerbed bed with the conifer in front of the B Blok steps; kerb and wedge along the steps read on the ortho box -14,-12,16,18 (15 panoramas around scene_428504/428512); on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[-12.3, 3.4], [-12.9, 3.5], [-14.8, 3.2], [-14.6, 0.6], [-12.4, 0.2], [-11.8, 1.6]]
+evidence = "kerbed corner of a bed west of the store steps; cut by the edge of the ortho coverage at x -15, so only the visible part is traced (ortho box -14,-12,16,18); on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[-6.6, -14.6], [-3.5, -15.4], [-0.5, -15.2], [-1.5, -12.6], [-1.9, -11.0], [-0.3, -9.1], [1.2, -6.0], [0.6, -4.2], [-2.5, -3.4], [-6.2, -5.4], [-8.0, -8.5]]
+evidence = "crescent bed with a yellow kerb west of the square, fed by scenes 428504/428550; edges from the ortho box -14,-12,16,18 and -20,-30,10,0; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[-1.3, -30.2], [1.0, -28.6], [2.7, -26.0], [2.7, -23.5], [1.5, -21.0], [-1.0, -19.8], [-4.5, -19.8], [-5.5, -22.0], [-5.0, -25.0], [-3.5, -28.0]]
+evidence = "kerbed bed with shrubs and an olive tree behind the Al Gotur Oku Getir kiosk; confirmed on scene_428536 (bearing 5) and scene_428515, outline from ortho box -20,-30,10,0; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[3.4, -35.5], [4.2, -37.5], [6.6, -39.0], [8.8, -40.8], [9.4, -38.0], [9.4, -35.0], [8.5, -31.8], [6.5, -30.8], [4.2, -32.0]]
+evidence = "yellow-kerbed bed behind the south gate with the blue spruce (5.2,-33.2); ortho box -20,-60,10,-30, scenes 428535/428536/428537; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[46.3, 18.7], [48.0, 22.5], [48.8, 26.0], [51.0, 28.8], [54.0, 30.2], [58.6, 29.8], [58.6, 35.0], [57.5, 37.2], [41.9, 31.5], [42.3, 28.5], [44.0, 23.5], [45.0, 20.0]]
+evidence = "big kerbed lawn with the red flagpole on the plaza, wedge narrowing to the south; ortho boxes 30,10,60,40 and 30,30,60,60; on the gate-plaza terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[-51.4, 57.2], [-49.1, 53.3], [-49.6, 51.6], [-47.1, 51.6], [-47.0, 54.0], [-45.6, 55.3], [-44.8, 54.1], [-41.9, 54.1], [-39.3, 55.4], [-41.0, 58.6], [-45.6, 60.1], [-46.9, 58.6]]
+evidence = "lawn on the north cafe square below the deck steps, bright flat grass with a tree shadow; ortho box -60,40,-30,70 (scenes 428564/428575 area); on the campus terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[66.9, 40.0], [67.0, 37.9], [72.7, 38.7], [69.8, 42.6], [70.1, 44.2], [72.6, 44.0], [71.5, 52.3], [67.9, 51.9], [67.5, 48.6], [68.5, 47.7], [69.0, 44.7]]
+evidence = "lawn strip along the J Blok east wall, partly in shade; ortho box 50,30,80,60; on the gate-plaza terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[41.4, 38.4], [43.3, 38.1], [58.3, 44.2], [60.1, 45.2], [60.4, 46.8], [58.6, 47.7], [53.3, 45.5], [49.3, 43.0], [41.9, 40.2]]
+evidence = "long palm bed lawn, kerb-bounded, palms stand on it; ortho box 30,30,60,60; on the gate-plaza terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[31.6, 34.2], [32.9, 33.9], [33.6, 30.6], [35.0, 28.2], [35.9, 28.1], [37.2, 29.5], [37.1, 31.3], [36.1, 33.6], [34.2, 34.7], [33.3, 39.6], [31.4, 40.8], [29.8, 40.8]]
+evidence = "S-shaped lawn strip between the cafe level and the plaza edge; ortho box 30,30,60,60; part shaded and next to oblique building projection, outline less sure; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[24.1, 17.1], [24.5, 16.5], [25.2, 16.3], [26.4, 16.3], [27.5, 16.8], [27.7, 19.2], [25.9, 19.5], [24.1, 18.7]]
+evidence = "small square kerbed bed in front of A Blok west of the plaza stair; ortho box 0,0,30,30; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[11.2, 12.6], [11.7, 11.1], [13.0, 11.3], [22.3, 14.7], [22.2, 16.1], [21.3, 17.2], [19.3, 17.0], [17.0, 15.8], [15.6, 15.8], [15.6, 13.9], [14.8, 13.3], [12.6, 13.2]]
+evidence = "lawn left of the cafe path with the yellow-flower border; checked on scene_428502 (bearing 85: lawn left of the path, clipped hedge right of it is not lawn); ortho box 0,0,30,30; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[51.9, 4.0], [52.9, -1.5], [59.7, 0.3], [67.9, 4.1], [64.2, 14.6], [63.2, 14.6], [60.6, 12.0], [57.8, 11.4], [53.7, 12.1], [50.7, 13.7], [49.2, 16.1], [47.6, 15.6]]
+evidence = "large kerbed lawn in front of the main gate with a sculpture on it; ortho box 30,-30,60,0 and 60,0,90,30; on the gate-plaza terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[71.4, 6.9], [77.4, -9.0], [78.9, -8.0], [78.8, -5.2], [81.8, -4.9], [82.3, -3.6], [78.5, 6.5], [78.8, 10.3], [76.9, 10.4], [75.8, 7.9], [72.0, 10.9]]
+evidence = "long lawn strip along the gate-side building, east of the big lawn; cut by the end of ortho coverage at x~81, east end not seen; ortho box 60,-30,90,0; on the gate-plaza terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[8.7, -3.4], [9.8, -6.9], [11.5, -8.8], [14.4, -10.5], [19.9, -9.2], [22.1, -4.9], [21.7, -2.2], [20.2, -1.7], [19.3, 1.3], [16.4, 2.5], [14.8, 2.5], [10.8, 0.9]]
+evidence = "large round-cornered lawn with a yellow-flower patch, kerbed; ortho box -14,-12,16,18 and 0,-30,30,0; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[39.0, -7.9], [39.1, -7.3], [40.5, -7.3], [40.5, -6.0], [41.1, -4.8], [41.2, -3.7], [40.2, -3.7], [38.4, -5.9], [37.2, -6.1], [34.7, -7.2], [35.3, -9.2]]
+evidence = "short kerbed lawn beside the south flight to the plaza; ortho box 30,-30,60,0; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[19.3, -14.8], [20.4, -15.0], [33.1, -10.3], [33.5, -9.5], [33.5, -7.9], [30.9, -8.4], [28.4, -7.8], [24.4, -9.2], [23.4, -10.3], [22.9, -11.8], [19.3, -13.3]]
+evidence = "long diagonal lawn strip north of the south-east cafe, yellow kerb on its south edge; ortho box 0,-30,30,0 and 30,-30,60,0; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[20.8, -18.1], [21.2, -19.3], [23.6, -18.7], [26.1, -19.2], [30.5, -18.9], [32.9, -17.9], [33.7, -15.6], [37.0, -14.5], [37.1, -13.5], [34.0, -13.0]]
+evidence = "second diagonal lawn strip, parallel to the first one; ortho box 0,-30,30,0 and 30,-30,60,0; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[14.5, -15.8], [14.6, -16.8], [15.4, -16.8], [17.5, -16.0], [17.8, -14.2], [17.0, -14.2], [15.2, -14.9]]
+evidence = "small kerbed lawn at the west end of the diagonal strips; ortho box 0,-30,30,0; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[15.7, -19.9], [15.7, -20.5], [16.0, -20.8], [17.8, -20.8], [19.1, -20.3], [19.8, -19.6], [19.8, -18.8], [18.1, -18.9], [17.2, -19.2], [16.7, -19.7]]
+evidence = "small kerbed lawn south-west of the strips; ortho box 0,-30,30,0; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[19.6, -28.1], [21.1, -31.8], [24.1, -32.4], [27.8, -31.0], [27.8, -29.1], [28.4, -28.3], [28.2, -24.9], [27.4, -24.0], [26.1, -24.0], [25.0, -23.2], [23.5, -23.4], [20.2, -25.0]]
+evidence = "round lawn south of the plaza, flat and bright, lamp shadow; ortho box 0,-60,30,-30 and 0,-30,30,0; on the square terrace"
+
+[[areas]]
+kind = "lawn"
+outline = [[15.5, -39.6], [15.5, -40.2], [17.7, -41.0], [21.6, -39.1], [23.3, -39.6], [23.3, -38.9], [22.2, -37.1], [20.7, -36.9], [19.5, -37.9], [19.2, -39.3], [17.0, -39.1]]
+evidence = "wedge-shaped kerbed lawn at the south gate wall; ortho box 0,-60,30,-30; edge near a fence, outline less sure; on the square terrace"
+
+# ---------------------------------------------------------------- flower beds
+# Planted marigold-type beds inside the lawns, traced on 2026-10-08 from the same
+# ground orthomosaics (yellow/orange saturation mask, then checked by eye) and
+# confirmed on panoramas. Local metres [east, north]. Whole-campus sweep over
+# x -60..100, y -60..100: no other beds; the two small lawns at (16,-16) and
+# (18,-20) show only grass and stepping stones on the ortho, so they are not beds.
+
+[[areas]]
+kind = "flowerbed"
+outline = [[17.2, -3.3], [17.0, -2.5], [16.4, -1.9], [15.6, -1.6], [14.8, -1.9], [14.2, -2.5], [13.9, -3.3], [14.2, -4.1], [14.8, -4.7], [15.6, -4.9], [16.4, -4.7], [17.0, -4.1]]
+evidence = "scene_428511 ath 15 and scene_428512 ath 30: yellow marigold ring around the lamp post in the big round lawn south of the B Blok cafe; 3.3 m across on the ortho box 8,-8,24,2"
+
+[[areas]]
+kind = "flowerbed"
+outline = [[12.2, 11.3], [13.2, 11.5], [17.0, 12.9], [21.9, 14.6], [22.0, 15.1], [17.0, 13.4], [13.2, 12.0], [12.2, 11.8]]
+evidence = "scene_428502 bearing 70: yellow marigold border along the south edge of the lawn left of the cafe path, about 0.5 m wide; ortho box 10,8,30,20"
+
+[[areas]]
+kind = "flowerbed"
+outline = [[25.2, 16.4], [26.4, 16.4], [27.4, 16.9], [27.3, 17.3], [26.3, 16.8], [25.2, 16.8]]
+evidence = "scene_428502 bearing 70: yellow flower strip on the south edge of the small A Blok bed by the plaza stair, about 0.4 m wide; ortho box 10,8,30,20, less sure"
+
+# ---------------------------------------------------------------- trees
+# Tree trunks seen on the panoramas, placed on 2026-10-08 by bearing triangulation from 2+
+# panoramas (or the trunk base's depression angle from one, distance = 1.46 / tan(atv)),
+# then drawn back onto the views at the predicted base. About +-1 m. Palms and small
+# bed shrubs are not listed.
+
+[[trees]]
+at = [2.4, 4.7]
+evidence = "slim deciduous tree behind the conifer in the B Blok bed; trunk on 428503/428504/428550, 5 panoramas triangulated"
+
+[[trees]]
+at = [-1.9, 6.7]
+evidence = "slim tree at the back of the same bed, in front of the hedge; 428504 at 8 m (depression) and 428550/428551, trunk at the predicted base"
+
+[[trees]]
+at = [-7.9, -0.4]
+evidence = "plane tree in the pavement beside the store steps; rays from 428504 and 428550 cross here, 428503 agrees"
+
+[[trees]]
+at = [-4.2, -12.5]
+evidence = "large olive in the crescent bed west of the square; trunk at the predicted base on 428504 (11 m) and 428515"
+
+[[trees]]
+at = [1.4, -26.0]
+evidence = "olive in the kerbed bed behind the Al Gotur Oku Getir kiosk; trunk on 428536 (9.6 m) and 428535, rays from 428516/428536 cross within 1.5 m"
+
+[[trees]]
+at = [44.8, 24.1]
+evidence = "slim tree on the big flagpole lawn; trunk on 428523/428524/428527/428528, 8 intersections"
+
+[[trees]]
+at = [47.4, 22.1]
+evidence = "second slim tree on the same lawn, 2-3 m further west-north-west; trunk on 428523/428524/428527"
+
+[[trees]]
+at = [72.9, 7.6]
+evidence = "tree on the lawn strip along the gate-side building; trunk on 428519/428520, 5 panoramas triangulated"
+
+[[trees]]
+at = [74.4, 6.0]
+evidence = "second tree of the same strip; trunk on 428519 (9.8 m) and 428520 (5 m)"
+
+[[trees]]
+at = [73.1, 1.2]
+evidence = "leaning tree at the south end of the same strip; trunk on 428519/428520, at the predicted base on both"
+
+[[areas]]
+kind = "lawn"
+outline = [[58.85, 20.8], [58.66, 21.74], [58.13, 22.53], [57.34, 23.06], [56.4, 23.25], [55.46, 23.06], [54.67, 22.53], [54.14, 21.74], [53.95, 20.8], [54.14, 19.86], [54.67, 19.07], [55.46, 18.54], [56.4, 18.35], [57.34, 18.54], [58.13, 19.07], [58.66, 19.86]]
+evidence = "round kerbed lawn ring under the seal monument on the gate plaza; centre triangulated from scene_428519 (B305.8) and scene_428525 (B193.4), seen from 517/519/525/524, ortho box 40,0,72,30; kerb outer diameter about 5 m, inner edge radius about 2.45 m"
+
+[[areas]]
+kind = "pool"
+outline = [[-26.3, -52.6], [-26.5, -51.7], [-27.0, -50.9], [-27.8, -50.4], [-28.7, -50.2], [-29.6, -50.4], [-30.4, -50.9], [-30.9, -51.7], [-31.1, -52.6], [-30.9, -53.5], [-30.4, -54.3], [-29.6, -54.8], [-28.7, -55.0], [-27.8, -54.8], [-27.0, -54.3], [-26.5, -53.5]]
+evidence = "round ornamental pool in a hedge ring at the E Blok court, outer coping radius about 2.4 m (water about 2.0 m); centre from the ortho box -34,-64,-14,-48 (water blob centroid -28.7,-52.7) and scene_428540 ath 271-325 (coping spans 53 deg at ~5 m, centre B16); also seen from 538 ath 45, 539 ath 55, 541 ath 80"
+
+# T Blok sunken garden (furniture terrace t-garden), 2026-10-08. Laid out in T's
+# face frame from depression angles on 784/786/787/788 (see the terrace note in
+# furniture.toml); the new survey poses of 784/787/788 disagree with these views.
+
+[[areas]]
+kind = "lawn"
+outline = [[-17.0, -201.6], [-17.5, -200.0], [-46.8, -208.0], [-44.7, -214.5], [-38.3, -237.6], [-36.3, -246.5], [-31.0, -262.1], [-27.5, -260.9], [-34.3, -242.6], [-45.0, -211.5]]
+evidence = "L-shaped lawn strip with a colourful low shrub border between T's garden walk and the brick retaining wall: NW strip from 2 m west of the stair foot (kerb 2.9-3.1 m off T's NW face, wall 4.8 m at the east end to 6.8 m at the corner; scene_428784 ath 120, scene_428786 ath 0/230), SW strip behind the bench row and pockets (kerb ~6.3 m off the SW face, wall 7-9.5 m; scene_428786 ath 145, scene_428787 ath 245), ending 1.5 m before scene_428788 (ath 205); south end +-5 m; on the t-garden terrace"
+
+[[trees]]
+at = [-37.5, -233.6]
+evidence = "red-leaved small tree in the SW lawn strip just behind the shrub border; trunk from scene_428787 in two views (5.5 m, ath 297 and 309)"
+
+[[trees]]
+at = [-33.5, -205.9]
+evidence = "small tree in a black planter on the NW lawn edge of T's garden, 9.6 m from scene_428786 (ath 340)"
+
+[[trees]]
+at = [-37.9, -231.2]
+evidence = "small tree in a black planter behind a bench of T's garden, 7.5 m from scene_428787 (ath 305 and 311)"
+
+[[trees]]
+at = [-36.3, -235.4]
+evidence = "small tree in the north planter of the seating pocket in T's garden, 3.6 m from scene_428787 (ath 282)"
+
+[[trees]]
+at = [-34.9, -240.1]
+evidence = "small tree in the south planter of the seating pocket in T's garden, 3.8 m from scene_428787 (ath 200)"

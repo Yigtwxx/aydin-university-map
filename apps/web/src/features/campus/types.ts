@@ -109,7 +109,8 @@ export type Roof =
  */
 export type WindowRecipe = 'punched' | 'ribbon' | 'curtain' | 'blank';
 export type GroundFloor = 'same' | 'glazed' | 'solid' | 'arcade';
-export type FeatureKind = 'drum' | 'tower' | 'canopy' | 'portal' | 'band';
+export type FeatureKind =
+  'drum' | 'tower' | 'canopy' | 'portal' | 'band' | 'glass';
 
 /** A side of the block that differs from the recipe. */
 export interface FacadeWall {
@@ -153,6 +154,8 @@ export interface Facade {
   storey_m: number;
   ground: GroundFloor;
   ground_m: number;
+  /** Corner pilaster strips in the trim colour, m wide; 0 or missing = none. */
+  quoins_m?: number;
   walls: FacadeWall[];
   features: FacadeFeature[];
 }

@@ -36,6 +36,15 @@ class ItemKind(StrEnum):
     BIN = "bin"
     LAMP = "lamp"
     BIKE_RACK = "bike_rack"
+    FLAGPOLE = "flagpole"  # a mast with its flag; length_m = mast height
+    BOOTH = "booth"  # a security or ticket cabin
+    KIOSK = "kiosk"  # a small coloured stand: book swap, info, vending
+    EMBLEM = "emblem"  # the university seal on a round plinth; length_m = diameter
+    LETTERS = "letters"  # free-standing block letters (IAU); length_m = their width
+    TOPIARY = "topiary"  # a shrub clipped to a ball
+    STATUE = "statue"  # a life-size bronze animal; heading = where its head points
+    SIGN = "sign"  # a free-standing board or totem; length_m = its width
+    HEDGE = "hedge"  # a clipped box hedge; length_m along it, heading across
 
 
 class Side(StrEnum):

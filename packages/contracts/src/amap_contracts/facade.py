@@ -51,6 +51,7 @@ class FeatureKind(StrEnum):
     CANOPY = "canopy"  # a flat roof over a door
     PORTAL = "portal"  # a framed door
     BAND = "band"  # a coloured stripe round the block at a height
+    GLASS = "glass"  # a glazed box: a vestibule, an enclosed bridge walk
 
 
 class Feature(BaseModel):
@@ -66,6 +67,8 @@ class Feature(BaseModel):
       ``height_m`` tall, facing ``facing_deg``.
     - band: a stripe ``height_m`` tall (keep it ~0.5 m) round the whole
       block at ``base_m``; ``at`` is ignored.
+    - glass: a box like a tower but glazed, never in masonry; ``accent`` is
+      its white frame (a floor slab and a roof edge).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -77,7 +80,12 @@ class Feature(BaseModel):
     width_m: float = Field(default=3.0, gt=0.0, le=60.0)
     depth_m: float = Field(default=3.0, gt=0.0, le=60.0)
     height_m: float = Field(default=3.0, gt=0.0, le=80.0)
-    base_m: float = Field(default=0.0, ge=0.0, le=80.0)
+    base_m: float = Field(
+        default=0.0,
+        ge=-10.0,
+        le=80.0,
+        description="Bottom above the block's ground (negative: ground steps down)",
+    )
     facing_deg: float = Field(default=0.0, ge=0.0, lt=360.0)
     colour: HexColour = Field(default="#ffffff", pattern=_HEX)
     accent: HexColour | None = Field(default=None, pattern=_HEX)
@@ -105,6 +113,12 @@ class Facade(BaseModel):
     ground: GroundFloor = GroundFloor.SAME
     ground_m: float = Field(
         default=4.0, ge=2.4, le=10.0, description="Ground floor height"
+    )
+    quoins_m: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=2.0,
+        description="Width of the pilaster strips at the corners, in trim; 0 = none",
     )
     walls: tuple[Wall, ...] = ()
     features: tuple[Feature, ...] = ()

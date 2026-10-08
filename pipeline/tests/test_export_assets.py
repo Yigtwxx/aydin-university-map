@@ -67,3 +67,11 @@ def test_greenery_json_keeps_nearby_areas_and_trees() -> None:
     )
     assert [a["kind"] for a in data["areas"]] == ["grass"], data["areas"]
     assert data["trees"] == [[1.0, 2.0]], data["trees"]
+
+
+def test_greenery_json_adds_surveyed_trees_once() -> None:
+    data = greenery_json(
+        Greenery([], [(1.0, 2.0)]), extra_trees=[(1.3, 2.2), (30.0, 40.0)]
+    )
+    # A surveyed tree within 1.5 m of an OSM one is the same tree.
+    assert data["trees"] == [[1.0, 2.0], [30.0, 40.0]], data["trees"]

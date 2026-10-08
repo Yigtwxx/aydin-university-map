@@ -67,15 +67,21 @@ evidence = [
 id = "gate-plaza"
 z_m = 5.7
 edge = "wall"
+# 2026-10-08: the south-west rim follows the measured tops of the brick stair,
+# the Starbucks ramp and the curved tiers (521), and a small lobe reaches south
+# to the café-south ramp's landing (~y -27.8); was a straight x 45 edge.
 outline = [
-  [45.0, -17.5], [86.0, -19.0], [86.0, 88.0], [64.5, 88.0], [38.9, 80.0], [38.4, 60.5],
-  [35.3, 57.5], [35.3, 26.6], [35.3, 17.0], [44.8, 12.3], [44.8, 0.3], [45.0, -7.5],
+  [55.4, -18.6], [86.0, -19.0], [86.0, 88.0], [64.5, 88.0], [38.9, 80.0], [38.4, 60.5],
+  [35.3, 57.5], [35.3, 26.6], [35.3, 17.0], [44.8, 12.3], [44.8, 0.3], [45.0, -4.8],
+  [46.8, -5.1], [47.7, -7.5], [48.9, -9.0], [51.6, -13.7], [52.8, -16.1], [53.4, -19.1],
+  [53.3, -22.5], [53.0, -25.4], [53.2, -27.8], [55.4, -27.6],
 ]
 note = "raised paved plaza east of the café: Starbucks kiosk, main gate, A's east half, J and its cafeteria terrace"
 evidence = [
   { scene = "scene_428500", ath = 150, note = "wide granite flight up to the plaza (11 treads, double handrails)" },
   { scene = "scene_428521", ath = 80, note = "5 curved tiers of the amphitheatre between the plaza rim and the café" },
   { scene = "scene_428513", ath = 138, note = "tiers and the railed south flight along the plaza's west edge" },
+  { scene = "scene_428521", ath = 290, note = "south-west rim: tier tops 4.3-12 m at bearings 166-211, paving ends at y ~ -18 by the grass" },
 ]
 
 [[terraces]]
@@ -90,19 +96,68 @@ evidence = [
 ]
 
 [[terraces]]
+id = "north-entrance"
+z_m = 2.3
+edge = "wall"
+# 2026-10-08: the campus's north pedestrian entrance lies under the deck slab,
+# at the café square's level; its turnstiles step up to the lane (3.2) at
+# x ~ -34.5. Camera heights: 565 and 564 within 0.1 m of each other.
+outline = [[-34.5, 57.5], [-47.5, 57.5], [-47.5, 70.0], [-44.2, 70.0], [-44.2, 68.0], [-41.0, 69.6], [-38.7, 69.8], [-38.7, 67.6], [-37.2, 66.1], [-35.7, 66.6], [-34.5, 66.6]]
+note = "sunken entrance hall under the north deck: turnstiles, guard room, glass lift"
+evidence = [
+  { scene = "scene_428565", ath = 0, note = "turnstiles and x-ray 2.7-5.3 m east under the timber canopy; deck slab overhead" },
+  { scene = "scene_428564", ath = 120, note = "same floor as the café square, under the deck's white columns" },
+]
+
+[[terraces]]
 id = "north-deck"
 z_m = 5.5
 edge = "wall"
 # 2026-10-08: the strip along G's west wall (y 67.5-84.5) is not deck: the
 # G-west ramp and stairs climb it from O Blok's door (571) at street level.
+# 2026-10-08: the south part is a slab on white columns over the north
+# pedestrian entrance (565: turnstile hall, lift, café front at street level).
+# Only the solid part stays here: the café box (front y ~68-70 from 565/564),
+# the lift core (centre (-37.2, 67.6), from 565, 573 and 568) and a strip on
+# to 568. The slab, its columns and the footbridge to D are G Blok features.
 outline = [
-  [-46.0, 59.0], [-24.0, 57.2], [-22.2, 67.5], [-33.5, 67.5], [-33.5, 87.5],
-  [-34.3, 93.0], [-34.0, 99.0], [-47.0, 99.0], [-47.0, 84.0], [-44.2, 82.0], [-44.2, 68.0], [-47.5, 66.0],
+  [-44.2, 68.0], [-41.0, 69.6], [-38.7, 69.8], [-38.7, 67.6], [-37.2, 66.1], [-35.7, 66.6],
+  [-27.0, 66.6], [-27.0, 63.0], [-23.0, 63.0], [-22.2, 67.5], [-33.5, 67.5], [-33.5, 87.5],
+  [-34.3, 93.0], [-34.0, 99.0], [-47.0, 99.0], [-47.0, 84.0], [-44.2, 82.0],
 ]
 note = "raised paved deck in front of G/O; glass-and-steel balustrade round its edge"
 evidence = [
   { scene = "scene_428573", ath = 90, note = "deck floor with the curved blue steps falling away to the café square" },
   { scene = "scene_428572", ath = 45, note = "deck edge balustrade and the ramp's glass rail" },
+]
+
+[[terraces]]
+id = "t-garden"
+z_m = -2.9
+edge = "wall"
+# 2026-10-08: T Blok's sunken garden at its -1 floor, an L round T's west
+# corner (-38.1, -212.2): along the NW face from the granite stair west to the
+# corner, then along the SW face to about 52 m past it (scene 788, where the
+# brick arcade and a gate in the wall begin). Bounded by T (the OSM outline) and
+# the brick retaining wall with the iron fence on top (NW wall 4.8 m from T at
+# the stair, 6.8 m at the corner; SW wall 7.0 m at the corner, ~9.5 m from 33 m
+# on). Laid out in T's face frame from each panorama's own near measurements:
+# 786 sits 1.2 m off the NW face and 2.6 m off the SW face (both facades at
+# 3-6 m; agrees with the 2026-10-08 survey pose within 2 m / 9 deg); 784 is
+# 2.0 m off the NW face at the stair foot and ~8.8 m from 783 (stair foot 1.5 m
+# from 784 + 4.6 m flight + top lip 2.6 m from 783); 787 is 2.8 m off the SW
+# face, a pocket bench 7.7 m before it and the vent box (r 2.5-6.3) 18.8 m back.
+# The 2026-10-08 survey poses of 784 (24 m from 783), 787 and 788 (r ~5-6, 1 m
+# apart) contradict these views. The south end (r 52) is uncertain by +-5 m.
+outline = [
+  [-12.9, -203.5], [-14.5, -199.0], [-46.8, -208.0], [-44.7, -214.5], [-38.3, -237.6],
+  [-36.3, -246.5], [-30.1, -264.5], [-21.2, -261.4], [-38.1, -212.2],
+]
+note = "sunken garden walk round T's west corner, one storey (16 risers, ~2.9 m) below the entrance canopy and the street"
+evidence = [
+  { scene = "scene_428784", ath = 268, note = "16 risers of 0.18 m (tread 0.30 m) fitted to the nosing angles: the walk is ~2.9 m below the canopy floor at 783; arrow to 'T Blok -1.Kat'" },
+  { scene = "scene_428786", ath = 0, note = "west corner: NW-face walk 3.4 m wide to the lawn kerb, SW-face walk with the bench row; legs 90 deg apart" },
+  { scene = "scene_428788", ath = 270, note = "south end: lawn ends 1.5 m before 788, brick arcade and a gate in the wall begin" },
 ]
 
 # ------------------------------------------------------------------ stairs
@@ -167,15 +222,51 @@ evidence = [{ scene = "scene_428500", ath = 142, note = "foot edge at 2.6 m (ath
 
 [[stairs]]
 id = "plaza-south-flight"
-foot = [39.2, -12.5]
-top = [45.0, -12.5]
-width_m = 10.0
-steps = 10
+foot = [43.4, -7.8]
+top = [47.2, -6.3]
+width_m = 2.6
+steps = 14
 base_z = 4.0
 rise_m = 1.7
 railings = "both"
-note = "Starbucks side: wide flight with a central pair of rails, steel rails on the brick stair wall beside it (521 @0-40). Detector stairs_04/05 sit at its lip"
-evidence = [{ scene = "scene_428513", ath = 138, note = "railed flight at bearing 85, 21-24 m" }, { scene = "scene_428521", ath = 345, note = "brick wall, dark steps and steel rail 3-6 m from the camera" }]
+note = "2026-10-08 re-survey: the narrow brick-walled stair from the café up to the plaza north of the Starbucks ramp, steel rails on both brick walls (was a 10 m-wide block at x 39.2-45 that merged this stair, the ramp and the grass). Foot (43.2,-6.5)-(43.7,-9.1) from 507 (4-9 m), top lip (47.1..47.4, -5.3..-7.2) from 521 (3.7 m). ~14 risers, count approximate. Detector stairs_04/05 sit at its lip"
+evidence = [{ scene = "scene_428507", ath = 85, note = "bottom step 8.6-9.2 m at bearings 59-76, brick walls both sides" }, { scene = "scene_428521", ath = 20, note = "top lip 3.7-3.9 m at bearings 250-279" }, { scene = "scene_428513", ath = 138, note = "railed flight at bearing 85, 21-24 m" }]
+
+[[stairs]]
+id = "plaza-south-tiers-north"
+foot = [45.7, -15.0]
+top = [49.7, -11.5]
+width_m = 5.8
+steps = 8
+base_z = 4.0
+rise_m = 1.7
+railings = "none"
+note = "2026-10-08: dark stone seating tiers below the Starbucks kiosk, north wedge (the tiers curve round the café floor; three straight pieces). Foot = the tiers' base behind the yellow line: 508 monoplot (43.3,-12.2)-(45.0,-14.6), 521 (44.9,-13.3); top rim from 521 (48.6,-9.6)-(51.0,-13.1). 8 tiers counted from 509. Foot +-1.5 m: two-camera fixes put it 1-2 m east of the 508 monoplot"
+evidence = [{ scene = "scene_428508", ath = 60, note = "tier base 8-9 m at bearings 25-43" }, { scene = "scene_428521", ath = 305, note = "tier rim 4.3-7.2 m at bearings 179-211" }]
+
+[[stairs]]
+id = "plaza-south-tiers-centre"
+foot = [47.9, -18.65]
+top = [53.1, -17.6]
+width_m = 3.0
+steps = 15
+base_z = 4.0
+rise_m = 1.7
+railings = "none"
+note = "2026-10-08: the central stair cut through the tiers, straight up to the Starbucks kiosk (no handrails seen). Base corners triangulated 508+509+510: (48.3,-16.7) and (48.9,-20.0); 508 monoplot (46.6,-17.5)/(47.3,-20.1); used the mean. Top rim from 521 ~(53.8,-17.9)"
+evidence = [{ scene = "scene_428508", ath = 100, note = "central stair base at bearings 66 and 86" }, { scene = "scene_428509", ath = 343, note = "same corners at bearings 46 and 56.5" }, { scene = "scene_428510", ath = 107, note = "same corners at bearings 51 and 57, 25 m" }]
+
+[[stairs]]
+id = "plaza-south-tiers-south"
+foot = [47.75, -22.85]
+top = [53.2, -22.25]
+width_m = 5.6
+steps = 8
+base_z = 4.0
+rise_m = 1.7
+railings = "none"
+note = "2026-10-08: south wedge of the tiers, ending at the retaining wall of the curved café-south ramp. Foot from 508 (47.7,-23.5)-(47.4,-25.9) and 509 (45.1..47.2, -25.5..-26.8); SE top corner = where the ramp's inner rail meets the rim railing, triangulated (53,-25.4) from 509 + 508/510"
+evidence = [{ scene = "scene_428508", ath = 135, note = "tier base 8.7-9.6 m at bearings 109-123" }, { scene = "scene_428509", ath = 2, note = "8 tiers, ramp rail meeting the rim railing at bearing 79" }]
 
 [[stairs]]
 id = "d-portico-steps"
@@ -272,6 +363,21 @@ railings = "both"
 note = "north landing of the glass-covered road-bridge stair (U-shaped, only the first flight placed); 2026-10-08 check: straight flight of 16-17 risers rising away from 540 along bearing ~233, glass balustrade with handrail on the left, steel handrail on the right"
 evidence = [{ scene = "scene_428540", ath = 156, note = "dark covered stair with glass side, 3-4 m from the camera" }]
 
+[[stairs]]
+id = "t-garden-stair"
+foot = [-13.4, -202.1]
+top = [-9.1, -200.6]
+width_m = 3.5
+steps = 16
+base_z = -2.9
+rise_m = 2.9
+railings = "both"
+note = "wide dark-granite flight along T's NW face from the sunken garden walk up to the entrance canopy (turnstiles, scene 783); steel handrails both sides, brick wall with a steel door on its north side. Foot 1.5 m from 784 (corners at 1.9 and 2.6 m), 16 risers of ~0.18 m, treads ~0.30 m; top lip 2.6 m from 783"
+evidence = [
+  { scene = "scene_428784", ath = 268, note = "16 nosings fitted (foot 1.45 m, tread 0.30, riser 0.18); foot corners ath 228 and 330" },
+  { scene = "scene_428783", ath = 232, note = "top lip 2.6 m from the camera, ~3 m wide, brick parapet on its north side" },
+]
+
 # ------------------------------------------------------------------- ramps
 
 [[ramps]]
@@ -307,18 +413,54 @@ railings = "both"
 note = "long ramp with steel rails beside the E-east steps (detector railing_10 and railing_20)"
 evidence = [{ scene = "scene_428538", ath = 279, note = "long rail line at bearing ~107, 5 m" }]
 
+[[ramps]]
+id = "starbucks-ramp"
+foot = [39.2, -11.9]
+top = [48.6, -8.2]
+width_m = 1.7
+base_z = 4.0
+rise_m = 1.7
+railings = "both"
+note = "2026-10-08: cobbled ramp between granite curbs with stainless double rails, alongside the south brick wall of plaza-south-flight and over a stone retaining wall with grass in front (the 'white rails over a red surface' seen from 508: the red is the stair's brick wall behind). Foot curbs (39.2,-11.0)/(39.8,-12.7) from 507 at 4-5 m (506 and 508 monoplots within 1.5 m); top rail ends (49.2,-8.8)/(48.1,-7.6) from 521 at 3.4 m. Steep (~17 %) as measured"
+evidence = [{ scene = "scene_428507", ath = 115, note = "ramp foot curbs 3.9-4.7 m at bearings 87-109, rails both sides" }, { scene = "scene_428521", ath = 340, note = "ramp top, rail ends 3.3-3.4 m at bearings 211-238" }, { scene = "scene_428508", ath = 20, note = "rails rising east over the stone wall, foot at bearing 349, 8.9 m" }, { scene = "scene_428506", ath = 158, note = "ramp descending to its foot at bearing 154" }]
+
+[[ramps]]
+id = "cafe-south-ramp-west"
+foot = [39.0, -29.6]
+top = [46.0, -26.8]
+width_m = 2.6
+base_z = 4.0
+rise_m = 0.9
+railings = "both"
+note = "2026-10-08: lower leg of the curved ramp behind the stone retaining wall on the café floor's south side (wall ~(38.5,-28.4)-(45.2,-25.7), its coping carries the inner rail; outer stainless rail ~2.6 m further south). Starts beside 509 (inner curb end 2.4 m at bearing 83). Detector railing at (37.1,-29.8). Rise split by length"
+evidence = [{ scene = "scene_428509", ath = 15, note = "inner curb end 2.4 m, ramp curving NE then E along the wall" }, { scene = "scene_428510", ath = 120, note = "ramp foot and rails at bearings 62-67, 14-16 m" }]
+
+[[ramps]]
+id = "cafe-south-ramp-east"
+foot = [46.0, -26.8]
+top = [53.3, -26.6]
+width_m = 2.6
+base_z = 4.9
+rise_m = 0.8
+railings = "both"
+note = "2026-10-08: upper leg of the curved café-south ramp, running east along the south end of the tiers to the plaza; its inner rail meets the tiers' rim railing at ~(53,-25.4), triangulated 509 @79 x 508 @108 and 509 x 510 @70. Where it lands on the plaza is +-2 m"
+evidence = [{ scene = "scene_428509", ath = 11, note = "ramp rails reaching the rim railing at bearing 79" }, { scene = "scene_428508", ath = 132, note = "ramp rail high point at bearing 108" }, { scene = "scene_428521", ath = 290, note = "ramp top railing curving behind the grass beyond the tiers' south end" }]
+
 # ---------------------------------------------------------------- railings
 
 [[railings]]
 id = "deck-south-balustrade"
-line = [[-46.0, 59.2], [-24.5, 57.5]]
+# 2026-10-08: on the slab's curved south edge (now G Blok canopies): feet at
+# 573 B174-203 dep 8-9 deg -> (-38.4, 62.8)..(-43.4, 64.3); passes ~2 m north
+# of 565 (fascia 61 deg up), bends south-east into the footbridge by 567.
+line = [[-47.0, 63.6], [-43.4, 64.0], [-40.7, 63.5], [-38.4, 62.8], [-36.5, 60.5], [-34.0, 58.2], [-32.6, 57.0]]
 height_m = 1.1
 base_z = 5.5
 evidence = [{ scene = "scene_428573", ath = 358, note = "glass and steel balustrade along the deck's south edge (detector railing_14), 16 m" }]
 
 [[railings]]
 id = "deck-west-balustrade"
-line = [[-46.0, 59.2], [-47.5, 66.2]]
+line = [[-44.6, 68.2], [-47.5, 66.0], [-47.0, 63.6]]
 height_m = 1.1
 base_z = 5.5
 evidence = [{ scene = "scene_428573", ath = 49, note = "balustrade round the deck corner above the café square, 13 m" }]
@@ -649,3 +791,471 @@ id = "bollard-04"
 kind = "bollard"
 at = [78.7, 34.9]
 evidence = [{ scene = "scene_428518", ath = 76, note = "detector bollard_04, monoplot, 1 view(s), checked on the review sheet" }]
+
+# 2026-10-08: masts, cabins and boards seen while checking every panorama.
+[[items]]
+id = "flag-plaza"
+kind = "flagpole"
+at = [5.4, 8.6]
+length_m = 12.0
+evidence = [{ scene = "scene_428523", ath = 0, note = "survey tie r2.flag.plaza, sighted from 8 panoramas" }]
+
+[[items]]
+id = "flag-sgate-eu"
+kind = "flagpole"
+at = [2.7, -36.7]
+length_m = 8.0
+evidence = [{ scene = "scene_428537", ath = 80, note = "survey tie r3b.sgate.flag.eu; mast height estimated" }]
+
+[[items]]
+id = "flag-sgate-tr"
+kind = "flagpole"
+at = [3.1, -38.1]
+length_m = 10.0
+evidence = [{ scene = "scene_428537", ath = 80, note = "survey tie r3b.sgate.flag.tr; mast height estimated" }]
+
+[[items]]
+id = "flag-sgate-white"
+kind = "flagpole"
+at = [3.5, -39.3]
+length_m = 8.0
+evidence = [{ scene = "scene_428537", ath = 80, note = "survey tie r3b.sgate.flag.white; mast height estimated" }]
+
+[[items]]
+id = "sign-sgate"
+kind = "sign"
+at = [2.6, -37.6]
+heading_deg = 252.4
+length_m = 4.9
+evidence = [{ scene = "scene_428537", ath = 80, note = "two-panel board between survey ties r3b.sgate.board.black_end and .white_end, facing the campus" }]
+
+[[items]]
+id = "sign-e-court-kiosk"
+kind = "sign"
+at = [17.9, -38.1]
+heading_deg = 63.0
+length_m = 1.5
+evidence = [{ scene = "scene_428509", ath = 167, note = "blue glass campus info kiosk on the path to the E court, facing the square (landmark detector booth, triangulated from 510, 511, 516 and 535)" }]
+
+[[items]]
+id = "kiosk-book-swap"
+kind = "kiosk"
+at = [1.8, -17.7]
+heading_deg = 72.0
+evidence = [{ scene = "scene_428511", ath = 313, note = "purple 'Al Gotur Oku' book-swap stand with a pink canopy, its shelves facing the square; bearings from 510, 511, 512, 513, 516 and 535 meet within 1.4 deg (landmark detector sign/booth)" }]
+
+[[items]]
+id = "flag-a-east-1"
+kind = "flagpole"
+at = [71.3, 55.7]
+length_m = 8.0
+evidence = [{ scene = "scene_428529", ath = 345, note = "row of five steel masts with banners (EU, AKEV) on the lawn inside the gate-road fence; base 1 from the left, depression angle at 2.5-3.4 m" }]
+
+[[items]]
+id = "flag-a-east-2"
+kind = "flagpole"
+at = [71.4, 55.1]
+length_m = 8.0
+evidence = [{ scene = "scene_428529", ath = 345, note = "row of five steel masts with banners (EU, AKEV) on the lawn inside the gate-road fence; base 2 from the left, depression angle at 2.5-3.4 m" }]
+
+[[items]]
+id = "flag-a-east-3"
+kind = "flagpole"
+at = [71.4, 54.5]
+length_m = 8.0
+evidence = [{ scene = "scene_428529", ath = 345, note = "row of five steel masts with banners (EU, AKEV) on the lawn inside the gate-road fence; base 3 from the left, depression angle at 2.5-3.4 m" }]
+
+[[items]]
+id = "flag-a-east-4"
+kind = "flagpole"
+at = [71.5, 54.1]
+length_m = 8.0
+evidence = [{ scene = "scene_428529", ath = 345, note = "row of five steel masts with banners (EU, AKEV) on the lawn inside the gate-road fence; base 4 from the left, depression angle at 2.5-3.4 m" }]
+
+[[items]]
+id = "flag-a-east-5"
+kind = "flagpole"
+at = [71.6, 53.4]
+length_m = 8.0
+evidence = [{ scene = "scene_428529", ath = 345, note = "row of five steel masts with banners (EU, AKEV) on the lawn inside the gate-road fence; base 5 from the left, depression angle at 2.5-3.4 m" }]
+
+[[items]]
+id = "statue-rhino"
+kind = "statue"
+at = [8.3, -36.4]
+heading_deg = 60.0
+evidence = [{ scene = "scene_428535", ath = 235, note = "bronze rhino on the lawn by the south gate, its feet 11 deg below the horizon -> 7.7 m; landmark detector monument from 516 agrees within 2.5 m" }]
+
+[[items]]
+id = "flag-nw-gate-1"
+kind = "flagpole"
+at = [-19.7, 62.8]
+length_m = 9.0
+evidence = [{ scene = "scene_428558", ath = 115, note = "three steel masts (Turkish and university flags) inside the north-west gate fence; base depression angle, 2.9-4.2 m" }]
+
+[[items]]
+id = "flag-nw-gate-2"
+kind = "flagpole"
+at = [-19.1, 63.1]
+length_m = 9.0
+evidence = [{ scene = "scene_428558", ath = 115, note = "three steel masts (Turkish and university flags) inside the north-west gate fence; base depression angle, 2.9-4.2 m" }]
+
+[[items]]
+id = "flag-nw-gate-3"
+kind = "flagpole"
+at = [-18.4, 63.3]
+length_m = 9.0
+evidence = [{ scene = "scene_428558", ath = 115, note = "three steel masts (Turkish and university flags) inside the north-west gate fence; base depression angle, 2.9-4.2 m" }]
+
+[[items]]
+id = "booth-nw-gate"
+kind = "booth"
+at = [-27.0, 60.2]
+heading_deg = 70.0
+evidence = [{ scene = "scene_428558", ath = 95, note = "white security cabin with a dark roof at the north-west gate; its front foot 7.8 deg below the horizon -> 11 m" }]
+
+[[items]]
+id = "sign-recycling-north-cafe"
+kind = "sign"
+at = [-58.9, 78.7]
+heading_deg = 153.0
+length_m = 1.6
+evidence = [{ scene = "scene_428575", ath = 150, note = "blue 'Geri Donusum Unitesi' recycling stand against the hedge of the north cafe square; its foot 9.9 deg below the horizon -> 8.8 m" }]
+
+# T Blok sunken garden (terrace t-garden), 2026-10-08: benches, planters with small
+# trees, bins and the shrub border, measured on 784/786/787/788 by depression
+# angle and laid out in T's face frame (see the terrace note); about +-1 m near
+# 786 and 787, +-2 m elsewhere.
+
+[[items]]
+id = "bench-t-garden-1"
+kind = "bench"
+at = [-43.3, -212.5]
+heading_deg = 71.0
+length_m = 1.8
+evidence = [{ scene = "scene_428786", ath = 145, note = "teak bench with black metal legs, row of six along the SW lawn edge facing T; front legs 4.6-5.2 m off the SW face, r -1.4; front-leg depression from 786 (2-13 m); T's face frame (r along the SW face from the west corner, q out from it; s/t likewise on the NW face)" }]
+
+[[items]]
+id = "bench-t-garden-2"
+kind = "bench"
+at = [-42.6, -214.6]
+heading_deg = 71.0
+length_m = 1.8
+evidence = [{ scene = "scene_428786", ath = 140, note = "teak bench with black metal legs, row of six along the SW lawn edge facing T; front legs 4.6-5.2 m off the SW face, r 0.8; front-leg depression from 786 (2-13 m)" }]
+
+[[items]]
+id = "bench-t-garden-3"
+kind = "bench"
+at = [-41.9, -216.8]
+heading_deg = 71.0
+length_m = 1.8
+evidence = [{ scene = "scene_428786", ath = 128, note = "teak bench with black metal legs, row of six along the SW lawn edge facing T; front legs 4.6-5.2 m off the SW face, r 3.1; front-leg depression from 786 (2-13 m)" }]
+
+[[items]]
+id = "bench-t-garden-4"
+kind = "bench"
+at = [-41.2, -218.9]
+heading_deg = 71.0
+length_m = 1.8
+evidence = [{ scene = "scene_428786", ath = 117, note = "teak bench with black metal legs, row of six along the SW lawn edge facing T; front legs 4.6-5.2 m off the SW face, r 5.3; front-leg depression from 786 (2-13 m)" }]
+
+[[items]]
+id = "bench-t-garden-5"
+kind = "bench"
+at = [-40.4, -221.2]
+heading_deg = 71.0
+length_m = 1.8
+evidence = [{ scene = "scene_428786", ath = 110, note = "teak bench with black metal legs, row of six along the SW lawn edge facing T; front legs 4.6-5.2 m off the SW face, r 7.8; front-leg depression from 786 (2-13 m)" }]
+
+[[items]]
+id = "bench-t-garden-6"
+kind = "bench"
+at = [-39.5, -223.7]
+heading_deg = 71.0
+length_m = 1.8
+evidence = [{ scene = "scene_428786", ath = 103, note = "teak bench with black metal legs, row of six along the SW lawn edge facing T; front legs 4.6-5.2 m off the SW face, r 10.4; front-leg depression from 786 (2-13 m)" }]
+
+[[items]]
+id = "bench-t-garden-7"
+kind = "bench"
+at = [-37.5, -230.1]
+heading_deg = 71.0
+length_m = 1.8
+evidence = [{ scene = "scene_428787", ath = 311, note = "bench before a black planter with a small tree and a teal bin, 7.7-8.7 m before 787 (front legs q 4.7-5.3, r ~17)" }]
+
+[[items]]
+id = "bench-t-garden-8"
+kind = "bench"
+at = [-35.6, -236.5]
+heading_deg = 71.0
+length_m = 1.8
+evidence = [{ scene = "scene_428787", ath = 265, note = "seating pocket: two benches between two black planters with small trees, bins at both ends; front legs 2.5-3.1 m from 787, q 5.3" }]
+
+[[items]]
+id = "bench-t-garden-9"
+kind = "bench"
+at = [-35.0, -238.5]
+heading_deg = 71.0
+length_m = 1.8
+evidence = [{ scene = "scene_428787", ath = 222, note = "second bench of the pocket, front legs 3.1 m (r 25.1-26.6)" }]
+
+[[items]]
+id = "bench-t-garden-nw"
+kind = "bench"
+at = [-32.1, -206.3]
+heading_deg = 161.0
+length_m = 1.8
+evidence = [{ scene = "scene_428786", ath = 345, note = "bench on the NW lawn edge facing T, beside a black planter with a small tree; 9-12 m from 786" }]
+
+[[items]]
+id = "planter-t-garden-1"
+kind = "planter"
+at = [-33.5, -205.9]
+length_m = 0.8
+evidence = [{ scene = "scene_428786", ath = 340, note = "black round planter with a small tree on the NW lawn edge, base 9.6 m from 786 (s 6.4)" }]
+
+[[items]]
+id = "planter-t-garden-2"
+kind = "planter"
+at = [-40.4, -224.5]
+length_m = 0.8
+evidence = [{ scene = "scene_428787", ath = 316, note = "black planter with a small tree behind the bench row, 14.2-14.7 m from 787 (r ~11); low confidence" }]
+
+[[items]]
+id = "planter-t-garden-3"
+kind = "planter"
+at = [-37.9, -231.2]
+length_m = 0.8
+evidence = [{ scene = "scene_428787", ath = 305, note = "black planter with a small tree behind bench 7; 7.5 m from 787 in two views" }]
+
+[[items]]
+id = "planter-t-garden-4"
+kind = "planter"
+at = [-36.3, -235.4]
+length_m = 0.8
+evidence = [{ scene = "scene_428787", ath = 282, note = "pocket's north planter with a small tree, 3.6 m" }]
+
+[[items]]
+id = "planter-t-garden-5"
+kind = "planter"
+at = [-34.9, -240.1]
+length_m = 0.8
+evidence = [{ scene = "scene_428787", ath = 200, note = "pocket's south planter with a small tree, 3.8 m" }]
+
+[[items]]
+id = "bin-t-garden-1"
+kind = "bin"
+at = [-17.0, -200.2]
+length_m = 0.5
+evidence = [{ scene = "scene_428784", ath = 150, note = "pair of steel bins against the wall at the stair foot, 2.7-2.8 m from 784" }]
+
+[[items]]
+id = "bin-t-garden-2"
+kind = "bin"
+at = [-16.5, -200.1]
+length_m = 0.5
+evidence = [{ scene = "scene_428784", ath = 155, note = "second steel bin of the pair" }]
+
+[[items]]
+id = "bin-t-garden-3"
+kind = "bin"
+at = [-43.9, -211.3]
+length_m = 0.5
+evidence = [{ scene = "scene_428786", ath = 205, note = "steel bin beside bench 1, 3.0 m from 786" }]
+
+[[items]]
+id = "bin-t-garden-4"
+kind = "bin"
+at = [-42.8, -217.0]
+length_m = 0.5
+evidence = [{ scene = "scene_428786", ath = 124, note = "steel bin behind benches 2-3, 5.4 m from 786" }]
+
+[[items]]
+id = "bin-t-garden-5"
+kind = "bin"
+at = [-35.8, -234.7]
+length_m = 0.5
+evidence = [{ scene = "scene_428787", ath = 286, note = "steel bin at the pocket's north planter, 3.2 m" }]
+
+[[items]]
+id = "bin-t-garden-6"
+kind = "bin"
+at = [-34.0, -240.3]
+length_m = 0.5
+evidence = [{ scene = "scene_428787", ath = 195, note = "teal bin at the pocket's south planter, 3.7 m" }]
+
+[[items]]
+id = "hedge-t-garden-nw-1"
+kind = "hedge"
+at = [-38.1, -208.6]
+heading_deg = 161.0
+length_m = 14.3
+evidence = [{ scene = "scene_428786", ath = 330, note = "low colourful shrub border (red-tipped and yellow-green) inside the NW lawn kerb, kerb 2.9-3.3 m off the NW face" }]
+
+[[items]]
+id = "hedge-t-garden-nw-2"
+kind = "hedge"
+at = [-24.4, -203.8]
+heading_deg = 161.0
+length_m = 14.7
+evidence = [{ scene = "scene_428784", ath = 110, note = "same border to the lawn's east end 2 m from the stair foot (kerb 2.0-2.6 m from 784)" }]
+
+[[items]]
+id = "hedge-t-garden-sw-1"
+kind = "hedge"
+at = [-43.2, -217.8]
+heading_deg = 251.0
+length_m = 13.1
+evidence = [{ scene = "scene_428786", ath = 150, note = "shrub border behind the bench row, kerb ~6.3 m off the SW face" }]
+
+[[items]]
+id = "hedge-t-garden-sw-2"
+kind = "hedge"
+at = [-38.9, -230.2]
+heading_deg = 251.0
+length_m = 13.1
+evidence = [{ scene = "scene_428787", ath = 320, note = "same border behind the pockets" }]
+
+[[items]]
+id = "hedge-t-garden-sw-3"
+kind = "hedge"
+at = [-34.7, -242.6]
+heading_deg = 251.0
+length_m = 13.1
+evidence = [{ scene = "scene_428787", ath = 200, note = "same border south of the pocket" }]
+
+[[items]]
+id = "hedge-t-garden-sw-4"
+kind = "hedge"
+at = [-30.4, -255.0]
+heading_deg = 251.0
+length_m = 13.1
+evidence = [{ scene = "scene_428788", ath = 262, note = "same border up to the lawn's south end 1.5 m before 788 (kerb 2.2-2.3 m out from 788); r 36-50 uncertain by +-5 m" }]
+
+[[items]]
+id = "booth-utm-gate"
+kind = "booth"
+at = [-132.6, -219.6]
+evidence = [{ scene = "scene_428381", ath = 326, note = "white security cabin at the UTM gate; its foot 17 deg below the horizon -> 4.8 m" }]
+
+[[items]]
+id = "booth-car-park"
+kind = "booth"
+at = [103.37, 13.96]
+evidence = [{ scene = "scene_428462", ath = 327, note = "white security cabin with a guard at the car-park entrance, 7.5 m (landmark detector booth_02, monoplot, checked on the sheet)" }]
+
+[[items]]
+id = "booth-utility-hospital"
+kind = "booth"
+at = [-30.88, -78.4]
+evidence = [{ scene = "scene_428459", ath = 195, note = "white fenced utility cabin by the hospital entrance, 4.1 m (landmark detector booth_03, monoplot, checked on the sheet)" }]
+
+# ---------------------------------------------------------------- hedges
+# Clipped box hedges (about 0.8 m wide, 0.7-1.2 m tall) along the paths, found on 2026-10-08 from the
+# panoramas: the hedge's front base measured with the depression angle (distance = 1.46 / tan(atv)),
+# the run drawn back onto the views and checked. `at` is the run's centre, `heading_deg` the compass
+# bearing its side faces (run direction + 90), `length_m` runs along it. Positions about +-1 m.
+
+[[items]]
+id = "hedge-cafepath-1"
+kind = "hedge"
+at = [15.5, 7.8]
+heading_deg = 172.8
+length_m = 6.4
+evidence = [{ scene = "scene_428502", ath = 31, note = "clipped hedge along the south side of the cafe path, front base from 428502/428505/428551 (3-6 m), checked on overlays" }]
+
+[[items]]
+id = "hedge-cafepath-2"
+kind = "hedge"
+at = [21.9, 9.5]
+heading_deg = 158.4
+length_m = 6.8
+evidence = [{ scene = "scene_428501", ath = 335, note = "same hedge, north-east bend, front base from 428501 at 3-6 m" }]
+
+[[items]]
+id = "hedge-stairfoot-1"
+kind = "hedge"
+at = [30.9, 13.5]
+heading_deg = 151.8
+length_m = 8.1
+evidence = [{ scene = "scene_428501", ath = 221, note = "row of round clipped hedge blocks in front of the amphitheatre steps; base from 428501 (3-6 m), overlay on 428500/428501/428528" }]
+
+[[items]]
+id = "hedge-bbed-1"
+kind = "hedge"
+at = [5.4, 10.2]
+heading_deg = 159.6
+length_m = 6.6
+evidence = [{ scene = "scene_428551", ath = 191, note = "hedge along the north-east back of the conifer bed where the cafe path starts; 428551 at 3 m, 428502 at 4-9 m; lies on the traced lawn edge (the lawn trace includes the smeared hedge)" }]
+
+[[items]]
+id = "hedge-south-flight-1"
+kind = "hedge"
+at = [38.3, -5.1]
+heading_deg = 315.0
+length_m = 3.1
+evidence = [{ scene = "scene_428506", ath = 139, note = "short hedge by the south flight, 428506 at 8 m, seen on 428507" }]
+
+[[items]]
+id = "hedge-south-1"
+kind = "hedge"
+at = [-11.2, -39.1]
+heading_deg = 155.8
+length_m = 6.6
+evidence = [{ scene = "scene_428537", ath = 331, note = "large oval hedge on the south pavement, front base from 428537 at 3 m and 428536; oval is wider than one run (hedge body about 2.5 m)" }]
+
+[[items]]
+id = "hedge-bbed-back-1"
+kind = "hedge"
+at = [-2.7, 7.6]
+heading_deg = 147.7
+length_m = 4.5
+evidence = [{ scene = "scene_428504", ath = 290, note = "hedge on the back edge of the yellow-kerbed bed in front of the B Blok steps; seen from 428504 and 428503 (8-10 m), base checked on overlays; the traced lawn polygon includes this hedge" }]
+
+[[items]]
+id = "hedge-bbed-back-2"
+kind = "hedge"
+at = [0.7, 9.0]
+heading_deg = 172.6
+length_m = 3.1
+evidence = [{ scene = "scene_428504", ath = 307, note = "hedge on the back edge of the yellow-kerbed bed in front of the B Blok steps; seen from 428504 and 428503 (8-10 m), base checked on overlays; the traced lawn polygon includes this hedge" }]
+
+[[items]]
+id = "emblem-main-gate"
+kind = "emblem"
+at = [56.4, 20.8]
+heading_deg = 70.0
+length_m = 4.0
+evidence = [{ scene = "scene_428519", ath = 275, note = "red university seal disc tilted on a stepped round white plinth inside a round kerbed lawn; centre triangulated from 519 (B305.8) and 525 (B193.4), 517 B256.5 at 6.7 m agrees, ortho box 40,0,72,30 centre (56.5, 20.9). Text reads upright from 517 (bearing 77 from the seal); the disc's high side is to the SW (about 215-235), so the tilt faces roughly 40-55, heading is a compromise" }]
+
+[[items]]
+id = "letters-iau"
+kind = "letters"
+at = [54.2, 4.2]
+heading_deg = 60.0
+length_m = 5.6
+evidence = [{ scene = "scene_428519", ath = 270, note = "red heart then white block letters I A U (about 1.7 m tall) on a grey base plate at the north-west corner of the big gate lawn; word centre (heart + IAU) triangulated from 519 (B240.4 to IAU centre) and 520 (B276.8), 525 B191 agrees; faces ENE (bearing 60, seen frontally from 519), reads left to right towards NNW; heart+IAU width 5.6 m, IAU alone 3.7 m, heart at the left quarter" }]
+
+[[items]]
+id = "topiary-gate-1"
+kind = "topiary"
+at = [60.7, 12.4]
+evidence = [{ scene = "scene_428519", ath = 296, note = "clipped box ball on the north kerb of the gate lawn; B266 from 519, B192.6 from 517, B180.6 from 525" }]
+
+[[items]]
+id = "topiary-gate-2"
+kind = "topiary"
+at = [57.6, 11.7]
+evidence = [{ scene = "scene_428519", ath = 293, note = "clipped box ball on the north kerb of the gate lawn; B263.2 from 519, B206.3 from 517, B187 from 525" }]
+
+[[items]]
+id = "topiary-gate-3"
+kind = "topiary"
+at = [54.4, 11.9]
+evidence = [{ scene = "scene_428517", ath = 291, note = "clipped box ball on the north kerb of the gate lawn, left of the IAU letters; B218.8 from 517, B193.8 from 525, hidden behind ball 1 from 519" }]
+
+[[items]]
+id = "topiary-gate-4"
+kind = "topiary"
+at = [51.0, 13.2]
+evidence = [{ scene = "scene_428517", ath = 305, note = "clipped box ball at the west end of the row, on the lawn kerb; B232.3 from 517, B272 from 519, B200.8 from 525 (two intersections 0.7 m apart)" }]

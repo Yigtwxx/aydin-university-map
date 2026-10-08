@@ -54,6 +54,28 @@ in `packages/contracts`.
     the camera height.
   - **Routing:** an outdoor walking edge over a flight becomes a stairs
     edge, so step-free routes avoid it.
+  - **Landmarks:** a second query set (`--queries landmarks`: masts, cabins,
+    boards, trees) proposes the bigger outdoor objects the same way.
+- **Planting** (`greenery.toml` → `greenery.json`): lawns traced on the
+  ground orthomosaic and trees seen on the panoramas, added to OSM's (a tree
+  within 1.5 m of an OSM one is that tree).
+  - Flower beds (`kind = "flowerbed"`) and pools (`kind = "pool"`) are traced
+    the same way.
+  - All traced areas render as one vertex-coloured mesh per kind. One
+    material per area would leave every area after the second undrawn.
+- **Landmarks and kiosks** are item kinds of their own, because a recolour
+  would not read: `kiosk`, `emblem` (length = diameter), `letters` (length =
+  word width), `topiary` and `statue`.
+- **Block features** gain `glass`, a box drawn as glass and never in masonry.
+  A feature's `base_m` may be negative, so a column can reach ground that
+  steps down below its block's ground (the north deck's entrance hall).
+- **Corner numbering:** survey sightings name OSM corners by index
+  (`8421#2`). Cutting a block out of a footprint keeps the numbers of the
+  corners it leaves alone: the ring is turned to start like the parent's.
+  Renumbering once moved the north deck's poses 3-6 m.
+- **Doors whose label names no block** (`scene_overrides.toml [blocks]`):
+  the block is set by hand, from the sign seen on the panorama and the tour's
+  links; the rooms reached through the door inherit it.
 
 ## Consequences
 

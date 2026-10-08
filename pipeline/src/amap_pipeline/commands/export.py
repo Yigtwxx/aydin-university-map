@@ -2,9 +2,10 @@
 
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
+from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
 from amap_pipeline import paths
@@ -21,6 +22,7 @@ from amap_pipeline.export.pois import build_pois, read_poi_config
 from amap_pipeline.geo.context import fetch_context_raw, parse_context
 from amap_pipeline.geo.osm import (
     WIDE_OSM_BBOX,
+    Greenery,
     LocalProjector,
     fetch_buildings_raw,
     fetch_greenery_raw,
@@ -96,6 +98,31 @@ def export_panos_cmd(
     typer.echo(f"wrote {count} WebP faces for {len(scenes)} scenes")
 
 
+GREENERY_CONFIG = Path(__file__).parents[3] / "configs" / "greenery.toml"
+
+
+def _greenery_config(path: Path = GREENERY_CONFIG) -> dict[str, Any]:
+    import tomllib
+
+    return tomllib.loads(path.read_text("utf-8")) if path.is_file() else {}
+
+
+def _surveyed_trees(path: Path = GREENERY_CONFIG) -> list[tuple[float, float]]:
+    """Trees seen on the panoramas that OSM lacks (``[[trees]] at = [x, y]``)."""
+    return [
+        (float(t["at"][0]), float(t["at"][1]))
+        for t in _greenery_config(path).get("trees", [])
+    ]
+
+
+def _surveyed_areas(path: Path = GREENERY_CONFIG) -> list[tuple[str, Polygon]]:
+    """Lawns and beds traced on the panoramas (``[[areas]] kind, outline``)."""
+    return [
+        (str(a.get("kind", "lawn")), Polygon(a["outline"]))
+        for a in _greenery_config(path).get("areas", [])
+    ]
+
+
 @app.command("greenery")
 def export_greenery(
     radius_m: Annotated[float, typer.Option(help="Keep features within.")] = 1200.0,
@@ -107,7 +134,8 @@ def export_greenery(
         ),
         LocalProjector(),
     )
-    data = greenery_json(greenery, radius_m)
+    greenery = Greenery([*greenery.areas, *_surveyed_areas()], greenery.trees)
+    data = greenery_json(greenery, radius_m, extra_trees=_surveyed_trees())
     out = paths.data_dir() / "out" / "greenery.json"
     write_massing(out, data)
     typer.echo(

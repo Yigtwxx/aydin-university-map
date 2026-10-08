@@ -36,6 +36,11 @@ MIN_SCORE: dict[str, float] = {
     "chair": 0.33,
     "umbrella": 0.3,
     "bike_rack": 0.25,
+    "flagpole": 0.3,
+    "booth": 0.3,
+    "sign": 0.3,
+    "monument": 0.3,
+    "tree": 0.35,
 }
 # Cluster radius per kind, metres.
 EPS_M: dict[str, float] = {
@@ -50,6 +55,11 @@ EPS_M: dict[str, float] = {
     "chair": 0.9,
     "umbrella": 1.5,
     "bike_rack": 1.5,
+    "flagpole": 0.8,
+    "booth": 1.5,
+    "sign": 1.5,
+    "monument": 2.0,
+    "tree": 2.0,
 }
 MAX_RANGE_M = 16.0
 MIN_ATV_DEG = 4.0  # flatter than this, the ground hit is too far to trust

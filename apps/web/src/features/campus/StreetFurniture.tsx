@@ -55,13 +55,32 @@ const FADE_OF: Record<InstanceKind, 'small' | 'medium' | 'tall'> = {
   umbrella: 'medium',
   lamp: 'tall',
   lens: 'tall',
+  booth: 'medium',
+  kiosk: 'medium',
+  emblem: 'medium',
+  letters: 'medium',
+  topiary: 'small',
+  statue: 'medium',
+  hedge: 'medium',
+  sign: 'medium',
+  flagpole: 'tall',
 };
 
 /**
  * Objects big enough to cast a readable shadow at the sun's shadow-map
  * resolution (~0.4 m a texel); the rest are grounded by ambient occlusion.
  */
-const CASTS_SHADOW = new Set<InstanceKind>(['bench', 'planter', 'umbrella']);
+const CASTS_SHADOW = new Set<InstanceKind>([
+  'bench',
+  'planter',
+  'umbrella',
+  'booth',
+  'kiosk',
+  'emblem',
+  'letters',
+  'statue',
+  'hedge',
+]);
 
 const POOL_RADIUS_M = 6.5;
 const POOL_COLOR = '#FFB86A';

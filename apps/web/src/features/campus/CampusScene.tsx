@@ -43,6 +43,7 @@ import { SkyRig } from './SkyRig';
 import { StreetFurniture } from './StreetFurniture';
 import { useTerrain } from './queries';
 import { groundUnder } from './terrain';
+import { STREET_LEVEL } from './sunken';
 import type {
   Building,
   CampusGraph,
@@ -389,7 +390,7 @@ function SceneContents({
         maxPolarAngle={Math.PI * 0.42}
         smoothTime={SMOOTH_S}
       />
-      <EffectComposer multisampling={4} enableNormalPass={false}>
+      <EffectComposer multisampling={4} enableNormalPass={false} stencilBuffer>
         <N8AO
           aoRadius={7}
           distanceFalloff={1.2}
@@ -514,7 +515,11 @@ function BaseGround() {
   return (
     <mesh rotation-x={-Math.PI / 2} receiveShadow>
       <planeGeometry args={[9000, 9000]} />
-      <meshStandardMaterial color={palette.ground} roughness={1} />
+      <meshStandardMaterial
+        color={palette.ground}
+        roughness={1}
+        {...STREET_LEVEL}
+      />
     </mesh>
   );
 }

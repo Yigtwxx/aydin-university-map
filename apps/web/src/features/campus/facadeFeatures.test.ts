@@ -90,6 +90,13 @@ describe('buildFeatures', () => {
     );
   });
 
+  it('builds a glass box, framed when it has an accent', () => {
+    expect(count(build(featureOf({ kind: 'glass' })))).toBe(BOX);
+    expect(count(build(featureOf({ kind: 'glass', accent: '#ffffff' })))).toBe(
+      BOX * 3,
+    );
+  });
+
   it('builds a drum with a lip, and an accent stripe', () => {
     const lip = DRUM_SIDE + 2 * DRUM_CAP;
     expect(count(build(featureOf({ kind: 'drum' })))).toBe(DRUM_SIDE + lip);

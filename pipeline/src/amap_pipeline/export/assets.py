@@ -8,6 +8,7 @@ Output layout (``data/out/``, published to the asset host, never to git)::
 """
 
 import json
+import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -108,8 +109,16 @@ def export_panos(
     return written
 
 
-def greenery_json(greenery: Greenery, radius_m: float = 450.0) -> dict[str, Any]:
-    """Parks/grass polygons and tree points near the campus, in local metres."""
+def greenery_json(
+    greenery: Greenery,
+    radius_m: float = 450.0,
+    extra_trees: Sequence[tuple[float, float]] = (),
+) -> dict[str, Any]:
+    """Parks/grass polygons and tree points near the campus, in local metres.
+
+    ``extra_trees`` are trees seen on the panoramas (configs/greenery.toml);
+    one within 1.5 m of an OSM tree is that tree and is not added twice.
+    """
     origin = Point(0.0, 0.0)
     areas = [
         {
@@ -119,9 +128,13 @@ def greenery_json(greenery: Greenery, radius_m: float = 450.0) -> dict[str, Any]
         for kind, outline in greenery.areas
         if outline.distance(origin) <= radius_m
     ]
+    points = list(greenery.trees)
+    for x, y in extra_trees:
+        if all(math.hypot(x - tx, y - ty) > 1.5 for tx, ty in points):
+            points.append((x, y))
     trees = [
         [round(x, 2), round(y, 2)]
-        for x, y in greenery.trees
+        for x, y in points
         if Point(x, y).distance(origin) <= radius_m
     ]
     return {

@@ -16,6 +16,7 @@ import { layers, OVERLAY } from './constants';
 import { enuToWorld } from './coords';
 import { openRing } from './geometry';
 import { useTerrain } from './queries';
+import { raisedAreaGeometry, type RaisedStyle } from './raisedAreas';
 import type { Terrain } from './terrain';
 import type { Greenery as GreeneryData } from './types';
 
@@ -25,6 +26,25 @@ const AREA_COLORS: Record<string, string> = {
   garden: '#8DB36B',
 };
 const GRASS = '#9DBE78';
+/** Campus lawns: a little greener, in kerbs painted traffic yellow. */
+const LAWN = '#8CBF68';
+const KERB = '#E9B92E';
+/** Height of a lawn's kerb above the paving, metres. */
+export const KERB_M = 0.15;
+/** Flower beds: a planting mound standing a little proud of the lawn. */
+const BLOOMS = '#F2B92B';
+const FOLIAGE = '#5E8A3E';
+const BED_M = 0.32;
+/** Ornamental pools: a basin whose white coping stands a little proud. */
+const WATER = '#4FA6C9';
+const COPING = '#ECE8DE';
+const POOL_M = 0.35;
+/** Traced areas drawn as raised slabs: top colour, side colour, height. */
+const RAISED: Record<string, RaisedStyle> = {
+  lawn: { top: LAWN, side: KERB, depth: KERB_M },
+  flowerbed: { top: BLOOMS, side: FOLIAGE, depth: BED_M },
+  pool: { top: WATER, side: COPING, depth: POOL_M },
+};
 const CANOPY = '#5F8F4E';
 const TRUNK = '#6E5A44';
 
@@ -39,6 +59,7 @@ export function Greenery({ data }: { data: GreeneryData }) {
   const areas = useMemo(() => {
     const byColor = new Map<string, ShapeGeometry[]>();
     for (const area of data.areas) {
+      if (area.kind in RAISED) continue;
       const ring = openRing(area.outline);
       if (ring.length < 3) continue;
       const geometry = new ShapeGeometry(
@@ -85,8 +106,51 @@ export function Greenery({ data }: { data: GreeneryData }) {
           <meshStandardMaterial color={color} roughness={1} {...OVERLAY} />
         </mesh>
       ))}
+      {Object.entries(RAISED).map(([kind, style]) => (
+        <RaisedAreas
+          key={kind}
+          data={data}
+          terrain={terrain}
+          kind={kind}
+          style={style}
+        />
+      ))}
       <Trees trees={data.trees} terrain={terrain} />
     </>
+  );
+}
+
+/**
+ * Lawns, flower beds and pools traced on the panoramas: raised on the ground
+ * they stand on, their sides the kerb (or foliage, or coping), their top the
+ * grass (or blooms, or water).
+ */
+function RaisedAreas({
+  data,
+  terrain,
+  kind,
+  style,
+}: {
+  data: GreeneryData;
+  terrain: Terrain;
+  kind: string;
+  style: RaisedStyle;
+}) {
+  const geometry = useMemo(
+    () =>
+      raisedAreaGeometry(
+        data.areas.filter((a) => a.kind === kind).map((a) => a.outline),
+        style,
+        (e, n) => terrain.heightAt(e, n),
+      ),
+    [data, terrain, kind, style],
+  );
+  useEffect(() => () => geometry?.dispose(), [geometry]);
+  if (!geometry) return null;
+  return (
+    <mesh geometry={geometry} castShadow receiveShadow>
+      <meshStandardMaterial vertexColors roughness={0.95} />
+    </mesh>
   );
 }
 

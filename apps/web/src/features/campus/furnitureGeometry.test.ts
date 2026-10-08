@@ -315,3 +315,87 @@ describe('itemMatrix', () => {
     expect(front(180)).toEqual([0, 0, 1]);
   });
 });
+
+describe('masts, cabins and boards', () => {
+  const data = furniture({
+    items: [
+      {
+        id: 'flag-1',
+        kind: 'flagpole',
+        at: [0, 0],
+        heading_deg: 0,
+        length_m: 12,
+        base_z: 0,
+      },
+      {
+        id: 'booth-1',
+        kind: 'booth',
+        at: [5, 0],
+        heading_deg: 0,
+        length_m: null,
+        base_z: 0,
+      },
+      {
+        id: 'kiosk-1',
+        kind: 'kiosk',
+        at: [15, 0],
+        heading_deg: 0,
+        length_m: null,
+        base_z: 0,
+      },
+      {
+        id: 'emblem-1',
+        kind: 'emblem',
+        at: [20, 0],
+        heading_deg: 0,
+        length_m: 4,
+        base_z: 0,
+      },
+      {
+        id: 'letters-1',
+        kind: 'letters',
+        at: [25, 0],
+        heading_deg: 0,
+        length_m: null,
+        base_z: 0,
+      },
+      {
+        id: 'sign-1',
+        kind: 'sign',
+        at: [10, 0],
+        heading_deg: 0,
+        length_m: null,
+        base_z: 0,
+      },
+    ],
+  });
+  const instances = furnitureInstances(data, createTerrain(data));
+  const height = (
+    kind: 'flagpole' | 'booth' | 'kiosk' | 'sign' | 'emblem' | 'letters',
+  ) => {
+    const box = new Box3().setFromBufferAttribute(
+      itemGeometry(kind).getAttribute('position') as never,
+    );
+    box.applyMatrix4(instances.get(kind)![0]!);
+    return box.max.y - box.min.y;
+  };
+
+  it('scales the seal to its diameter and keeps the letters 1.75 m tall', () => {
+    expect(height('emblem')).toBeGreaterThan(0.9);
+    expect(height('emblem')).toBeLessThan(1.6);
+    expect(height('letters')).toBeCloseTo(1.75, 1);
+  });
+
+  it('raises a mast to its length', () => {
+    expect(height('flagpole')).toBeCloseTo(12, 1);
+  });
+
+  it('draws a cabin and a board at human scale', () => {
+    expect(height('booth')).toBeGreaterThan(2.2);
+    expect(height('booth')).toBeLessThan(2.6);
+    expect(height('kiosk')).toBeGreaterThan(2.1);
+    expect(height('kiosk')).toBeLessThan(2.4);
+    expect(height('sign')).toBeGreaterThan(1.8);
+    expect(height('sign')).toBeLessThan(2.2);
+  });
+});

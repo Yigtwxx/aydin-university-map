@@ -11,6 +11,13 @@ import { enuToWorld } from './coords';
 import { openRing } from './geometry';
 import { useTerrain } from './queries';
 import { type RibbonLine, ribbonGeometry } from './ribbon';
+import {
+  OPENING_LIFT_M,
+  OPENING_MASK,
+  OPENING_ORDER,
+  STREET_LEVEL,
+  sunkenOpenings,
+} from './sunken';
 import type { Terrain } from './terrain';
 import type { Ground } from './types';
 
@@ -152,7 +159,13 @@ export function GroundLayer({ data }: { data: Ground }) {
 
   return (
     <group>
-      <FlatLayers areas={areas} roads={roads} areaLift={layers.lift} />
+      <SunkenOpenings terrain={terrain} />
+      <FlatLayers
+        areas={areas}
+        roads={roads}
+        areaLift={layers.lift}
+        streetLevel
+      />
       {raised && (
         <FlatLayers areas={raised.areas} roads={raised.roads} areaLift={0} />
       )}
@@ -206,6 +219,7 @@ function FlatLayers({
   areas,
   roads,
   areaLift,
+  streetLevel = false,
 }: {
   areas: { kind: string; geometry: BufferGeometry }[];
   roads: {
@@ -215,7 +229,10 @@ function FlatLayers({
   }[];
   /** Height the area geometry is drawn at (0 when already baked in). */
   areaLift: number;
+  /** At the street datum: hidden over a sunken terrace's opening. */
+  streetLevel?: boolean;
 }) {
+  const stencil = streetLevel ? STREET_LEVEL : {};
   return (
     <>
       {areas.map(({ kind, geometry }) => (
@@ -233,6 +250,7 @@ function FlatLayers({
             }
             roughness={1}
             {...OVERLAY}
+            {...stencil}
           />
         </mesh>
       ))}
@@ -249,6 +267,7 @@ function FlatLayers({
                 color={groundColors.casing[cls]}
                 roughness={1}
                 {...OVERLAY}
+                {...stencil}
               />
             </mesh>
           ),
@@ -268,10 +287,35 @@ function FlatLayers({
                 color={groundColors.fill[cls]}
                 roughness={0.95}
                 {...OVERLAY}
+                {...stencil}
               />
             </mesh>
           ),
       )}
     </>
+  );
+}
+
+/** Invisible lids over terraces sunk below the street, drawn into the stencil. */
+function SunkenOpenings({ terrain }: { terrain: Terrain }) {
+  const geometry = useMemo(() => {
+    const rings = sunkenOpenings(terrain.terraces);
+    if (rings.length === 0) return undefined;
+    const g = new ShapeGeometry(
+      rings.map((r) => new Shape(r.map(([e, n]) => new Vector2(e, n)))),
+    );
+    g.rotateX(-Math.PI / 2);
+    return g;
+  }, [terrain]);
+  useEffect(() => () => geometry?.dispose(), [geometry]);
+  if (!geometry) return null;
+  return (
+    <mesh
+      geometry={geometry}
+      position-y={OPENING_LIFT_M}
+      renderOrder={OPENING_ORDER}
+    >
+      <meshBasicMaterial {...OPENING_MASK} />
+    </mesh>
   );
 }

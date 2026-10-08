@@ -37,6 +37,18 @@ QUERIES: dict[str, str] = {
     "umbrella": "a patio umbrella",
     "bike_rack": "a bicycle rack",
 }
+# Bigger things around the campus that make a place recognisable.
+LANDMARK_QUERIES: dict[str, str] = {
+    "flagpole": "a tall flagpole with a flag",
+    "booth": "a small security booth",
+    "sign": "a large information sign board",
+    "monument": "a stone monument",
+    "tree": "a tree",
+}
+QUERY_SETS: dict[str, dict[str, str]] = {
+    "street": QUERIES,
+    "landmarks": LANDMARK_QUERIES,
+}
 VIEW_ATHS = tuple(float(a) for a in range(0, 360, 45))
 VIEW_PITCH_DEG = 18.0
 VIEW_FOV_DEG = 70.0
@@ -92,7 +104,12 @@ def box_angles(
 class Detector:
     """OWLv2 on the best device (CUDA, then MPS, then CPU)."""
 
-    def __init__(self, model_id: str | None = None, threshold: float = 0.18) -> None:
+    def __init__(
+        self,
+        model_id: str | None = None,
+        threshold: float = 0.18,
+        queries: dict[str, str] | None = None,
+    ) -> None:
         from amap_pipeline.device import select_device
 
         self.device = select_device()
@@ -108,8 +125,9 @@ class Detector:
         self.model = Owlv2ForObjectDetection.from_pretrained(name).to(self.device)  # pyright: ignore[reportArgumentType]
         self.model.eval()
         self.threshold = threshold
-        self.kinds = list(QUERIES)
-        self.texts = [[QUERIES[k] for k in self.kinds]]
+        chosen = queries or QUERIES
+        self.kinds = list(chosen)
+        self.texts = [[chosen[k] for k in self.kinds]]
 
     def boxes(
         self, image: ByteImage

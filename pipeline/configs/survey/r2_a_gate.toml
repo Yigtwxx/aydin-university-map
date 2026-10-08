@@ -17,6 +17,9 @@ obs = [
   { lm = "r2.gate.col.n", ath = 54.96, sigma_deg = 0.5 },
   { lm = "r2.gate.col.s", ath = 157.5, sigma_deg = 0.6 },
   { lm = "r2.plaza.monument", ath = 282.3, sigma_deg = 1.0 },
+  { lm = "r2.gate.pav_n.sw", ath = 77.1, sigma_deg = 0.5 },
+  { lm = "r2.gate.pav_s.nw", ath = 135.66, sigma_deg = 0.5 },
+  { lm = "r2.gate.pav_s.ne", ath = 120.4, sigma_deg = 0.5 },
 ]
 
 [scenes.scene_428519]
@@ -32,6 +35,8 @@ obs = [
   { lm = "r2.gate.col.n", ath = 34.8, sigma_deg = 0.6 },
   { lm = "r2.gate.col.s", ath = 113.35, snapped = true },
   { lm = "r2.plaza.monument", ath = 336.2, sigma_deg = 0.8 },
+  { lm = "r2.gate.pav_n.sw", ath = 38.4, sigma_deg = 0.6 },
+  { lm = "r2.gate.pav_s.nw", ath = 60.0, sigma_deg = 0.6 },
 ]
 
 [scenes.scene_428520]
@@ -46,6 +51,7 @@ obs = [
   { lm = "r2.gate.col.s", ath = 112.33, snapped = true },
   { lm = "r2.flag.plaza", ath = 10.97, snapped = true },
   { lm = "r2.plaza.monument", ath = 57.85, sigma_deg = 0.8 },
+  { lm = "r2.gate.pav_s.se", ath = 130.0, sigma_deg = 0.9 },
 ]
 
 [scenes.scene_428523]
@@ -63,6 +69,10 @@ obs = [
   { lm = "A#1", ath = 313.92, snapped = true },
   { lm = "r2.b.pilaster", ath = 290.23, sigma_deg = 0.5 },
   { lm = "r2.plaza.monument", ath = 91.3, sigma_deg = 0.8 },
+  { lm = "r2.gate.pav_n.sw", ath = 85.5, sigma_deg = 0.5 },
+  { lm = "r2.gate.pav_s.nw", ath = 103.6, sigma_deg = 0.6 },
+  { lm = "r2.gate.pav_n.se", ath = 88.6, sigma_deg = 0.4 },
+  { lm = "r2.gate.pav_s.ne", ath = 101.5, sigma_deg = 0.6 },
 ]
 
 [scenes.scene_428524]
@@ -79,6 +89,10 @@ obs = [
   { lm = "r2.gate.col.s", ath = 134.65, sigma_deg = 0.5 },
   { lm = "r2.b.pilaster", ath = 298.85, sigma_deg = 0.5 },
   { lm = "r2.plaza.monument", ath = 100.3, sigma_deg = 1.0 },
+  { lm = "r2.gate.pav_n.se", ath = 98.3, sigma_deg = 0.4 },
+  { lm = "r2.gate.pav_s.ne", ath = 115.35, sigma_deg = 0.4 },
+  { lm = "r2.gate.pav_n.sw", ath = 94.0, sigma_deg = 0.6 },
+  { lm = "r2.gate.pav_s.nw", ath = 118.8, sigma_deg = 0.6 },
 ]
 
 [scenes.scene_428525]
@@ -93,6 +107,7 @@ obs = [
   { lm = "A#2", ath = 145.50, snapped = true },
   { lm = "r2.gate.col.n", ath = 247.18, sigma_deg = 0.5 },
   { lm = "r2.plaza.monument", ath = 318.0, sigma_deg = 1.0 },
+  { lm = "r2.gate.pav_n.col_ne", ath = 232.5, sigma_deg = 0.6 },
 ]
 
 [scenes.scene_428526]
@@ -152,6 +167,8 @@ obs = [
   { lm = "r2.a.tower.e", ath = 25.35, sigma_deg = 0.6 },
   { lm = "r2.gate.col.n", ath = 70.2, sigma_deg = 0.6 },
   { lm = "r2.gate.col.s", ath = 106.6, sigma_deg = 0.8 },
+  { lm = "r2.gate.pav_n.sw", ath = 77.9, sigma_deg = 0.6 },
+  { lm = "r2.gate.pav_s.nw", ath = 92.9, sigma_deg = 0.6 },
 ]
 
 [scenes.scene_428500]
@@ -218,6 +235,9 @@ obs = [
   { lm = "r2.plaza.monument", ath = 355.35, sigma_deg = 0.8 },
   { lm = "A#2", ath = 71.0, sigma_deg = 1.5 },
   { lm = "r2.gate.pav_n.col_ne", ath = 57.77, sigma_deg = 0.6 },
+  { lm = "r2.gate.pav_s.se", ath = 294.2, sigma_deg = 0.6 },
+  { lm = "r2.gate.pav_n.se", ath = 16.12, sigma_deg = 0.6 },
+  { lm = "r2.gate.pav_s.ne", ath = 338.55, sigma_deg = 0.8 },
 ]
 
 [scenes.scene_428530]

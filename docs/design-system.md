@@ -114,6 +114,32 @@ badges); chips, pills and dots are round.
 - **Massing:** campus buildings in ochre, neighbours off-white, both with
   procedural window bands (darker glass by day, warm lit windows at night).
   Ambient occlusion (N8AO) grounds the blocks.
+  - Surveyed blocks wear their facade recipe (`campus.toml`, colours sampled
+    on the panoramas). Punched windows sit in trim-coloured surrounds on a
+    projecting sill: the sill shades the wall under it, the reveal darkens the
+    glass under each head, and the glass carries a little sky.
+  - Cornices and string courses throw a soft shadow on the wall below them.
+  - Classical blocks (A, D, G, O, the main gate's pavilions) have
+    trim-coloured pilaster strips at their corners (`quoins_m`).
+  - Each block stands on the ground at its lowest corner, so a terrace never
+    swallows its ground floor.
+- **Street furniture and planting** (`furniture.json`, `greenery.json`):
+  - Lamps are the campus's black cast-iron posts, each with a cross-arm and
+    two lanterns that glow at night.
+  - Masts carry a red flag. Cabins are white with a band of glass. Free-
+    standing boards are university blue.
+  - Lawns traced on the panoramas stand 15 cm proud of the paving, inside
+    their kerbs painted traffic yellow (`#E9B92E`), as on the campus.
+  - Marigold beds stand a little higher than the lawn, blooms on foliage
+    sides. The E court's pool is water in a white coping.
+  - Campus landmarks are drawn where they stand: the seal on its stepped
+    plinth and the "❤IAU" letters at the main gate, clipped topiary balls, the
+    bronze rhino at the south gate, and the purple book-swap kiosk.
+  - Glazed pieces (vestibules, the covered road bridge) are glass framed in
+    white, never brick-coursed. Columns are round and white.
+- **Sunken ground:** a terrace below the street (T Blok's garden) shows
+  through an opening that the street-level layers skip (stencil). Its walls
+  face into the pit.
 - **Route:** a sign-blue strip with white edges and chevrons flowing towards
   the destination; it widens with distance so it never drops below ~6 px.
 - **Overlays** are DOM, not WebGL, in a fixed stacking order (pins > labels >

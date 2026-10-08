@@ -349,8 +349,15 @@ export function patchFacade(
             wall *= 0.86 + 0.14 * smoothstep(0.34 - av, 0.34 + av, v);
             // String course over the ground floor, cornice at the roof line.
             float bands = facadeSpan(v, roofLine - 0.32, roofLine + 0.4, av);
-            if (R1.w > 0.5 || groundKind > 0.5)
+            // Each projecting band throws a soft shadow on the wall below it.
+            float bandShade = facadeSpan(v, roofLine - 0.62, roofLine - 0.32, av)
+              * smoothstep(roofLine - 0.62, roofLine - 0.32, v);
+            if (R1.w > 0.5 || groundKind > 0.5) {
               bands = max(bands, facadeSpan(v, groundH - 0.1, groundH + 0.2, av));
+              bandShade = max(bandShade, facadeSpan(v, groundH - 0.32, groundH - 0.1, av)
+                * smoothstep(groundH - 0.32, groundH - 0.1, v));
+            }
+            wall *= 1.0 - 0.16 * bandShade;
 
             float win = 0.0;    // glass, in detail
             float cover = 0.0;  // its share of the wall, seen from afar
@@ -393,6 +400,9 @@ export function patchFacade(
                 detail = max(frame - win, ledge) + mull;
                 win -= mull;
                 cover = R0.y * R0.z;
+                // The ledge shades the wall just under it.
+                float underLedge = facadeBox(f, vec2(0.5 - hx - m.x * 1.8, sill - m.y * 3.2), vec2(0.5 + hx + m.x * 1.8, sill - m.y * 1.7), aa);
+                wall *= 1.0 - 0.14 * underLedge * fade;
               } else if (windows < 1.5) {
                 // Ribbon: continuous glass bands with slim mullions.
                 float band = facadeSpan(f.y, sill, head, aa);
@@ -411,6 +421,18 @@ export function patchFacade(
               }
               // Blank: a closed wall.
             }
+            // Corner pilasters: strips of trim up the wall's two ends, a
+            // little shade on their inner edge so they stand proud.
+            if (R2.w > 0.0 && !topped) {
+              float qw = min(R2.w, len * 0.25);
+              float au = fwidth(u) + 0.001;
+              float quoin = 1.0 - facadeSpan(u, qw, len - qw, au);
+              float edge = facadeSpan(u, qw, qw + 0.12, au) + facadeSpan(u, len - qw - 0.12, len - qw, au);
+              win *= 1.0 - quoin;
+              cover *= 1.0 - quoin * 0.5;
+              detail = max(detail, quoin);
+              wall *= 1.0 - 0.12 * edge;
+            }
             float near = win;
             // Far away the openings blur into their average, not into wall.
             win = mix(cover, near, fade);
@@ -419,12 +441,21 @@ export function patchFacade(
             bool curtain = !front && windows > 1.5 && windows < 2.5;
             float tint = curtain ? 0.1 : 0.24;
             vec3 pane = R3.rgb * (1.0 - tint * 0.5 + tint * facadeHash(cell + seed * 7.0));
+            float rise = clamp(v / max(roofLine, 1.0), 0.0, 1.0);
             if (front || windows > 0.5) {
               // Broad glazing mirrors the sky, brighter up the facade and
               // towards each pane's head, so it reads as glass, not a void.
-              float rise = clamp(v / max(roofLine, 1.0), 0.0, 1.0);
               float sheen = front ? 0.1 + 0.1 * f.y : 0.16 + 0.2 * rise + 0.08 * f.y;
               pane = mix(pane, vec3(0.56, 0.67, 0.78), sheen * (1.0 - uNight));
+            } else {
+              // Punched windows: a little sky in each pane, varying pane to
+              // pane, and the reveal's shadow under the head.
+              float sky = 0.12 + 0.14 * rise + 0.1 * facadeHash(cell + seed * 3.0);
+              pane = mix(pane, vec3(0.6, 0.7, 0.8), sky * (1.0 - uNight));
+              float sill = R0.w;
+              float head = R0.w + R0.z;
+              float reveal = smoothstep(head - 0.22 * (head - sill), head, f.y);
+              pane *= 1.0 - 0.32 * reveal * fade;
             }
             diffuseColor.rgb = mix(wall, pane, win * (1.0 - uNight * 0.5));
             float id = facadeHash(cell + vec2(seed * 91.0, seed * 17.0));

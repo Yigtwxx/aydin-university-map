@@ -12,6 +12,7 @@ height_source = "pano"
 # cream upper floors, two brick-red storeys, white string courses; the brick
 # entrance tower with its glass canopy stands on the south face (r2.a.tower.*)
 [blocks.A.facade]
+quoins_m = 0.8  # white corner pilasters (2026-10-08 review of the panoramas)
 wall = "#d6c5a7"
 plinth = "#8a3f2e"
 trim = "#ece6dc"
@@ -32,16 +33,43 @@ height_m = 24.0
 facing_deg = 162.5
 colour = "#8a3f2e"
 accent = "#6f3326"
+# 2026-10-08 (scene_428526 @0): a white pedimented canopy on two white
+# columns over a glass vestibule, not a glass canopy.
 [[blocks.A.facade.features]]
 kind = "canopy"
 at = [35.3, 43.2]
-width_m = 8.0
+width_m = 6.5
 depth_m = 3.0
 base_m = 3.6
-height_m = 0.25
+height_m = 0.45
 facing_deg = 162.5
-colour = "#9fc0cf"
-accent = "#dfe3e6"
+colour = "#f4f1ea"
+accent = "#e2ddd2"
+[[blocks.A.facade.features]]
+kind = "glass"
+at = [35.0, 44.0]
+width_m = 4.6
+depth_m = 1.6
+height_m = 3.3
+facing_deg = 162.5
+colour = "#4d6470"
+accent = "#f4f1ea"
+[[blocks.A.facade.features]]
+kind = "drum"
+at = [38.4, 42.6]
+width_m = 0.55
+depth_m = 0.55
+height_m = 3.6
+facing_deg = 162.5
+colour = "#f4f1ea"
+[[blocks.A.facade.features]]
+kind = "drum"
+at = [33.1, 40.9]
+width_m = 0.55
+depth_m = 0.55
+height_m = 3.6
+facing_deg = 162.5
+colour = "#f4f1ea"
 
 [blocks.B]
 name = { tr = "B Blok", en = "B Block" }
@@ -68,6 +96,24 @@ height_m = 0.35
 facing_deg = 90.0
 colour = "#f1ede4"
 accent = "#d9d3c6"
+# 2026-10-08 (scene_428557 @120): the pedimented canopy stands on two white
+# columns at its front corners.
+[[blocks.B.facade.features]]
+kind = "drum"
+at = [-2.7, 36.8]
+width_m = 0.55
+depth_m = 0.55
+height_m = 3.6
+facing_deg = 90.0
+colour = "#f4f1ea"
+[[blocks.B.facade.features]]
+kind = "drum"
+at = [-2.7, 41.2]
+width_m = 0.55
+depth_m = 0.55
+height_m = 3.6
+facing_deg = 90.0
+colour = "#f4f1ea"
 
 [blocks.N]
 name = { tr = "N Blok", en = "N Block" }
@@ -94,6 +140,7 @@ height_source = "pano"
 # ochre stucco; the north face has a recessed glass-and-maroon central bay
 # under a portico (columns about (-54.7..-62.2, 46..49))
 [blocks.D.facade]
+quoins_m = 0.8  # white corner pilasters (2026-10-08 review of the panoramas)
 wall = "#b19b72"
 trim = "#f1ede4"
 windows = "punched"
@@ -176,6 +223,68 @@ height_m = 3.2
 facing_deg = 90.0
 colour = "#8a3f2e"
 accent = "#f1ede4"
+# 2026-10-08: glass-covered footbridge from the F/E lane over the road to
+# K Blok. Deck runs ~N-S (bearing 178) from y -63.5 to -79.5 (541 B180 sees
+# the north columns 9.0 m off, 577 sees the east fascia at ath 345-21 with the
+# sign, 459 ath 192-236); underside ~4.8 m (4.3-4.6 from the road scenes
+# 459/577, 5.5 from 541; two 2.6 m flights put the walk at ~5.2).
+[[blocks.F.facade.features]]
+kind = "glass"
+at = [-39.6, -71.5]
+width_m = 2.8
+depth_m = 16.0
+base_m = 4.8
+height_m = 3.0
+facing_deg = 178.0
+colour = "#9fb7c2"
+accent = "#f2f2f0"
+# North landing along the campus wall, from the U-stair top to the deck: its
+# north fascia spans 541 ath 112-178 (bottom 26 deg up at ~6.6 m).
+[[blocks.F.facade.features]]
+kind = "glass"
+at = [-36.6, -61.6]
+width_m = 3.0
+depth_m = 9.5
+base_m = 4.8
+height_m = 3.0
+facing_deg = 250.0
+colour = "#9fb7c2"
+accent = "#f2f2f0"
+# White columns: north pair from 541 ground contacts (ath 174 / 172, feet 9.7
+# and 8.3 deg down), matching 577 ath 24 / 19; south pair on 577 ath 346-348
+# where they meet the column line.
+[[blocks.F.facade.features]]
+kind = "drum"
+at = [-40.7, -63.8]
+width_m = 0.5
+depth_m = 0.5
+height_m = 4.8
+facing_deg = 178.0
+colour = "#f2f2f0"
+[[blocks.F.facade.features]]
+kind = "drum"
+at = [-40.2, -65.3]
+width_m = 0.5
+depth_m = 0.5
+height_m = 4.8
+facing_deg = 178.0
+colour = "#f2f2f0"
+[[blocks.F.facade.features]]
+kind = "drum"
+at = [-40.2, -78.0]
+width_m = 0.5
+depth_m = 0.5
+height_m = 4.8
+facing_deg = 178.0
+colour = "#f2f2f0"
+[[blocks.F.facade.features]]
+kind = "drum"
+at = [-40.2, -79.4]
+width_m = 0.5
+depth_m = 0.5
+height_m = 4.8
+facing_deg = 178.0
+colour = "#f2f2f0"
 
 # OSM draws J on A's north wall; a passage with a fire stair separates them.
 # J's south-east corner is sighted at (63.4, 71.3) (r2.j.se_corner): the
@@ -227,7 +336,138 @@ height_m = 14.6
 height_source = "pano"
 # ochre plaster with white window sills; "G BLOK" sign above the glazed door
 [blocks.G.facade]
-wall = "#a98c5c"
+quoins_m = 0.8  # white corner pilasters (2026-10-08 review of the panoramas)
+wall = "#c8b598"  # sunlit samples 2026-10-08: #ccbcab, #cbbaa7 (574), #bcaa98 (573)
+trim = "#f1ede4"
+windows = "punched"
+bay_m = 3.4
+window_width = 0.4
+window_height = 0.5
+storey_m = 3.6
+# 2026-10-08: the north deck's south part is a slab on white columns over the
+# north pedestrian entrance (565). Heights from G's ground (3.2): slab top at
+# the deck (5.5), underside 4.9. Edge from 573 (feet B174-203 at 8-9 deg down
+# -> y 62.8-64.3) and 565 (fascia ~2 m north, 61 deg up); café front under it
+# at y ~68-70 (565 B311-14 at 9-10 deg down), lift core in the terrace.
+# West bay: café front to the curved edge.
+[[blocks.G.facade.features]]
+kind = "canopy"
+at = [-43.1, 65.85]
+width_m = 8.8
+depth_m = 5.1
+base_m = 0.0
+height_m = 2.3
+facing_deg = 180.0
+colour = "#e9e6df"
+accent = "#d4d0c8"
+# Bay south of the lift, edge bending south-east (565 fascia at B120, 45 deg up).
+[[blocks.G.facade.features]]
+kind = "canopy"
+at = [-36.35, 63.7]
+width_m = 4.7
+depth_m = 5.4
+base_m = 0.0
+height_m = 2.3
+facing_deg = 180.0
+colour = "#e9e6df"
+accent = "#d4d0c8"
+# Over the brick-and-timber turnstile hall (565 B60-120), under the light well.
+[[blocks.G.facade.features]]
+kind = "canopy"
+at = [-30.75, 62.1]
+width_m = 6.5
+depth_m = 9.0
+base_m = 0.0
+height_m = 2.3
+facing_deg = 180.0
+colour = "#e9e6df"
+accent = "#d4d0c8"
+# Footbridge on to the D-B lane stairs (top (-29.3, 53.2)): 567 stands on it;
+# balustrade feet at 567 B107-201, 4-5 m -> x -26.6..-32.3, floor to y ~51-53.
+[[blocks.G.facade.features]]
+kind = "canopy"
+at = [-29.85, 55.4]
+width_m = 5.0
+depth_m = 4.8
+base_m = 0.0
+height_m = 2.3
+facing_deg = 166.0
+colour = "#e9e6df"
+accent = "#d4d0c8"
+# White V column pair, standing on the sunken entrance floor (2.3, 0.9 m
+# below G's ground): 565 B347.5 (16.3 deg down) x 564 B74.9 -> (-40.7, 65.6).
+[[blocks.G.facade.features]]
+kind = "drum"
+at = [-41.0, 65.8]
+width_m = 0.7
+depth_m = 0.7
+base_m = -0.9
+height_m = 2.9
+colour = "#f2f2f0"
+[[blocks.G.facade.features]]
+kind = "drum"
+at = [-40.3, 65.5]
+width_m = 0.7
+depth_m = 0.7
+base_m = -0.9
+height_m = 2.9
+colour = "#f2f2f0"
+# White round column by the kiosk, under the footbridge: 565 B130.5, 9.8 deg down.
+[[blocks.G.facade.features]]
+kind = "drum"
+at = [-33.0, 55.5]
+width_m = 0.7
+depth_m = 0.7
+height_m = 2.0
+colour = "#f2f2f0"
+# Glass lift tower on the deck (dark glass-and-steel shaft): body edges 573
+# B143-174 (~5 m), 565 (glass lift B17-27 at street level), 568 B274-288, 572
+# ath 240 at 3-4 m -> centre (-37.2, 67.6); shaft ~3 m to the white
+# mushroom roof disc, ~5 m across (573 B134-181).
+[[blocks.G.facade.features]]
+kind = "drum"
+at = [-37.2, 67.6]
+width_m = 3.0
+depth_m = 3.0
+base_m = 2.3
+height_m = 3.0
+colour = "#2b3036"
+accent = "#f2f2f0"
+[[blocks.G.facade.features]]
+kind = "drum"
+at = [-37.2, 67.6]
+width_m = 5.0
+depth_m = 5.0
+base_m = 5.3
+height_m = 0.6
+colour = "#f2f2f0"
+# Round glass-railed light well over the turnstile hall: 568 B244-289 at
+# 5.4 m, near rim 3.7 m (B265); 573 B127 at 12.5 m -> centre (-29.5, 65.2).
+[[blocks.G.facade.features]]
+kind = "drum"
+at = [-29.5, 65.2]
+width_m = 4.2
+depth_m = 4.2
+base_m = 2.3
+height_m = 1.1
+colour = "#9fb7c2"
+
+# 2026-10-08: OSM's way/508438421 holds several blocks. From scene_428573 the
+# "O BLOK" building stands apart from "G BLOK", a narrow passage between them
+# at G's corners 3-4; O's front is G's west face 4->5 (sighted 3 deg off the
+# drawn corners) and from scene_428574 it runs north to corner 7, where a white
+# building of another style begins (still inside G's outline, block unknown).
+# O's depth along the passage (14 m) is assumed; its height matches G's roof.
+[blocks.O]
+name = { tr = "O Blok", en = "O Block" }
+split_from = "way/508438421"
+outline = [[-29.2, 81.8], [-33.8, 87.3], [-34.6, 92.7], [-34.3, 98.8], [-21.1, 103.4], [-16.0, 86.4]]
+levels = 4
+height_m = 14.6
+height_source = "pano"
+[blocks.O.facade]
+quoins_m = 0.8  # white corner pilasters (2026-10-08 review of the panoramas)
+wall = "#c8b598"  # sunlit samples 2026-10-08: #ccbcab, #cbbaa7 (574), #bcaa98 (573)
 trim = "#f1ede4"
 windows = "punched"
 bay_m = 3.4
@@ -250,6 +490,20 @@ bay_m = 3.4
 window_width = 0.4
 window_height = 0.5
 storey_m = 3.5
+# 2026-10-08: footbridge from the blue footbridge-stair top (-76.3, 45.4; walk
+# 5.4) across the road to M's first-floor door, where 569 stands; 566 sees the
+# span at B300-325 beyond the fence. Line and width assumed (+-1.5 m); no
+# columns placed. Heights from M's ground (3.2).
+[[blocks.M.facade.features]]
+kind = "canopy"
+at = [-74.7, 53.6]
+width_m = 3.0
+depth_m = 15.1
+base_m = 0.0
+height_m = 2.2
+facing_deg = 11.5
+colour = "#e9e6df"
+accent = "#d4d0c8"
 
 [blocks.L]
 name = { tr = "L Blok", en = "L Block" }
@@ -319,15 +573,16 @@ ground = "glazed"
 
 [blocks.UTM]
 name = { tr = "Uçak Teknolojileri Merkezi", en = "Aviation Technology Centre" }
-# Checked against scene_428381 (camera (-129.6,-223.3), heading 354): the
-# orange-framed glazed "UÇAK TEKNOLOJİLERİ MERKEZİ" hall seen at ath 330-15
-# has its base ~49 m away at bearing ~348, which is exactly where way/548582835
-# stands (its wireframe sits on the entrance bays). way/548582833 is the long
-# building whose south end lies at bearing 281-301, outside that view. The
-# glazed front looks ~20 m wide, wider than the 12 m footprint (open doubt).
-osm = ["way/548582835"]
-levels = 3
-height_m = 11.0
+# Measured from scene_428381 (camera (-129.6,-223.3), heading 353.9) on
+# 2026-10-08: the one-storey pavilion signed "Istanbul Aydin Universitesi
+# Ucak Teknolojileri Merkezi" stands just past the gate. Its glazing meets the
+# yard 4.55 deg below the horizon (18.3 m at a 1.46 m tripod), its fascia top
+# is 12.6 deg above it (5.6 m) and the front spans ath 333-383 (17 m). It also
+# hides the lower part of way/2837, whose west wall is 29 m off on that ray, so
+# the 49 m way/548582835 (12 m square) cannot be it. Depth (8 m) is assumed.
+outline = [[-140.6, -206.4], [-123.7, -204.0], [-124.8, -196.1], [-141.7, -198.5]]
+levels = 1
+height_m = 5.6
 height_source = "pano"
 # champagne cladding with an orange frame round a glazed double-height hall
 [blocks.UTM.facade]
@@ -337,9 +592,9 @@ glass = "#3a4a52"
 windows = "curtain"
 bay_m = 3.0
 window_height = 0.6
-storey_m = 3.7
+storey_m = 4.6
 ground = "glazed"
-ground_m = 7.0
+ground_m = 4.6
 
 # T Blok stands inside the large way/548582857 (r5: its north face on Akasya
 # Sokağı matches the "SOSYAL BİLİMLER KAMPÜSÜ T BLOK" pavilion; entrances
@@ -363,8 +618,157 @@ storey_m = 3.8
 ground = "glazed"
 ground_m = 4.5
 
+# 2026-10-08: the Starbucks kiosk on the gate plaza, no OSM footprint. A
+# rectangle turned ~20 deg off east-west (long axis bearing ~70 deg, like the
+# tiers' top rim): a glazed annex on the north-west, a dark-red brick body
+# behind and east of it with the shop front (siren panels, glass door) on its
+# west side and glass on the south. Corners are bearing intersections from
+# 428519/520/521/522 (north, east and west faces, 5-15 m away) and 428508/509
+# (south end, 25 m away, +-1.5 m): annex NW (55.7,-4.0) = 520 B244.3 x 519
+# B214.9 x 521 B69.3; annex NE (63.0,-1.3) = 520 B238.7 x 519 B197.3; annex/
+# brick junction (64.1,-4.3) = 520 B220.0; brick NE (70.3,-2.0) = 520 B179.7;
+# brick pier corner (54.6,-8.7) = 521 B127.1 at 4.5 m (depression 18-19 deg);
+# the shop front is recessed 1.5 m behind it, from (56.0,-10.0) to the south-
+# west corner (57.5,-15.2) = 521 B144.8 x 508 B74.1 x 509 B58.4. The south-east
+# corner is only where the east face (520, grazing) meets the south wall: +-2 m.
+# Roof edge: brick body 4.1 m, annex 3.4 m (elevation angles from 520/519/521
+# at 5-10 m, tripod 1.53 m); the air-conditioning unit on the brick roof is
+# left to the renderer's roof units.
+[blocks.STARBUCKS]
+name = { tr = "Starbucks", en = "Starbucks" }
+outline = [[56.3, -6.9], [64.1, -4.3], [70.3, -2.0], [73.1, -9.4], [57.5, -15.2], [56.0, -10.0], [54.6, -8.7]]
+levels = 1
+height_m = 4.1
+height_source = "pano"
+# dark-red brick, black fascia band; the shop front on the west side and the
+# south end are glass, the east end a grey render panel with the siren
+[blocks.STARBUCKS.facade]
+wall = "#6b2a20"
+trim = "#1f2124"
+roof = "#2a2c2f"
+glass = "#34444f"
+windows = "blank"
+storey_m = 4.1
+ground = "solid"
+ground_m = 4.1
+[[blocks.STARBUCKS.facade.walls]]
+facing_deg = 252.0
+tolerance_deg = 14.0
+ground = "glazed"
+[[blocks.STARBUCKS.facade.walls]]
+facing_deg = 160.0
+tolerance_deg = 25.0
+ground = "glazed"
+[[blocks.STARBUCKS.facade.walls]]
+facing_deg = 70.0
+tolerance_deg = 25.0
+wall = "#a9a6a2"
+
+[blocks.STARBUCKS_ANNEX]
+name = { tr = "Starbucks (cam ek)", en = "Starbucks (glazed annex)" }
+outline = [[55.7, -4.0], [63.0, -1.3], [64.1, -4.3], [56.3, -6.9]]
+levels = 1
+height_m = 3.4
+height_source = "pano"
+# fully glazed, aluminium frames, the same black fascia
+[blocks.STARBUCKS_ANNEX.facade]
+wall = "#7d8284"
+trim = "#1f2124"
+roof = "#2a2c2f"
+glass = "#34444f"
+windows = "curtain"
+storey_m = 3.4
+ground = "glazed"
+ground_m = 3.4
+
 # The south gate's turnstile hall: four brick towers on Fabrikalar Caddesi,
 # no OSM footprint (r3b.sgate.tower.*).
+# 2026-10-08: the main gate's two classical pavilions flank the gate road
+# (survey ties r2.gate.*, 23 sightings within 0.45 deg). The west faces and
+# the north-east column are measured; the east corners complete rectangles.
+# Roof edge ~6.5 m, eave ~5 m (from scenes 428519 and 428525).
+[blocks.GATE_MAIN_N]
+name = { tr = "Ana Kapı (kuzey köşk)", en = "Main Gate (north pavilion)" }
+outline = [[69.5, 27.9], [74.2, 28.7], [73.9, 35.3], [69.2, 34.5]]
+levels = 1
+height_m = 6.5
+height_source = "pano"
+[blocks.GATE_MAIN_N.facade]
+wall = "#e8dcc2"
+trim = "#f7f3ea"
+roof = "#f2eee6"
+windows = "punched"
+bay_m = 2.4
+window_width = 0.5
+window_height = 0.55
+storey_m = 6.5
+ground_m = 6.5
+quoins_m = 0.5
+
+# 2026-10-08: the gate's arch over the passage between the two pavilions
+# (scene_428517 @107): a body from 4.8 m up to about 11 m with the crest, and
+# four white columns at the passage's corners.
+[[blocks.GATE_MAIN_N.facade.features]]
+kind = "tower"
+at = [72.6, 24.3]
+width_m = 8.8
+depth_m = 4.4
+base_m = 4.8
+height_m = 6.2
+facing_deg = 260.0
+colour = "#e8dcc2"
+accent = "#f7f3ea"
+[[blocks.GATE_MAIN_N.facade.features]]
+kind = "drum"
+at = [73.7, 28.1]
+width_m = 0.7
+depth_m = 0.7
+height_m = 4.8
+facing_deg = 260.0
+colour = "#f7f3ea"
+[[blocks.GATE_MAIN_N.facade.features]]
+kind = "drum"
+at = [70.3, 27.4]
+width_m = 0.7
+depth_m = 0.7
+height_m = 4.8
+facing_deg = 260.0
+colour = "#f7f3ea"
+[[blocks.GATE_MAIN_N.facade.features]]
+kind = "drum"
+at = [74.9, 21.2]
+width_m = 0.7
+depth_m = 0.7
+height_m = 4.8
+facing_deg = 260.0
+colour = "#f7f3ea"
+[[blocks.GATE_MAIN_N.facade.features]]
+kind = "drum"
+at = [71.5, 20.5]
+width_m = 0.7
+depth_m = 0.7
+height_m = 4.8
+facing_deg = 260.0
+colour = "#f7f3ea"
+
+[blocks.GATE_MAIN_S]
+name = { tr = "Ana Kapı (güney köşk)", en = "Main Gate (south pavilion)" }
+outline = [[73.2, 13.4], [77.8, 14.9], [75.8, 21.0], [71.2, 19.5]]
+levels = 1
+height_m = 6.5
+height_source = "pano"
+[blocks.GATE_MAIN_S.facade]
+wall = "#e8dcc2"
+trim = "#f7f3ea"
+roof = "#f2eee6"
+windows = "punched"
+bay_m = 2.4
+window_width = 0.5
+window_height = 0.55
+storey_m = 6.5
+ground_m = 6.5
+quoins_m = 0.5
+
 [blocks.GATE_S]
 name = { tr = "Güney Kapı", en = "South Gate" }
 outline = [[3.2, -41.8], [4.5, -45.3], [-7.2, -51.5], [-8.4, -46.9]]

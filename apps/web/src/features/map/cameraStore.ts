@@ -3,6 +3,12 @@ import { create } from 'zustand';
 
 export type ZoomTier = 'near' | 'mid' | 'far';
 
+declare global {
+  interface Window {
+    __amapControls?: CameraControls;
+  }
+}
+
 /** Bridge between the 3D scene's camera and the DOM map controls. */
 interface CameraState {
   controls?: CameraControls;
@@ -32,7 +38,12 @@ export const useCameraStore = create<CameraState>((set) => ({
   tier: 'mid',
   photoreal: false,
   setPhotoreal: (photoreal) => set({ photoreal }),
-  setControls: (controls) => set({ controls }),
+  setControls: (controls) => {
+    // Development only: lets a reviewer script frame views from the console.
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined')
+      window.__amapControls = controls;
+    set({ controls });
+  },
   setHeading: (headingDeg) => set({ headingDeg }),
   setTopDown: (topDown) => set({ topDown }),
   requestFit: () => set((s) => ({ fitRequest: s.fitRequest + 1 })),

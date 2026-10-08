@@ -5,11 +5,15 @@ import {
   ConeGeometry,
   CylinderGeometry,
   Euler,
+  ExtrudeGeometry,
   Float32BufferAttribute,
   IcosahedronGeometry,
   Matrix4,
   Quaternion,
+  Shape,
+  SphereGeometry,
   TorusGeometry,
+  Vector2,
   Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -57,6 +61,20 @@ export const furnitureColors = {
   band: '#ECE8DF',
   steel: '#AEB5BB',
   lens: '#F2EFE8',
+  mast: '#E9ECEE',
+  flag: '#D7262E',
+  booth: '#F1F0EC',
+  boothGlass: '#5B6E7A',
+  board: '#2F4C8C',
+  kiosk: '#5B2A86',
+  kioskCanopy: '#D63A8C',
+  seal: '#A3243B',
+  sealRing: '#3D2B2E',
+  plinth: '#F2EFE8',
+  letters: '#F7F7F5',
+  bronze: '#5E6B64',
+  hedge: '#4E7D3A',
+  hedgeTop: '#5E8F45',
 } as const;
 
 /** How far walls reach below their foot, so no seam shows at the ground. */
@@ -727,7 +745,16 @@ export const DEFAULT_LENGTH: Partial<Record<ItemKind, number>> = {
   planter: 0.8,
   bike_rack: 2.25,
   umbrella: 2.6,
+  flagpole: 9,
+  sign: 1.2,
+  hedge: 2,
+  emblem: 4.5,
+  letters: 4.2,
 };
+
+/** Lantern glass centres on a lamp's cross-arm (x) and their height. */
+const LANTERN_X = [-0.42, 0.42] as const;
+const LANTERN_Y = 4.12;
 
 /** Bike-rack hoops stand this far apart. */
 const HOOP_PITCH_M = 0.75;
@@ -835,16 +862,148 @@ export function itemGeometry(kind: InstanceKind): BufferGeometry {
       add(new CylinderGeometry(0.26, 0.26, 0.07, 14), c.metal, at(0, 0.855, 0));
       break;
     case 'lamp':
-      add(new CylinderGeometry(0.12, 0.13, 0.4, 8), c.metal, at(0, 0.2, 0));
-      add(new CylinderGeometry(0.045, 0.07, 4.6, 8), c.metal, at(0, 2.3, 0));
-      add(new CylinderGeometry(0.29, 0.25, 0.12, 16), c.metal, at(0, 4.64, 0));
+      // The campus's cast-iron post: a fluted base, a slim shaft and a
+      // cross-arm carrying two lanterns (their glass is the 'lens').
+      add(new CylinderGeometry(0.15, 0.2, 0.55, 8), c.metal, at(0, 0.275, 0));
+      add(new CylinderGeometry(0.11, 0.15, 0.12, 8), c.metal, at(0, 0.6, 0));
+      add(new CylinderGeometry(0.045, 0.065, 3.3, 8), c.metal, at(0, 2.3, 0));
+      add(new CylinderGeometry(0.08, 0.08, 0.14, 8), c.metal, at(0, 3.95, 0));
+      add(new BoxGeometry(0.95, 0.05, 0.05), c.metal, at(0, 4.0, 0));
+      for (const x of LANTERN_X) {
+        add(new BoxGeometry(0.22, 0.04, 0.22), c.metal, at(x, 3.97, 0));
+        add(
+          new ConeGeometry(0.19, 0.2, 4, 1),
+          c.metal,
+          at(x, LANTERN_Y + 0.23, 0, 0, Math.PI / 4),
+        );
+        add(
+          new SphereGeometry(0.035, 6, 4),
+          c.metal,
+          at(x, LANTERN_Y + 0.36, 0),
+        );
+      }
+      break;
+    case 'flagpole':
+      // Mast 1 m tall (instances scale y to its height); the flag near the
+      // top is unscaled in instances, so it is drawn in mast units here and
+      // kept small: 1.5 x 1 m at a 9 m mast reads well from above.
+      add(new CylinderGeometry(0.006, 0.009, 1, 8), c.mast, at(0, 0.5, 0));
+      add(new BoxGeometry(0.17, 0.11, 0.003), c.flag, at(0.09, 0.9, 0));
+      break;
+    case 'booth':
+      // A white cabin with a band of glass and a flat overhanging roof.
+      add(new BoxGeometry(1.4, 2.3, 1.4), c.booth, at(0, 1.15, 0));
+      add(new BoxGeometry(1.42, 0.9, 1.42), c.boothGlass, at(0, 1.45, 0));
+      add(new BoxGeometry(1.7, 0.12, 1.7), c.booth, at(0, 2.36, 0));
+      break;
+    case 'kiosk':
+      // A small stand, 1.5 m wide: a coloured body, a shelf front lighter
+      // than it, and a canopy that leans out over the customer's side (+z).
+      add(new BoxGeometry(1.5, 2.1, 1.0), c.kiosk, at(0, 1.05, 0));
+      add(new BoxGeometry(1.2, 1.0, 0.04), c.tableTop, at(0, 1.1, 0.51));
+      add(new BoxGeometry(1.7, 0.08, 1.5), c.kioskCanopy, at(0, 2.2, 0.2));
+      break;
+    case 'emblem': {
+      // The seal, 1 m across (instances scale it uniformly to its
+      // diameter): two stepped white plinth rings, then the red disc tilted
+      // back towards +z so it reads from the plaza, its dark lettering ring.
+      add(new CylinderGeometry(0.5, 0.5, 0.05, 32), c.plinth, at(0, 0.025, 0));
+      add(new CylinderGeometry(0.47, 0.47, 0.07, 32), c.plinth, at(0, 0.08, 0));
+      const tilt = 0.32;
+      add(
+        new CylinderGeometry(0.45, 0.45, 0.04, 32),
+        c.seal,
+        at(0, 0.17, 0, tilt),
+      );
+      // The ring sits on the disc's face: along its normal (0, cos, sin).
+      add(
+        new TorusGeometry(0.33, 0.012, 4, 32),
+        c.sealRing,
+        at(
+          0,
+          0.17 + 0.025 * Math.cos(tilt),
+          0.025 * Math.sin(tilt),
+          tilt - Math.PI / 2,
+        ),
+      );
+      break;
+    }
+    case 'letters': {
+      // "❤IAU", 1 m wide in all (instances stretch x to the word's width),
+      // 1.75 m tall and 0.5 m deep: a red heart in the left quarter, then the
+      // white block letters. x is in word widths, y and z in metres.
+      const t = 0.06;
+      const h = 1.75;
+      const d = 0.5;
+      const bar = (x: number, w: number, y = h / 2, hh = h, rz = 0) =>
+        add(new BoxGeometry(w, hh, d), c.letters, at(x, y, 0, 0, 0, rz));
+      bar(-0.15, t);
+      // A: two legs leaning in, and its crossbar.
+      bar(0.03, t, h / 2, h * 1.01, -0.05);
+      bar(0.17, t, h / 2, h * 1.01, 0.05);
+      bar(0.1, 0.12, h * 0.4, t * 2);
+      // U: two posts and a bottom.
+      bar(0.32, t);
+      bar(0.48, t);
+      bar(0.4, 0.22, t, t * 2);
+      // The heart: the classic curve, 0.26 wide and 1.4 m tall.
+      const heart = new Shape();
+      for (let i = 0; i <= 48; i++) {
+        const a = (i / 48) * Math.PI * 2;
+        const x = 16 * Math.sin(a) ** 3;
+        const y =
+          13 * Math.cos(a) -
+          5 * Math.cos(2 * a) -
+          2 * Math.cos(3 * a) -
+          Math.cos(4 * a);
+        const p = new Vector2(-0.37 + (x / 32) * 0.26, 1.07 + (y / 29) * 1.4);
+        if (i === 0) heart.moveTo(p.x, p.y);
+        else heart.lineTo(p.x, p.y);
+      }
+      add(
+        new ExtrudeGeometry(heart, { depth: d, bevelEnabled: false }),
+        c.flag,
+        at(0, 0, -d / 2),
+      );
+      break;
+    }
+    case 'statue': {
+      // A life-size bronze rhino, its head towards +z: a rounded body on
+      // four stocky legs, the head lower than the shoulders, a horn.
+      const body = new SphereGeometry(0.5, 12, 8);
+      body.scale(0.85, 0.75, 1.6);
+      add(body, c.bronze, at(0, 1.05, 0));
+      for (const x of [-0.26, 0.26])
+        for (const z of [-0.5, 0.5])
+          add(
+            new CylinderGeometry(0.12, 0.14, 0.7, 8),
+            c.bronze,
+            at(x, 0.35, z),
+          );
+      add(new BoxGeometry(0.42, 0.42, 0.62), c.bronze, at(0, 0.9, 1.0, 0.35));
+      add(new ConeGeometry(0.08, 0.38, 8), c.bronze, at(0, 1.18, 1.27, 0.5));
+      break;
+    }
+    case 'topiary':
+      // A box shrub clipped to a ball over a short trunk, 1.1 m tall.
+      add(new CylinderGeometry(0.06, 0.08, 0.3, 6), c.soil, at(0, 0.15, 0));
+      add(new SphereGeometry(0.45, 10, 8), c.hedge, at(0, 0.66, 0));
+      break;
+    case 'hedge':
+      // A clipped box hedge, 1 m long (instances stretch x), 0.75 m tall,
+      // its top a little lighter and narrower: it reads as soft from above.
+      add(new BoxGeometry(1, 0.62, 0.62), c.hedge, at(0, 0.31, 0));
+      add(new BoxGeometry(0.98, 0.14, 0.54), c.hedgeTop, at(0, 0.68, 0));
+      break;
+    case 'sign':
+      // A board 1 m wide (instances stretch x) on two posts.
+      add(new BoxGeometry(1, 1.1, 0.08), c.board, at(0, 1.45, 0));
+      for (const x of [-0.42, 0.42])
+        add(new BoxGeometry(0.06, 0.95, 0.06), c.metal, at(x, 0.47, 0));
       break;
     case 'lens':
-      add(
-        new CylinderGeometry(0.235, 0.235, 0.03, 16),
-        c.lens,
-        at(0, 4.565, 0),
-      );
+      for (const x of LANTERN_X)
+        add(new BoxGeometry(0.17, 0.24, 0.17), c.lens, at(x, LANTERN_Y, 0));
       break;
     case 'hoop': {
       // An inverted U across the rack's length, 0.82 m tall.
@@ -1074,7 +1233,21 @@ export function furnitureInstances(
     switch (item.kind) {
       case 'bench':
       case 'planter':
+      case 'sign':
+      case 'hedge':
         push(item.kind, itemMatrix(item.at, base, h, [length, 1, 1]));
+        break;
+      case 'emblem':
+        push('emblem', itemMatrix(item.at, base, h, [length, length, length]));
+        break;
+      case 'letters':
+        push('letters', itemMatrix(item.at, base, h, [length, 1, 1]));
+        break;
+      case 'flagpole':
+        push(
+          'flagpole',
+          itemMatrix(item.at, base, h, [length, length, length]),
+        );
         break;
       case 'umbrella':
         push(

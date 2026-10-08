@@ -14,7 +14,7 @@ import type { Facade, FacadeWall, GroundFloor, WindowRecipe } from './types';
  * Each recipe is one row of a float texture, RECIPE_TEXELS vec4s wide:
  *   0: bay width m, window width share, window height share, sill share
  *   1: plinth rgb (linear), 1 when the block has a plinth
- *   2: trim rgb (linear), 0
+ *   2: trim rgb (linear), corner pilaster width m (0 = none)
  *   3: glass rgb (linear), 0
  * Vertices pick their row with a byte attribute (aFlags.y = row + 1, 0 = no
  * recipe), so the table holds up to MAX_RECIPES blocks. What changes from one
@@ -74,7 +74,7 @@ export function packRecipe(facade: Facade): Float32Array {
     trim.r,
     trim.g,
     trim.b,
-    0,
+    facade.quoins_m ?? 0,
     glass.r,
     glass.g,
     glass.b,

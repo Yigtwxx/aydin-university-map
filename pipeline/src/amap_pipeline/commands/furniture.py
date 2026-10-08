@@ -12,7 +12,27 @@ from amap_pipeline.look.render import FaceCache
 
 app = typer.Typer(help="Street furniture commands.", no_args_is_help=True)
 
-DETECTIONS = "detections.jsonl"
+QueriesOpt = Annotated[
+    str,
+    typer.Option(
+        "--queries", help="Query set: street (furniture) or landmarks (masts, ...)."
+    ),
+]
+
+
+def _files(queries: str) -> tuple[Path, Path, Path]:
+    """Detections, candidates and review-sheet folder of a query set; the
+    street set keeps the original names."""
+    from amap_pipeline.furniture.detect import QUERY_SETS
+
+    if queries not in QUERY_SETS:
+        raise typer.BadParameter(f"unknown query set {queries!r}")
+    tag = "" if queries == "street" else f"_{queries}"
+    return (
+        paths.derived_dir() / f"detections{tag}.jsonl",
+        paths.derived_dir() / f"furniture_candidates{tag}.json",
+        paths.data_dir() / "debug" / f"furniture{tag}",
+    )
 
 
 @app.command("detect")
@@ -22,6 +42,7 @@ def furniture_detect(
     ] = "outdoor_all",
     threshold: Annotated[float, typer.Option(help="Detector score threshold.")] = 0.18,
     limit: Annotated[int, typer.Option(help="Stop after N scenes (0 = all).")] = 0,
+    queries: QueriesOpt = "street",
 ) -> None:
     """OWLv2 over every panorama of a set -> data/derived/detections.jsonl.
 
@@ -29,6 +50,7 @@ def furniture_detect(
     extra (torch + transformers); heavy, run it on the workstation.
     """
     from amap_pipeline.furniture.detect import (
+        QUERY_SETS,
         Detector,
         detect_scene,
         read_detections,
@@ -36,13 +58,13 @@ def furniture_detect(
     )
 
     scenes = (paths.sets_dir() / f"{scene_set}.txt").read_text("utf-8").split()
-    out = paths.derived_dir() / DETECTIONS
+    out, _, _ = _files(queries)
     done = {d["scene"] for d in read_detections(out)} | _empty_scenes(out)
     todo = [s for s in scenes if s not in done]
     if limit:
         todo = todo[:limit]
     typer.echo(f"{len(todo)} scenes to look at ({len(done)} done)")
-    detector = Detector(threshold=threshold)
+    detector = Detector(threshold=threshold, queries=QUERY_SETS[queries])
     typer.echo(f"device: {detector.device}")
     faces = FaceCache([paths.tiles_dir(), paths.data_dir() / "out" / "panos"], 2)
     start = time.time()
@@ -80,6 +102,7 @@ def furniture_locate(
         typer.Option("--poses", help="Solve output whose poses to use (else graph)."),
     ] = None,
     tripod: Annotated[float, typer.Option(help="Camera height for monoplot.")] = 1.6,
+    queries: QueriesOpt = "street",
 ) -> None:
     """Detections -> furniture candidates (data/derived/furniture_candidates.json)."""
     import json
@@ -95,11 +118,11 @@ def furniture_locate(
         for s, p in ctx.poses.items()
         if ctx.pose_sources.get(s) in ("surveyed", "sfm", "manual")
     }
-    detections = read_detections(paths.derived_dir() / DETECTIONS)
+    detections_file, out, _ = _files(queries)
+    detections = read_detections(detections_file)
     placed = place(detections, measured)
     candidates = cluster(placed, measured)
     height = tripod_height(candidates, measured)
-    out = paths.derived_dir() / "furniture_candidates.json"
     out.write_text(
         json.dumps(
             {
@@ -134,6 +157,7 @@ def furniture_locate(
 @app.command("sheets")
 def furniture_sheets(
     per_sheet: Annotated[int, typer.Option(help="Candidates per sheet.")] = 12,
+    queries: QueriesOpt = "street",
 ) -> None:
     """Review sheets: one crop per candidate from its nearest panorama
     (data/debug/furniture/<kind>_<n>.png), numbered like the candidates file."""
@@ -144,11 +168,9 @@ def furniture_sheets(
     from amap_pipeline.look.render import View, render_view
     from amap_pipeline.recon.evaluate import label_font
 
-    data = json.loads(
-        (paths.derived_dir() / "furniture_candidates.json").read_text("utf-8")
-    )
+    _, candidates_file, out = _files(queries)
+    data = json.loads(candidates_file.read_text("utf-8"))
     faces = FaceCache([paths.tiles_dir(), paths.data_dir() / "out" / "panos"], 4)
-    out = paths.data_dir() / "debug" / "furniture"
     out.mkdir(parents=True, exist_ok=True)
     font = label_font(16)
     cell = 360
