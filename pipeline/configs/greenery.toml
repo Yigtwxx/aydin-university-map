@@ -226,8 +226,8 @@ evidence = "round ornamental pool in a hedge ring at the E Blok court, outer cop
 
 [[areas]]
 kind = "lawn"
-outline = [[-17.0, -201.6], [-17.5, -200.0], [-46.8, -208.0], [-44.7, -214.5], [-38.3, -237.6], [-36.3, -246.5], [-31.0, -262.1], [-27.5, -260.9], [-34.3, -242.6], [-45.0, -211.5]]
-evidence = "L-shaped lawn strip with a colourful low shrub border between T's garden walk and the brick retaining wall: NW strip from 2 m west of the stair foot (kerb 2.9-3.1 m off T's NW face, wall 4.8 m at the east end to 6.8 m at the corner; scene_428784 ath 120, scene_428786 ath 0/230), SW strip behind the bench row and pockets (kerb ~6.3 m off the SW face, wall 7-9.5 m; scene_428786 ath 145, scene_428787 ath 245), ending 1.5 m before scene_428788 (ath 205); south end +-5 m; on the t-garden terrace"
+outline = [[-17.0, -201.6], [-17.5, -200.0], [-46.8, -208.0], [-44.7, -214.5], [-38.3, -237.6], [-36.3, -246.5], [-32.0, -258.7], [-28.7, -257.5], [-34.3, -242.6], [-45.0, -211.5]]
+evidence = "L-shaped lawn strip with a colourful low shrub border between T's garden walk and the brick retaining wall: NW strip from 2 m west of the stair foot (kerb 2.9-3.1 m off T's NW face, wall 4.8 m at the east end to 6.8 m at the corner; scene_428784 ath 120, scene_428786 ath 0/230), SW strip behind the bench row and pockets (kerb ~6.3 m off the SW face, wall 7-9.5 m; scene_428786 ath 145, scene_428787 ath 245), ending 1.5 m before scene_428788 (ath 205; r ~46 after its 2026-10-08 re-pose); on the t-garden terrace"
 
 [[trees]]
 at = [-37.5, -233.6]

@@ -8,6 +8,17 @@
 # disagree with 786's well-fixed heading by 2-6 deg, they distorted the
 # rejected attempt). Tour arrows 783<->784 follow the stair and 791->792 the
 # walk (792 is up in the forecourt behind the fence), so they stay outliers.
+# 2026-10-08 788/789 check: the solve had 788-789 14.6 m, the panoramas ~18-20 m.
+# 788 was the wrong one: its "Biruni" sighting at ath 118.5 was the NE corner of
+# the ULUSOY transformer booth behind the fence gate (it hides Biruni), which
+# pulled 788 ~5 m SE along T's face. Dropped; the arcade pillars are now ties
+# seen from 788, 789 and 790 (outer-NW corners: the NW-face/outer-face boundary
+# from 788, the left silhouette from 789/790) plus the end pier's SE corner
+# (787, 788, 789). 789 stands beside P3, two bays (P4, P5) short of the south
+# corner. With the old poses P2 would stand 2 m from 789 (it is 8 m back).
+# Depression distances at 788 come out ~1.3x the solved ones (P1 5.0 vs 3.7 m)
+# while 789's agree (P3 2.5, P2 8.6 m): a depression prior pulling 788 a
+# further ~1 m NW fought T#2/T#3 and raised the RMS, so it is not used.
 
 [scenes.scene_428782]
 pose = "free"
@@ -73,20 +84,24 @@ note = "SW garden walk ~2.5 m off T's SW face, ~25 m from the west corner"
 obs = [
   { lm = "T#3", ath = 337.6, sigma_deg = 0.6 },
   { lm = "T#2", ath = 148.75, sigma_deg = 0.6 },
+  { lm = "r5.arcade.end.se", ath = 143.25, snapped = true },
 ]
 
 [scenes.scene_428788]
 pose = "free"
-init = [-23.9, -262.3, 69.0]
+init = [-25.2, -256.0, 69.0]
 prior_sigma_m = 5.0
 prior_sigma_deg = 25.0
-note = "start of T's brick arcade on the SW face (~52 m from the west corner); side doors of 756 at ath 350-21"
+note = "start of T's brick arcade on the SW face, just past the end pier (its SE corner at ath 312.2); side doors of 756 at ath 350-21. The edge at ath 118.5 is the ULUSOY transformer booth's NE corner (the booth hides Biruni), not Biruni: not used"
 obs = [
   { lm = "T#3", ath = 274.3, sigma_deg = 0.6 },
   { lm = "T#2", ath = 88.3, sigma_deg = 0.6 },
-  { lm = "r5.biruni.se", ath = 118.5, sigma_deg = 0.8 },
   { lm = "r5.sidedoor.jamb_nw", ath = 350.5, sigma_deg = 0.6 },
   { lm = "r5.sidedoor.jamb_se", ath = 12.46, sigma_deg = 0.6 },
+  { lm = "r5.arcade.end.se", ath = 312.19, snapped = true },
+  { lm = "r5.arcade.p1.nw", ath = 56.12, sigma_deg = 0.5 },
+  { lm = "r5.arcade.p2.nw", ath = 78.22, sigma_deg = 0.5 },
+  { lm = "r5.arcade.p3.nw", ath = 83.61, sigma_deg = 0.6 },
 ]
 
 [scenes.scene_428789]
@@ -94,12 +109,16 @@ pose = "free"
 init = [-17.9, -279.3, 79.0]
 prior_sigma_m = 6.0
 prior_sigma_deg = 25.0
-note = "along the SW arcade between 788 and the south corner"
+note = "beside arcade pillar P3 on the SW face (its outer face 2.3 m away, ath 336-4.8); two bays (P4, P5) to the south corner"
 obs = [
   { lm = "T#3", ath = 262.85, sigma_deg = 0.6 },
   { lm = "T#2", ath = 75.1, sigma_deg = 0.6 },
   { lm = "r5.sidedoor.jamb_nw", ath = 275.9, sigma_deg = 1.0 },
   { lm = "r5.biruni.se", ath = 121.8, sigma_deg = 0.8 },
+  { lm = "r5.arcade.p3.nw", ath = 336.07, snapped = true },
+  { lm = "r5.arcade.p2.nw", ath = 277.4, sigma_deg = 0.6 },
+  { lm = "r5.arcade.p1.nw", ath = 269.4, sigma_deg = 0.5 },
+  { lm = "r5.arcade.end.se", ath = 267.3, sigma_deg = 1.0 },
 ]
 
 [scenes.scene_428790]
@@ -112,6 +131,9 @@ obs = [
   { lm = "T#3", ath = 339.6, sigma_deg = 0.6 },
   { lm = "T#2", ath = 34.5, sigma_deg = 1.0 },
   { lm = "r5.biruni.se", ath = 246.2, sigma_deg = 0.6 },
+  { lm = "r5.arcade.p3.nw", ath = 343.15, snapped = true },
+  { lm = "r5.arcade.p2.nw", ath = 341.46, sigma_deg = 0.6 },
+  { lm = "r5.arcade.p1.nw", ath = 340.3, sigma_deg = 0.6 },
 ]
 
 [scenes.scene_428791]
@@ -128,7 +150,7 @@ obs = [
 
 [scenes.scene_428756]
 pose = "free"
-init = [-19.2, -260.7, 128.0]
+init = [-21.3, -254.6, 128.0]
 prior_sigma_m = 5.0
 prior_sigma_deg = 30.0
 note = "T Blok Yan Giris: indoors, in the lobby behind the side glass doors on the SW arcade (788's arrow at ath 2); the outer glass wall's jambs (dark inside, aluminium outside) at ath 113.0 (SE) and 134.6 (NW), the inner sliding doors between them"
