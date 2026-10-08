@@ -154,6 +154,7 @@ note = "Tip Fakultesi Hastanesi Giris: in front of the hospital's curved main-en
 obs = [
   { lm = "8001#3", ath = 272.2, sigma_deg = 1.5 },
   { lm = "9810#11", ath = 78.10, sigma_deg = 1.0 },  # 2026-10-08: hospital's glass east end
+  { lm = "9810#0", ath = 305.75, sigma_deg = 1.5 },  # 2026-10-08: hospital's west end by L
 ]
 
 [scenes.scene_428249]

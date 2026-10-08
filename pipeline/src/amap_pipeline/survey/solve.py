@@ -506,16 +506,24 @@ class Problem:
     def range_penalty(
         self, params: FloatArray, bearings: Sequence[Bearing]
     ) -> FloatArray:
-        """One row per landmark sighting: zero unless the point is closer to
-        its camera than ``min_range_m``."""
-        rows = [b for b in bearings if not b.target_is_scene]
-        if not rows:
+        """One row per bearing: zero unless its target (a landmark, or the
+        scene a tour arrow points at) is closer to the camera than
+        ``min_range_m``. On one spot a bearing is undefined and costs nothing,
+        so without this, linked scenes the arrows disagree on collapse."""
+        if not bearings:
             return np.zeros(0)
         xy, _ = self.scene_state(params)
         lms = self.landmark_xy(params)
-        src = np.array([self._index[b.scene] for b in rows], dtype=np.intp)
-        tgt = np.array([self._lm_index[b.target] for b in rows], dtype=np.intp)
-        dist = np.linalg.norm(lms[tgt] - xy[src], axis=1)
+        src = xy[[self._index[b.scene] for b in bearings]]
+        tgt = np.array(
+            [
+                xy[self._index[b.target]]
+                if b.target_is_scene
+                else lms[self._lm_index[b.target]]
+                for b in bearings
+            ]
+        )
+        dist = np.linalg.norm(tgt - src, axis=1)
         return np.maximum(0.0, self.config.min_range_m - dist) / 0.1
 
     def residuals(
@@ -616,15 +624,15 @@ class Problem:
             for c in cols:
                 pattern[r, c] = 1
             r += 1
+        # Range penalties: the same unknowns as the bearing rows above.
         for b in bearings:
+            cols = scene_cols(self._index[b.scene])
             if b.target_is_scene:
-                continue
-            j = self._lm_index[b.target]
-            for c in [
-                *scene_cols(self._index[b.scene]),
-                lay.lm_off + 2 * j,
-                lay.lm_off + 2 * j + 1,
-            ]:
+                cols += scene_cols(self._index[b.target])
+            else:
+                j = self._lm_index[b.target]
+                cols += [lay.lm_off + 2 * j, lay.lm_off + 2 * j + 1]
+            for c in cols:
                 pattern[r, c] = 1
             r += 1
         for m in range(len(lay.models)):

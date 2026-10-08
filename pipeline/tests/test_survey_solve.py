@@ -305,3 +305,28 @@ def test_a_tie_point_never_collapses_onto_its_camera() -> None:
         for s in ("s1", "s2"):
             x, y, _ = TRUE[s]
             assert math.hypot(est.x - x, est.y - y) >= 0.9
+
+
+def test_linked_panoramas_never_collapse_onto_each_other() -> None:
+    # Two walk stops with no sightings, 5.75 m apart on the old map, whose
+    # tour arrows disagree with that geometry. On one spot the arrows'
+    # bearings are undefined and cost nothing: the solve must not go there.
+    priors = _distorted_priors(0.0, (0.0, 0.0))
+    priors["s6"] = PriorPose("s6", 20.0, 22.0, 0.0, None, "interpolated")
+    priors["s7"] = PriorPose("s7", 25.75, 22.0, 0.0, None, "interpolated")
+    s6, s7 = (20.0, 22.0, 0.0), (25.75, 22.0, 0.0)
+    # Arrows to the anchored scenes pin both headings ...
+    links = [
+        TourLink(a, t, _ath(pose, TRUE[t][:2]))
+        for a, pose in (("s6", s6), ("s7", s7))
+        for t in ("s1", "s3", "s4")
+    ]
+    # ... so arrows saying each lies north of the other can only be met by
+    # stacking the two (where a bearing is undefined).
+    links += [TourLink("s6", "s7", 0.0), TourLink("s7", "s6", 0.0)]
+    solution = solve_survey(priors, links, _survey())
+    a, b = solution.poses["s6"], solution.poses["s7"]
+    gap = math.hypot(a.x - b.x, a.y - b.y)
+    assert gap >= 0.9, f"s6 and s7 collapsed to {gap:.3f} m apart"
+    # The anchored scenes keep honest uncertainties (no poisoned covariance).
+    assert solution.poses["s1"].ellipse[0] > 0.3, solution.poses["s1"].ellipse
