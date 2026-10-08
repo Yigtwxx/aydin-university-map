@@ -150,6 +150,24 @@ def _largest(geometry: BaseGeometry) -> Polygon | None:
     return None
 
 
+def _numbered_like(poly: Polygon, source: BaseGeometry) -> Polygon:
+    """``poly`` with its ring turned and started like ``source``'s.
+
+    Survey sightings name corners by index ("8421#2"), so a footprint with a
+    block cut out of it keeps the numbers of the corners the cut left alone.
+    """
+    if not isinstance(source, Polygon):
+        return poly
+    ring = list(poly.exterior.coords)[:-1]
+    if poly.exterior.is_ccw != source.exterior.is_ccw:
+        ring.reverse()
+    for corner in list(source.exterior.coords)[:-1]:
+        for i, (x, y) in enumerate(ring):
+            if abs(x - corner[0]) < 1e-6 and abs(y - corner[1]) < 1e-6:
+                return Polygon(ring[i:] + ring[:i], [h.coords for h in poly.interiors])
+    return poly
+
+
 def apply_campus(buildings: Sequence[Building], registry: Registry) -> list[Building]:
     """Name, measure and split the campus blocks; add the ones OSM lacks."""
     by_id = {b.osm_id: b for b in buildings}
@@ -161,6 +179,15 @@ def apply_campus(buildings: Sequence[Building], registry: Registry) -> list[Buil
             if osm_id in owner:
                 raise ValueError(f"{osm_id} belongs to {owner[osm_id].code} too")
             owner[osm_id] = block
+
+    def own_outline(b: Building) -> BaseGeometry:
+        """A footprint OSM drew wrong is replaced by its block's outline,
+        before anything is carved out of it."""
+        block = owner.get(b.osm_id)
+        if block is not None and block.outline is not None:
+            return block.outline
+        return b.outline
+
     carved: dict[str, Polygon] = {}
     for block in registry.blocks.values():
         if block.split_from is None or block.outline is None:
@@ -168,23 +195,20 @@ def apply_campus(buildings: Sequence[Building], registry: Registry) -> list[Buil
         parent = by_id.get(block.split_from)
         if parent is None:
             raise ValueError(f"block {block.code}: no footprint {block.split_from}")
-        rest = carved.get(parent.osm_id, parent.outline).difference(block.outline)
+        rest = carved.get(parent.osm_id, own_outline(parent)).difference(block.outline)
         remainder = _largest(rest)
         if remainder is None or remainder.area < 4.0:
             raise ValueError(f"block {block.code}: nothing left of {parent.osm_id}")
-        carved[parent.osm_id] = remainder
+        carved[parent.osm_id] = _numbered_like(remainder, own_outline(parent))
     out: list[Building] = []
     for b in buildings:
         if b.osm_id in registry.remove:
             continue
-        outline = carved.get(b.osm_id, b.outline)
+        outline = carved.get(b.osm_id, own_outline(b))
         block = owner.get(b.osm_id)
         if block is None:
             out.append(replace(b, outline=outline))
             continue
-        if block.outline is not None and block.split_from is None:
-            # A footprint OSM drew wrong: the block's own outline replaces it.
-            outline = block.outline
         out.append(
             replace(
                 b,

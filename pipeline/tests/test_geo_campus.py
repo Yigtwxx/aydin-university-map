@@ -55,6 +55,46 @@ outline = [[30.0, 0.0], [40.0, 0.0], [40.0, 10.0], [30.0, 10.0]]
     assert result["campus/G"].name == "İstanbul Aydın Üniversitesi G Binası"
 
 
+def test_split_carves_from_a_parent_whose_outline_was_replaced() -> None:
+    # G's own outline replaces OSM's way/2 (20 x 20); O is carved out of
+    # that corrected outline, and the two must not overlap.
+    registry = _registry(
+        """
+[blocks.G]
+osm = ["way/2"]
+outline = [[50.0, 0.0], [70.0, 0.0], [70.0, 30.0], [50.0, 30.0]]
+
+[blocks.O]
+split_from = "way/2"
+outline = [[50.0, 20.0], [60.0, 20.0], [60.0, 30.0], [50.0, 30.0]]
+"""
+    )
+    result = {b.osm_id: b for b in apply_campus(OSM, registry)}
+    g, o = result["way/2"].outline, result["campus/O"].outline
+    assert g.area == pytest.approx(500.0), g.area
+    assert o.area == pytest.approx(100.0), o.area
+    assert g.intersection(o).area == pytest.approx(0.0, abs=1e-6)
+
+
+def test_carving_keeps_the_parent_corners_numbered() -> None:
+    # Survey sightings name corners by index ("8421#2"): cutting O out of G
+    # must not renumber the corners of G it leaves alone.
+    registry = _registry(
+        """
+[blocks.G]
+osm = ["way/2"]
+outline = [[50.0, 0.0], [70.0, 0.0], [70.0, 30.0], [50.0, 30.0]]
+
+[blocks.O]
+split_from = "way/2"
+outline = [[50.0, 20.0], [60.0, 20.0], [60.0, 30.0], [50.0, 30.0]]
+"""
+    )
+    g = {b.osm_id: b for b in apply_campus(OSM, registry)}["way/2"].outline
+    corners = [tuple(round(v, 6) for v in c) for c in g.exterior.coords]
+    assert corners[:3] == [(50.0, 0.0), (70.0, 0.0), (70.0, 30.0)], corners
+
+
 def test_outline_replaces_a_wrong_footprint_and_remove_drops_one() -> None:
     registry = _registry(
         """
