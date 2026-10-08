@@ -12,6 +12,10 @@ campus that a route must not be drawn through, in two tiers:
   exists: hedges, planters, benches, kiosks, the statue and the like, café
   seating areas and flowerbeds.
 
+Raised walkways (a slab on columns, a footbridge) are a level of their own
+(:class:`Deck`): what stands below them is no barrier up there, and their
+balustrades are none down below.
+
 Every shape is in local metres (x east, y north), like the graph's ``enu``.
 """
 
@@ -34,7 +38,9 @@ from amap_contracts.furniture import (
     Ramp,
     Stairs,
     Terrace,
+    Walkway,
 )
+from amap_pipeline.graph.clearance import Obstacles
 
 XY = tuple[float, float]
 
@@ -59,6 +65,11 @@ CLIMB_MARGIN_M = 1.0
 # building's own edge (the strip between is nobody's ground): no wall there.
 FACADE_M = 1.6
 FACADE_MAX_ANGLE_DEG = 25.0
+# A raised walk meets a flight's top, a terrace at its height or its own
+# balustrade within this; seams this wide between its pieces are closed.
+DECK_JOIN_M = 1.0
+# Walks up there keep this far off its edge and what stands on it.
+DECK_CLEARANCE_M = 0.5
 
 # Footprint (length across the heading, depth along it) of the items a walker
 # goes round; mirrors itemGeometry/DEFAULT_LENGTH in
@@ -95,6 +106,7 @@ class Barriers:
     soft: BaseGeometry
     levels: tuple["_Level", ...] = ()
     climbs: BaseGeometry = field(default_factory=Polygon)
+    decks: tuple["Deck", ...] = ()
 
     @classmethod
     def none(cls) -> "Barriers":
@@ -127,6 +139,31 @@ class Barriers:
                     return True
             previous = (z, point)
         return False
+
+
+@dataclass(frozen=True, slots=True)
+class Deck:
+    """A raised walkway, with the terraces at its height it opens onto.
+
+    A walk between two spots up here stays on ``floor``, whatever the ground
+    below has (walls, the fence, a sunken hall); it reaches the ground only
+    down one of the ``landings``, the flights and ramps whose top meets it.
+    """
+
+    id: str
+    z: float
+    spots: frozenset[str]
+    floor: BaseGeometry
+    # Terraces at the deck's height: a spot on one walks on to the deck.
+    ground: BaseGeometry
+    landings: tuple[Stairs | Ramp, ...]
+    # Everything off the floor, as walk_around needs it.
+    inside: Obstacles
+
+    def holds(self, p: XY) -> bool:
+        """A spot standing on a terrace at the deck's height, on its floor."""
+        point = Point(p)
+        return bool(self.ground.covers(point) and self.floor.covers(point))
 
 
 @dataclass(frozen=True, slots=True)
@@ -279,6 +316,68 @@ def item_footprint(item: Item) -> Polygon | None:
     )
 
 
+def _deck(
+    walkway: Walkway,
+    terraces: Sequence[_Level],
+    flights: Sequence[Stairs | Ramp],
+    footprints: BaseGeometry | None,
+) -> Deck | None:
+    raised = _polygon(walkway.outline)
+    if raised is None:
+        return None
+    level = [
+        t.polygon
+        for t in terraces
+        if abs(t.terrace.z_m - walkway.z_m) <= WALL_MIN_STEP_M
+        and t.polygon.distance(raised) <= DECK_JOIN_M
+    ]
+    ground = unary_union(level) if level else Polygon()
+    reach = unary_union([raised, ground])
+    landings = tuple(
+        f
+        for f in flights
+        if abs(f.base_z + f.rise_m - walkway.z_m) <= WALL_MIN_STEP_M
+        and reach.distance(Point(f.top)) <= DECK_JOIN_M
+    )
+    joined = unary_union([reach, *(Point(f.top).buffer(DECK_JOIN_M) for f in landings)])
+    # Close the seams where the slab meets the deck (both drawn to +-0.5 m).
+    floor = joined.buffer(DECK_JOIN_M / 2, join_style="mitre").buffer(
+        -DECK_JOIN_M / 2, join_style="mitre"
+    )
+    holes: list[BaseGeometry] = [
+        h for h in map(_polygon, walkway.holes) if h is not None
+    ]
+    if footprints is not None:
+        holes.append(footprints)
+    floor = floor.difference(unary_union(holes)) if holes else floor
+    off = floor.envelope.buffer(DECK_JOIN_M * 10).difference(floor)
+    grown = off.buffer(DECK_CLEARANCE_M, join_style="mitre", mitre_limit=2.0)
+    for geometry in (floor, ground, off, grown):
+        shapely.prepare(geometry)
+    return Deck(
+        id=walkway.id,
+        z=walkway.z_m,
+        spots=frozenset(walkway.spots),
+        floor=floor,
+        ground=ground,
+        landings=landings,
+        inside=Obstacles(union=off, blocked=off, grown=grown),
+    )
+
+
+def _on_walkway(line: Sequence[XY], base_z: float, walkways: Sequence[Walkway]) -> bool:
+    """A railing up on a walkway's edge (its balustrade, not the ground's)."""
+    for walkway in walkways:
+        raised = _polygon(walkway.outline)
+        if (
+            raised is not None
+            and abs(base_z - walkway.z_m) <= WALL_MIN_STEP_M
+            and LineString(line).distance(raised) <= DECK_JOIN_M
+        ):
+            return True
+    return False
+
+
 def build_barriers(
     furniture: FurnitureCollection,
     greenery_areas: Iterable[dict[str, Any]] = (),
@@ -295,6 +394,7 @@ def build_barriers(
     hard.extend(
         LineString(r.line).buffer(RAILING_HALF_M, cap_style="flat")
         for r in furniture.railings
+        if not _on_walkway(r.line, r.base_z, furniture.walkways)
     )
     soft: list[BaseGeometry] = []
     for area in greenery_areas:
@@ -317,9 +417,12 @@ def build_barriers(
         ]
     )
     shapely.prepare(climbs)
+    levels = _levels(furniture.terraces)
+    decks = (_deck(w, levels, flights, footprints) for w in furniture.walkways)
     return Barriers(
         hard=unary_union(hard),
         soft=unary_union(soft),
-        levels=tuple(_levels(furniture.terraces)),
+        levels=tuple(levels),
         climbs=climbs,
+        decks=tuple(d for d in decks if d is not None),
     )

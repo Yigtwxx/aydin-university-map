@@ -21,11 +21,12 @@ const MITER_LIMIT = 2.5;
  *   space) let a vertex shader rescale the width at draw time, e.g. to keep
  *   the route a minimum number of pixels wide when zoomed out.
  * - `height` is a constant, or the height under each point of the line (the
- *   terrain, so a route climbs stairs); the strip stays level across.
+ *   terrain, so a route climbs stairs); the strip stays level across. It
+ *   also gets the point's index in the line after `dedupe`.
  */
 export function ribbonGeometry(
   lines: RibbonLine[],
-  height: number | ((east: number, north: number) => number) = 0,
+  height: number | ((east: number, north: number, index: number) => number) = 0,
 ): BufferGeometry | undefined {
   const heightAt = typeof height === 'number' ? () => height : height;
   const positions: number[] = [];
@@ -49,7 +50,7 @@ export function ribbonGeometry(
       const [nx, ny, scale] = miter(points, i);
       const unit = Math.min(scale, MITER_LIMIT);
       const offset = half * unit;
-      const h = heightAt(x, y);
+      const h = heightAt(x, y, i);
       positions.push(...enuToWorld(x + nx * offset, y + ny * offset, h));
       positions.push(...enuToWorld(x - nx * offset, y - ny * offset, h));
       const center = enuToWorld(x, y, h);
@@ -88,7 +89,8 @@ export function lineLength(points: [number, number][]): number {
   return total;
 }
 
-function dedupe(points: [number, number][]): [number, number][] {
+/** The line without repeated points (as `ribbonGeometry` draws it). */
+export function dedupe(points: [number, number][]): [number, number][] {
   const out: [number, number][] = [];
   for (const p of points) {
     const last = out[out.length - 1];

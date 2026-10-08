@@ -52,5 +52,6 @@ describe('fetchFurniture', () => {
     });
     expect(data.stairs).toEqual([]);
     expect(data.seating).toEqual([]);
+    expect(data.walkways).toEqual([]);
   });
 });

@@ -28,7 +28,7 @@ from amap_pipeline.geo.overrides import (
     load_scene_fixes,
     load_survey_poses,
 )
-from amap_pipeline.graph.barriers import build_barriers
+from amap_pipeline.graph.barriers import build_barriers, surveyed_level
 from amap_pipeline.graph.build import (
     GraphParams,
     blocked_edges,
@@ -228,7 +228,14 @@ def graph_export(
         barriers=barriers,
     )
     flights = furniture.stairs
-    graph, climbing = mark_outdoor_stairs(graph, flights)
+    raised = {spot: deck.z for deck in barriers.decks for spot in deck.spots}
+
+    def height(node: Node) -> float | None:
+        if node.id in raised:
+            return raised[node.id]
+        return surveyed_level(barriers.levels, (node.enu[0], node.enu[1]))
+
+    graph, climbing = mark_outdoor_stairs(graph, flights, furniture.ramps, height)
     if climbing:
         typer.echo(f"outdoor stairs: {len(climbing)} edges over {len(flights)} flights")
     islands: list[list[str]] = []

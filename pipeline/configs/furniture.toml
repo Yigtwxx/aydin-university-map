@@ -167,9 +167,13 @@ edge = "wall"
 # Only the solid part stays here: the café box (front y ~68-70 from 565/564),
 # the lift core (centre (-37.2, 67.6), from 565, 573 and 568) and a strip on
 # to 568. The slab, its columns and the footbridge to D are G Blok features.
+# 2026-10-08: the landing west of the G-west stairs' top is deck (x -33.5..-29.5
+# up to y 70.5): 572 stands on it at the deck's height (camera 2.5 m over
+# 571's 3.2 + 2.3), lift tower 3-4 m south-west, the flight down to O at B0-30.
 outline = [
   [-44.2, 68.0], [-41.0, 69.6], [-38.7, 69.8], [-38.7, 67.6], [-37.2, 66.1], [-35.7, 66.6],
-  [-27.0, 66.6], [-27.0, 63.0], [-23.0, 63.0], [-22.2, 67.5], [-33.5, 67.5], [-33.5, 87.5],
+  [-27.0, 66.6], [-27.0, 63.0], [-23.0, 63.0], [-22.2, 67.5], [-29.5, 67.5], [-29.5, 70.5],
+  [-33.5, 70.5], [-33.5, 87.5],
   [-34.3, 93.0], [-34.0, 99.0], [-47.0, 99.0], [-47.0, 84.0], [-44.2, 82.0],
 ]
 note = "raised paved deck in front of G/O; glass-and-steel balustrade round its edge"
@@ -539,6 +543,41 @@ base_z = 3.2
 rise_m = 0.8
 note = "2026-10-08: the paved lane between B and the block west of it, from just inside the NW sliding gate (558) to where it opens on the square by B's door (557). Flat to the eye, no step anywhere: the square's 0.8 m over 17 m (~5 %). Axis and width from the two facades (2.95 m apart east-west)"
 evidence = [{ scene = "scene_428558", ath = 0, note = "straight cobbled lane running away south between the two blocks, no step" }, { scene = "scene_428557", ath = 203, note = "the lane leaving the square at B's north-west corner, same paving, no step" }]
+
+# ---------------------------------------------------------------- walkways
+# Raised walks over lower ground (routing only; the blocks' canopy features
+# draw them). Camera heights put their spots ~3.1 m over the café square's
+# 564/565 and 2.4 m over the lane's 559/566: the deck's height, 5.4-5.5.
+
+[[walkways]]
+id = "g-slab"
+z_m = 5.5
+# The G Blok canopies of campus.toml (slab over the north entrance: west bay,
+# bay south of the lift, turnstile hall; footbridge on to the D-B lane stairs'
+# top), merged. Joins the north deck along its south edge.
+outline = [
+  [-31.7, 52.5], [-26.8, 53.7], [-27.8, 57.6], [-27.5, 57.6], [-27.5, 66.6], [-34.0, 66.6],
+  [-34.0, 66.4], [-38.7, 66.4], [-38.7, 68.4], [-47.5, 68.4], [-47.5, 63.3], [-38.7, 63.3],
+  [-38.7, 61.0], [-34.0, 61.0], [-34.0, 57.6], [-31.0, 57.6], [-32.9, 57.1],
+]
+# Glass lift tower, centre (-37.2, 67.6), shaft ~3 m (campus.toml, G).
+holes = [[[-38.7, 66.1], [-35.7, 66.1], [-35.7, 69.1], [-38.7, 69.1]]]
+spots = ["scene_428567"]
+evidence = [
+  { scene = "scene_428567", ath = 34, note = "blue slab floor, glass balustrade, the lane and parked cars below" },
+  { scene = "scene_428572", ath = 300, note = "the same floor round the lift tower, deck edge rail over the street" },
+]
+
+[[walkways]]
+id = "m-footbridge"
+z_m = 5.4
+# M Blok's footbridge canopy (campus.toml): from the blue footbridge-stair top
+# across the road to M's first-floor door, where 569 stands.
+outline = [[-77.7, 46.5], [-74.7, 45.9], [-71.7, 60.7], [-74.7, 61.3]]
+spots = ["scene_428569"]
+evidence = [
+  { scene = "scene_428569", ath = 110, note = "glass-railed blue bridge deck curving away to the stair, road below on the right" },
+]
 
 # ---------------------------------------------------------------- railings
 

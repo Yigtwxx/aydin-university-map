@@ -5,8 +5,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Color, GreaterDepth, type ShaderMaterial } from 'three';
 
 import { layers, palette } from './constants';
-import { useTerrain } from './queries';
-import { lineLength, ribbonGeometry } from './ribbon';
+import { deckHeights } from './deckLift';
+import { useFurniture, useTerrain } from './queries';
+import { dedupe, lineLength, ribbonGeometry } from './ribbon';
 import { routePolyline, smoothRoute } from './routeLine';
 import type { CampusGraph, GraphNode } from './types';
 
@@ -160,24 +161,34 @@ export function RouteRibbon({
   );
   const length = useMemo(() => lineLength(points), [points]);
   // The extra length past each end becomes the round cap.
-  const extended = useMemo(() => extendEnds(points, WIDTH_M), [points]);
-  // Over the ground's level changes: up terraces and along stairs.
+  const extended = useMemo(() => dedupe(extendEnds(points, WIDTH_M)), [points]);
+  // Over the ground's level changes: up terraces and along stairs, and up on
+  // a raised walkway where the route walks on one (not the street under it).
   const terrain = useTerrain();
+  const walkways = useFurniture().data?.walkways;
+  const lifted = useMemo(
+    () =>
+      deckHeights(extended, walkways ?? [], (id) => {
+        const node = graph.byId.get(id);
+        return node ? [node.enu[0], node.enu[1]] : undefined;
+      }),
+    [extended, walkways, graph],
+  );
   const geometry = useMemo(
     () =>
       ribbonGeometry(
         [{ points: extended, width: WIDTH_M }],
-        (e, n) => terrain.heightAt(e, n) + LIFT_M,
+        (e, n, i) => (lifted[i] ?? terrain.heightAt(e, n)) + LIFT_M,
       ),
-    [extended, terrain],
+    [extended, lifted, terrain],
   );
   const shadow = useMemo(
     () =>
       ribbonGeometry(
         [{ points: extended, width: WIDTH_M * 2 }],
-        (e, n) => terrain.heightAt(e, n) + LIFT_M * 0.6,
+        (e, n, i) => (lifted[i] ?? terrain.heightAt(e, n)) + LIFT_M * 0.6,
       ),
-    [extended, terrain],
+    [extended, lifted, terrain],
   );
   useEffect(
     () => () => {

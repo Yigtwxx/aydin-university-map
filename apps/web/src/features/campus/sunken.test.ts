@@ -25,6 +25,7 @@ describe('sunkenOpenings', () => {
       railings: [],
       items: [],
       seating: [],
+      walkways: [],
     });
     const openings = sunkenOpenings(terrain.terraces);
     expect(openings).toHaveLength(1);

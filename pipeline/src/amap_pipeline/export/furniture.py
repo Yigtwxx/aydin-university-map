@@ -1,9 +1,9 @@
 """Street furniture from ``configs/furniture.toml`` to ``data/out/furniture.json``.
 
 The notebook mirrors :mod:`amap_contracts.furniture` (``[[stairs]]``,
-``[[ramps]]``, ``[[railings]]``, ``[[items]]``, ``[[seating]]``); each entry
-may also carry ``evidence`` (the panoramas and angles it was measured from),
-which stays in the notebook::
+``[[ramps]]``, ``[[railings]]``, ``[[items]]``, ``[[seating]]``,
+``[[walkways]]``); each entry may also carry ``evidence`` (the panoramas and
+angles it was measured from), which stays in the notebook::
 
     [[stairs]]
     id = "square-to-d-lane"
@@ -25,7 +25,7 @@ from typing import Any
 from amap_contracts.furniture import FurnitureCollection
 
 DEFAULT_FURNITURE = Path(__file__).parents[3] / "configs" / "furniture.toml"
-_GROUPS = ("terraces", "stairs", "ramps", "railings", "items", "seating")
+_GROUPS = ("terraces", "stairs", "ramps", "railings", "items", "seating", "walkways")
 
 
 def read_furniture(path: Path = DEFAULT_FURNITURE) -> dict[str, Any]:

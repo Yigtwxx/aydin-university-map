@@ -130,6 +130,29 @@ class Ramp(BaseModel):
     railings: Side = Side.NONE
 
 
+class Walkway(BaseModel):
+    """A raised walk over lower ground: a slab on columns, a footbridge.
+
+    The ground under it keeps its own terraces, walls and fence; ``spots``
+    are the panoramas taken up on it. Routing only (the blocks' canopy
+    features draw it): a walk on it ignores what is below, and reaches the
+    ground by a flight or ramp whose top meets it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    outline: list[Point] = Field(min_length=3)
+    z_m: float = Field(ge=-10.0, le=20.0, description="Floor above the street datum")
+    holes: list[list[Point]] = Field(
+        default_factory=list[list[Point]],
+        description="What stands on it and is walked round: a lift tower",
+    )
+    spots: list[str] = Field(
+        default_factory=list[str], description="Panoramas taken up on it"
+    )
+
+
 class Railing(BaseModel):
     """A free-standing rail (terrace edges, lane walls); stairs carry their own."""
 
@@ -185,6 +208,7 @@ class FurnitureCollection(BaseModel):
     railings: list[Railing] = Field(default_factory=list[Railing])
     items: list[Item] = Field(default_factory=list[Item])
     seating: list[SeatingGroup] = Field(default_factory=list[SeatingGroup])
+    walkways: list[Walkway] = Field(default_factory=list[Walkway])
 
     @model_validator(mode="after")
     def _unique_ids(self) -> "FurnitureCollection":
@@ -196,6 +220,7 @@ class FurnitureCollection(BaseModel):
                 self.railings,
                 self.items,
                 self.seating,
+                self.walkways,
             )
             for x in group
         ]

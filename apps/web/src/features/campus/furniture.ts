@@ -106,6 +106,18 @@ export interface SeatingGroup {
   base_z: number;
 }
 
+/**
+ * A raised walk over lower ground (a slab on columns, a footbridge). Drawn by
+ * the blocks' canopy features; here so a route on it is drawn up there.
+ */
+export interface Walkway {
+  id: string;
+  outline: Point[];
+  z_m: number;
+  /** Panoramas taken up on it (graph node ids). */
+  spots: string[];
+}
+
 export interface Furniture {
   schema_version: number;
   terraces: Terrace[];
@@ -114,6 +126,7 @@ export interface Furniture {
   railings: Railing[];
   items: FurnitureItem[];
   seating: SeatingGroup[];
+  walkways: Walkway[];
 }
 
 export const EMPTY_FURNITURE: Furniture = Object.freeze({
@@ -124,6 +137,7 @@ export const EMPTY_FURNITURE: Furniture = Object.freeze({
   railings: [],
   items: [],
   seating: [],
+  walkways: [],
 }) as Furniture;
 
 /** Defaults the contract fills in, for a file that leaves them out. */
@@ -162,6 +176,12 @@ function normalise(raw: Partial<Furniture>): Furniture {
       umbrellas: g.umbrellas ?? false,
       poi: g.poi ?? null,
       base_z: g.base_z ?? 0,
+    })),
+    walkways: (raw.walkways ?? []).map((w) => ({
+      id: w.id,
+      outline: w.outline,
+      z_m: w.z_m,
+      spots: w.spots ?? [],
     })),
   };
 }
