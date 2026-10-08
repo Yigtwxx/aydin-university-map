@@ -397,8 +397,9 @@ height_m = 2.3
 facing_deg = 180.0
 colour = "#e9e6df"
 accent = "#d4d0c8"
-# Footbridge on to the D-B lane stairs (top (-29.3, 53.2)): 567 stands on it;
-# balustrade feet at 567 B107-201, 4-5 m -> x -26.6..-32.3, floor to y ~51-53.
+# Slab tongue over the lane by the NW gate (567 stands on it; the D-B lane
+# stairs under its tip go down to the clinic well, not up to it); balustrade
+# feet at 567 B107-201, 4-5 m -> x -26.6..-32.3, floor to y ~51-53.
 [[blocks.G.facade.features]]
 kind = "canopy"
 at = [-29.85, 55.4]
