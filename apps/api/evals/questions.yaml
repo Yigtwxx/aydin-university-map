@@ -1,6 +1,6 @@
 # Frozen evaluation set for the campus assistant (Step 4.4).
 #
-# 32 single-turn questions (16 TR, 16 EN) a student or visitor would ask about
+# 33 single-turn questions (17 TR, 16 EN) a student or visitor would ask about
 # the Florya campus. Expectations are grounded in the data, not invented:
 #
 # - `facts` are copied from the knowledge base (`amap.chunks`, built by
@@ -8,8 +8,8 @@
 #   alternative phrases, that occurs in at least one chunk of the question's
 #   language. Context recall = share of facts found in what the tools returned.
 # - `route` / `place` are ids of routable places (`build_places` over
-#   data/out/graph.geojson): entrances, open areas and, since indoor routing,
-#   rooms. `place` may list several ids (rooms sharing a name). The default
+#   data/out/graph.geojson and pois.json): entrances, open areas, businesses
+#   and, since indoor routing, rooms. `place` may list several ids (rooms sharing a name). The default
 #   start is "Kampüs Girişi" (scene_428518).
 # - `tools`: `required` must all be called; at least one of `one_of` must be
 #   called; `allowed` may be called. Any other call is a wrong tool. No tools
@@ -27,8 +27,12 @@
 # routes into a building). tr-know-06 and en-know-07 are the library question
 # the chat suggests in the UI (QA: it was answered "I don't know"). The other
 # 26 questions are unchanged from questions_v1.yaml, the first baseline's set.
+#
+# Version 3 adds tr-place-04, a floor question about a business (the canteen)
+# that production answered with "no information"; the eval now loads pois.json
+# like the API. The other 32 questions are unchanged.
 
-version: 2
+version: 3
 questions:
   # --- Turkish: routing ------------------------------------------------------
   - id: tr-route-01
@@ -89,6 +93,21 @@ questions:
     question: 'G Blok nerede?'
     tools: { one_of: [search_places, get_route], allowed: [search_knowledge] }
     place: scene_428570
+
+  - id: tr-place-04
+    lang: tr
+    category: place
+    # A business, not a tour label: "Yemekhane ve Kantin (T Blok)", 4th floor
+    # (configs/pois.toml). Production answered "no information". The floor is
+    # a number in the tool result, so the judge checks it, not `facts`.
+    question: 'Yemekhane hangi katta?'
+    tools:
+      {
+        required: [search_places],
+        allowed: [search_knowledge, describe_place, get_route],
+      }
+    place: scene_428757
+    facts: [T Blok]
 
   # --- Turkish: knowledge ----------------------------------------------------
   - id: tr-know-01

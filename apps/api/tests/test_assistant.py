@@ -1,7 +1,7 @@
 """Campus assistant with the offline model (no network, no API keys)."""
 
 import asyncio
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from types import SimpleNamespace
 from typing import Any
 
@@ -35,7 +35,8 @@ from amap_api.main import CHAT_BUCKET, create_app
 from amap_api.places import Place, build_places
 from amap_api.rate_limit import TokenBucket
 from amap_api.settings import Settings
-from amap_contracts.graph import NodeKind
+from amap_contracts.graph import LocalizedText, NodeKind
+from amap_contracts.pois import Poi, PoiCategory
 
 
 @pytest.fixture
@@ -153,6 +154,7 @@ def _call_tool(
     tool: str,
     args: dict[str, Any],
     knowledge: Knowledge | None = None,
+    pois: Sequence[Poi] = (),
 ) -> tuple[Any, str]:
     """Run one tool call through the real agent: (tool result, final answer)."""
 
@@ -164,7 +166,8 @@ def _call_tool(
             return ModelResponse(parts=[TextPart("Tamam.")])
         return ModelResponse(parts=[ToolCallPart(tool, args)])
 
-    deps = AssistantDeps(store=store, places=build_places(store), knowledge=knowledge)
+    places = build_places(store, pois)
+    deps = AssistantDeps(store=store, places=places, knowledge=knowledge)
     result = asyncio.run(build_agent(FunctionModel(respond)).run("?", deps=deps))
     returned = [
         p.content
@@ -214,6 +217,67 @@ def test_get_route_unknown_place_lists_entrances_only(
     output, _ = _call_tool(indoor_store, "get_route", {"to_place": "Rektörlük"})
     expected = ["D Blok Giriş", "M Blok Giriş", "M Blok Yan Giriş"]
     assert output.get("entrances") == expected, f"entrances only, got {output}"
+
+
+# Like configs/pois.toml: the canteen enriches a tour spot that has no block
+# or floor of its own (scene_428757 "Kantin"; here the "Geçit" passage).
+CANTEEN = Poi(
+    id="t-blok-yemekhane",
+    name=LocalizedText(
+        tr="Yemekhane ve Kantin (T Blok)", en="Dining Hall and Canteen (T Block)"
+    ),
+    category=PoiCategory.FOOD,
+    aliases=("yemekhane", "kantin", "t blok kantin", "refectory"),
+    node_id="p",
+    building="T",
+    floor=4,
+)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "Yemekhane",
+        # Production bug: whole questions and inflected names found nothing,
+        # and the assistant said it had no information about the canteen.
+        "yemekhane hangi katta",
+        "Yemekhane kaçıncı kat",  # "kat" alone would rank corridors first
+        "yemekhanenin katı",
+    ],
+)
+def test_search_places_finds_the_canteen_with_its_floor(
+    indoor_store: GraphStore, query: str
+) -> None:
+    output, _ = _call_tool(
+        indoor_store, "search_places", {"query": query}, pois=[CANTEEN]
+    )
+    assert output, f"{query!r}: the canteen must be found, got {output}"
+    first = output[0]
+    assert first["name_tr"] == "Yemekhane ve Kantin (T Blok)", f"{query!r}: {output}"
+    got = (first["building"], first["floor"], first.get("category"))
+    assert got == ("T", 4, "food"), f"{query!r}: block, floor, category: {first}"
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        # Strict matches are returned as before: the tolerant search would
+        # add the other "Derslik" (M Blok), sharing one word of three.
+        ("Derslik D Blok", ["class_d"]),
+        ("Derslik", ["class_d", "class_m"]),
+        ("Rektörlük", []),  # nothing in common: still an empty list
+        ("hangi katta", []),  # question words only
+    ],
+)
+def test_search_places_strict_matches_are_unchanged(
+    indoor_store: GraphStore, query: str, expected: list[str]
+) -> None:
+    output, _ = _call_tool(
+        indoor_store, "search_places", {"query": query}, pois=[CANTEEN]
+    )
+    ids = [place["id"] for place in output]
+    assert ids == expected, f"{query!r}: expected {expected}, got {ids}"
+    assert all("category" not in place for place in output), "rooms have none"
 
 
 def test_suggestions_stay_small_on_a_large_campus() -> None:

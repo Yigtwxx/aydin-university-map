@@ -27,7 +27,7 @@ from amap_contracts.text import search_key
 
 log = logging.getLogger("amap_api.assistant")
 
-PROMPT_PATH = Path(__file__).parent / "prompts" / "assistant_v3.md"
+PROMPT_PATH = Path(__file__).parent / "prompts" / "assistant_v4.md"
 PROMPT = PROMPT_PATH.read_text("utf-8")
 DEFAULT_START = "Kampüs Girişi"
 KEEP_MESSAGES = 8
@@ -36,11 +36,23 @@ KEEP_MESSAGES = 8
 MAX_CHUNK_CHARS = 1200
 KNOWLEDGE_DOWN = "knowledge search is unavailable right now"
 SUGGESTIONS = 8  # places offered when a name does not resolve
+SEARCH_RESULTS = 5  # places in one search_places result
 MAX_DESCRIBE_ROOMS = 40  # room names in one describe_place result
 # Question words that name no area ("library floors" means "library").
 _DESCRIBE_STOPWORDS = frozenset(
     {"kat", "katlari", "katli", "kac", "floor", "floors", "how", "many", "the"}
 )
+# Question words that name no place, dropped before the tolerant search:
+# "yemekhane kaçıncı kat" means "yemekhane", and "kat" alone would rank every
+# "... Kat" corridor of the tour above it.
+_QUESTION_WORDS = _DESCRIBE_STOPWORDS | frozenset(
+    {
+        "hangi", "kacinci", "kacta", "katta", "kati", "katinda", "nerede",
+        "nerde", "neresi", "nasil", "ne", "mi", "mu", "ve", "saat", "acik",
+        "aciliyor", "kapaniyor", "where", "which", "what", "is", "on", "and",
+        "open", "opens", "close", "closes", "time", "hours",
+    }
+)  # fmt: skip
 # Ties in suggestions: entrances, then open areas, then rooms.
 _KIND_ORDER = {NodeKind.ENTRANCE: 0, NodeKind.OUTDOOR: 1, NodeKind.INDOOR: 2}
 # Straight or typographic apostrophe (U+2019) and the suffix after it.
@@ -112,8 +124,12 @@ def _place_summary(place: Place) -> dict[str, Any]:
         "name_en": place.name_en,
         "kind": place.kind.value,
         "building": place.building,
-        "floor": place.floor,  # rooms only
+        "floor": place.floor,  # rooms, businesses and services
     }
+    # Businesses and services (a PoiCategory value): "food" tells the model
+    # that "Yemekhane ve Kantin (T Blok)" is where the visitor eats.
+    if place.category is not None:
+        summary["category"] = place.category
     # The tour area tells same-named rooms apart ("Mescid" in the dormitory
     # or in E Blok); "Florya Kampüs" says nothing and is left out.
     if place.area_tr and not is_generic_area(place.area_tr):
@@ -169,6 +185,25 @@ def _suggestions(places: list[Place], name: str) -> list[Place]:
     # places that share one word ("Kız Öğrenci Yurdu" rooms).
     full = [item for item in scored if -item[0] == len(words)]
     return [item[-1] for item in (full or scored)[:SUGGESTIONS]]
+
+
+def find_places(places: list[Place], query: str) -> list[Place]:
+    """Places for ``search_places``: strict matches, else close ones.
+
+    The strict search wants every query word in a name, but models pass whole
+    questions ("yemekhane hangi katta") or inflected names ("yemekhanenin"),
+    and an empty result made the assistant say it knew nothing about the
+    canteen. Then question words are dropped and Turkish suffixes tolerated,
+    as for route names; places known to be closed stay out.
+    """
+    found = search_places(places, query, SEARCH_RESULTS)
+    if found:
+        return found
+    words = [w for w in _query_words(query) if w not in _QUESTION_WORDS]
+    if not words:
+        return []
+    open_places = [p for p in places if not p.closed]
+    return _suggestions(open_places, " ".join(words))[:SEARCH_RESULTS]
 
 
 def _unresolved(deps: AssistantDeps, name: str) -> dict[str, Any]:
@@ -306,12 +341,15 @@ def build_agent(model: Model) -> Agent[AssistantDeps, str]:
     def search_places_tool(
         ctx: RunContext[AssistantDeps], query: str
     ) -> list[dict[str, Any]]:
-        """Find routable campus places by name: building entrances, open areas
-        and rooms (with their block and floor).
+        """Find campus places by name: building entrances, open areas, rooms,
+        and businesses and services (yemekhane/canteen, cafés, shops, health
+        centre, student affairs) with their block, floor and category.
 
-        An empty list means the map cannot route there yet.
+        When no name has every word, close matches are returned: use one only
+        if it is clearly the place asked about. An empty list means the map
+        cannot route there yet.
         """
-        return [_place_summary(p) for p in search_places(ctx.deps.places, query, 5)]
+        return [_place_summary(p) for p in find_places(ctx.deps.places, query)]
 
     @agent.tool
     def get_route(

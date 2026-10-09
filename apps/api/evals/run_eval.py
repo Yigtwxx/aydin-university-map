@@ -79,7 +79,7 @@ from pydantic_ai.settings import ModelSettings
 from amap_api.assistant import agent as assistant
 from amap_api.assistant.knowledge import Knowledge
 from amap_api.db import Database
-from amap_api.graph_store import GraphStore, load_graph
+from amap_api.graph_store import GraphStore, load_graph, load_pois
 from amap_api.places import Place, build_places
 from amap_api.settings import Settings
 from amap_contracts.text import lower_tr
@@ -826,15 +826,17 @@ def load_settings() -> Settings:
     return Settings(_env_file=env_file if env_file.is_file() else None)  # pyright: ignore[reportCallIssue]
 
 
+def _from_root(source: str) -> str:
+    """Relative paths start at the repository root (where the API runs)."""
+    if source.startswith(("http://", "https://")) or Path(source).is_absolute():
+        return source
+    return str(ROOT / source)
+
+
 def load_places(cfg: Settings) -> tuple[GraphStore, list[Place]]:
-    source = cfg.graph_source
-    if (
-        not source.startswith(("http://", "https://"))
-        and not Path(source).is_absolute()
-    ):
-        source = str(ROOT / source)
-    store = load_graph(source)
-    return store, build_places(store)
+    """The place directory the API serves: the graph and its POIs."""
+    store = load_graph(_from_root(cfg.graph_source))
+    return store, build_places(store, load_pois(_from_root(cfg.pois_location)))
 
 
 async def validate(cfg: Settings, questions: Sequence[Question]) -> int:
