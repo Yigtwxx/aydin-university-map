@@ -2,7 +2,6 @@
 
 import { cn } from 'cn';
 import {
-  Accessibility,
   ArrowDownUp,
   Check,
   DoorOpen,
@@ -47,7 +46,7 @@ import {
 import { type CubeFace, faceForYaw, faceTowards, PanoThumb } from './PanoThumb';
 import { PlaceBrowser } from './PlaceBrowser';
 import { PlaceSearch } from './PlaceSearch';
-import { StepIcon } from './StepIcon';
+import { Stairs, StepIcon } from './StepIcon';
 import { isIndoorStep, stepDistance, useStepText } from './stepText';
 import { useRouteStore } from './store';
 
@@ -217,7 +216,7 @@ export function DirectionsPanel({
 
       {planning && (
         <label className="flex h-9 cursor-pointer items-center gap-2.5 rounded-control px-2 text-sm transition-colors duration-150 ease-out-soft hover:bg-fill">
-          <Accessibility className="size-4 text-ink-muted" aria-hidden />
+          <Stairs className="size-4 text-ink-muted" aria-hidden />
           <span className="flex-1">{t('avoidStairs')}</span>
           <Switch
             checked={avoidStairs}
@@ -429,7 +428,7 @@ function RouteSummary({
               {t('arrivalAt', { time: arrival })}
               {stepFree && (
                 <span className="ml-1.5 inline-flex items-center gap-0.5 align-bottom text-ink">
-                  <Accessibility className="size-3.5" aria-hidden />
+                  <Stairs className="size-3.5" aria-hidden />
                   {t('stepFree')}
                 </span>
               )}
@@ -484,7 +483,7 @@ function RouteSummary({
             {t('walkDistance', { distance })}
             {stepFree && (
               <span className="ml-2 inline-flex items-center gap-1 text-ink">
-                <Accessibility className="size-3.5" aria-hidden />
+                <Stairs className="size-3.5" aria-hidden />
                 {t('stepFree')}
               </span>
             )}

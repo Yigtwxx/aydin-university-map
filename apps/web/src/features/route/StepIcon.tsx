@@ -13,10 +13,19 @@ import {
   MapPin,
   Navigation,
   Undo2,
+  createLucideIcon,
   type LucideIcon,
 } from 'lucide-react';
 
 import type { RouteStep } from '@/features/campus/queries';
+
+/** A flight of stairs and its handrail, lucide-style (lucide has none). */
+export const Stairs = createLucideIcon('stairs', [
+  ['path', { d: 'M3 20h4.5v-4H12v-4h4.5V8H21', key: 'flight' }],
+  ['path', { d: 'M4.5 12.5 19 3.5', key: 'rail' }],
+  ['path', { d: 'M7.5 10.6V16', key: 'post-low' }],
+  ['path', { d: 'M16.5 5V8', key: 'post-high' }],
+]);
 
 const ICONS: Record<RouteStep['turn'], LucideIcon> = {
   start: Navigation,
