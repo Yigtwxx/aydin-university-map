@@ -27,7 +27,7 @@ from amap_contracts.text import search_key
 
 log = logging.getLogger("amap_api.assistant")
 
-PROMPT_PATH = Path(__file__).parent / "prompts" / "assistant_v4.md"
+PROMPT_PATH = Path(__file__).parent / "prompts" / "assistant_v5.md"
 PROMPT = PROMPT_PATH.read_text("utf-8")
 DEFAULT_START = "Kampüs Girişi"
 KEEP_MESSAGES = 8
