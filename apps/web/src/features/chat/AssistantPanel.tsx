@@ -2,11 +2,13 @@
 
 import { useChat } from '@ai-sdk/react';
 import { getToolName, isToolUIPart, type UIMessage } from 'ai';
+import { cn } from 'cn';
 import {
   ArrowUp,
   BookOpen,
+  CircleAlert,
+  DoorOpen,
   Footprints,
-  MessageCircle,
   Square,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -16,6 +18,7 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { FanMark } from '@/components/brand/FanMark';
 import { useCampusGraph } from '@/features/campus/queries';
 import { RichText } from '@/features/chat/RichText';
+import { CHIP_COLORS } from '@/features/route/placeIcons';
 import { useRouteStore } from '@/features/route/store';
 
 import { isThinking } from './progress';
@@ -108,7 +111,25 @@ export function AssistantPanel({
     ask(input);
   };
 
-  const suggestions = [t('suggest1'), t('suggest2'), t('suggest3')];
+  // Each suggestion wears the badge of the place it asks about, in the
+  // colours the directions tab gives those places.
+  const suggestions = [
+    {
+      text: t('suggest1'),
+      badge: <span className="text-[11px] font-semibold">A</span>,
+      tone: { bg: 'var(--block-main)', fg: 'var(--block-ink)' },
+    },
+    {
+      text: t('suggest2'),
+      badge: <BookOpen className="size-3.5" strokeWidth={2.25} />,
+      tone: CHIP_COLORS.library,
+    },
+    {
+      text: t('suggest3'),
+      badge: <DoorOpen className="size-3.5" strokeWidth={2.25} />,
+      tone: CHIP_COLORS.outdoor,
+    },
+  ];
 
   return (
     <section
@@ -124,23 +145,34 @@ export function AssistantPanel({
         className="flex min-h-0 flex-1 [scrollbar-width:thin] flex-col gap-3 overflow-y-auto overscroll-contain pr-1"
       >
         {messages.length === 0 && (
-          <div className="flex flex-col gap-3 pt-0.5">
-            <p className="px-0.5 text-sm leading-relaxed text-ink-muted">
-              {t('intro')}
-            </p>
+          <div className="flex flex-col gap-3.5 pt-0.5">
+            <div className="px-0.5">
+              <p
+                aria-hidden
+                className="text-md leading-tight font-semibold tracking-heading"
+              >
+                {t('title')}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-ink-muted">
+                {t('intro')}
+              </p>
+            </div>
             <ul className="flex flex-col divide-y divide-hairline overflow-hidden rounded-card bg-fill">
               {suggestions.map((s) => (
-                <li key={s}>
+                <li key={s.text}>
                   <button
                     type="button"
-                    onClick={() => ask(s)}
+                    onClick={() => ask(s.text)}
                     className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors duration-150 ease-out-soft hover:bg-fill-strong focus-visible:-outline-offset-2"
                   >
-                    <MessageCircle
-                      className="size-3.5 shrink-0 text-ink-muted"
+                    <span
                       aria-hidden
-                    />
-                    {s}
+                      style={{ backgroundColor: s.tone.bg, color: s.tone.fg }}
+                      className="flex size-6 shrink-0 items-center justify-center rounded-[7px]"
+                    >
+                      {s.badge}
+                    </span>
+                    {s.text}
                   </button>
                 </li>
               ))}
@@ -168,13 +200,17 @@ export function AssistantPanel({
           </div>
         )}
         {error && (
-          <p className="rounded-control bg-brick/10 px-3 py-2 text-sm">
+          <p className="flex items-start gap-2 rounded-control bg-brick/10 px-3 py-2 text-sm">
+            <CircleAlert
+              className="mt-px size-4 shrink-0 text-brick"
+              aria-hidden
+            />
             {error.message.includes('429') ? t('rateLimited') : t('error')}
           </p>
         )}
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-1.5">
+      <form onSubmit={onSubmit}>
         <div className="flex items-end gap-1.5 rounded-card bg-fill p-1 transition-[background-color,box-shadow] duration-150 ease-out-soft focus-within:bg-stone-raised focus-within:shadow-thumb focus-within:ring-2 focus-within:ring-route/40">
           <label htmlFor="assistant-input" className="sr-only">
             {t('placeholder')}
@@ -214,9 +250,6 @@ export function AssistantPanel({
             </button>
           )}
         </div>
-        <p className="px-0.5 text-2xs leading-snug text-ink-muted">
-          {t('notice')}
-        </p>
       </form>
     </section>
   );
@@ -235,6 +268,15 @@ function Message({
   const sources = user ? [] : sourcesOf(message);
   return (
     <div className={user ? 'flex justify-end' : 'flex flex-col gap-2'}>
+      {!user && (
+        <span
+          aria-hidden
+          className="flex items-center gap-2 px-0.5 text-xs font-medium text-ink-muted"
+        >
+          <AssistantMark className="size-5 rounded-[6px] [&_svg]:size-3.5" />
+          {t('title')}
+        </span>
+      )}
       {message.parts.map((part, i) => {
         if (part.type === 'text') {
           return user ? (
@@ -354,5 +396,20 @@ function Sources({ sources }: { sources: ReturnType<typeof sourcesOf> }) {
         })}
       </ul>
     </div>
+  );
+}
+
+/** The assistant's face: the logomark on an ink tile, as in the brand row. */
+function AssistantMark({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'flex shrink-0 items-center justify-center bg-ink text-stone-raised shadow-thumb [--mark-accent:var(--ice-inverse)]',
+        className,
+      )}
+    >
+      <FanMark />
+    </span>
   );
 }

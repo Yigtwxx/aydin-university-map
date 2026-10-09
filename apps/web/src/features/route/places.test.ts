@@ -7,6 +7,8 @@ import {
   categoryOf,
   highlightsOf,
   pinnedPois,
+  POPULAR_PLACE_IDS,
+  popularOf,
   pinnedSpots,
   poiGroups,
   presentCategories,
@@ -86,6 +88,21 @@ describe('place categories', () => {
     ]);
   });
 
+  it('suggests the popular places first, topped up with highlights', () => {
+    const [gateId, canteenId] = POPULAR_PLACE_IDS;
+    const popular = [
+      place(canteenId!, 'Yemekhane', 'Canteen', { kind: 'indoor' }),
+      place(gateId!, 'Kampüs Girişi', 'Campus Entrance'),
+    ];
+    expect(popularOf([...directory, ...popular], 4).map((p) => p.id)).toEqual([
+      gateId,
+      canteenId,
+      'gate',
+      'hosp',
+    ]);
+    expect(popularOf([], 4)).toEqual([]);
+  });
+
   it('keeps a block garden out of the block keys', () => {
     const garden = place('tg', 'T Blok Bahçe', 'T Block Garden', {
       kind: 'outdoor',
@@ -115,6 +132,17 @@ describe('place categories', () => {
       'B',
       'G-H',
     ]);
+  });
+
+  it('keeps one key per block: its main door, not a side door', () => {
+    const side = place('t-side', 'T Blok Yan Giriş', 'T Block Side Entrance', {
+      building: 'T',
+    });
+    const main = place('t', 'T Blok Giriş', 'T Block Entrance', {
+      building: 'T',
+    });
+    const keys = blockEntrances([side, ...directory, main]);
+    expect(keys.map((p) => p.id)).toEqual(['a', 'b', 'gh', 't']);
   });
 });
 

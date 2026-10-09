@@ -684,8 +684,10 @@ export function MapApp({ opening = false }: { opening?: boolean }) {
               aria-labelledby="tab-directions"
               hidden={panelTab !== 'directions'}
               // The bottom padding fades out, so rows scrolling under the
-              // panel edge dissolve instead of being cut.
-              className="min-h-0 flex-1 [scrollbar-width:thin] overflow-y-auto overscroll-contain [mask-image:linear-gradient(to_bottom,#000_calc(100%-1rem),transparent)] px-4 pb-4"
+              // panel edge dissolve instead of being cut. The top padding
+              // (pulled back up by the margin) leaves the search field's
+              // focus ring room inside the scroll box, which clips it.
+              className="-mt-1 min-h-0 flex-1 [scrollbar-width:thin] overflow-y-auto overscroll-contain [mask-image:linear-gradient(to_bottom,#000_calc(100%-1rem),transparent)] px-4 pt-1 pb-4"
             >
               {graph.isError ? (
                 <p className="rounded-card bg-brick/10 p-3.5 text-sm">

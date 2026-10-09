@@ -40,6 +40,7 @@
     "pickDestination": "Where are you going?",
     "pickStartHint": "Pick a place or type one above.",
     "highlights": "Key places",
+    "popular": "Popular places",
     "blocks": "Blocks",
     "categories": "Place types",
     "arrivalAt": "Arrival {time}",
@@ -242,8 +243,7 @@
     "openSource": "{title}: open in 360° view",
     "newTab": "(opens in a new tab)",
     "error": "The assistant is unavailable right now. Try again in a moment.",
-    "rateLimited": "Too many questions at once; wait a few seconds and try again.",
-    "notice": "Answers come from free AI services (Groq, Google Gemini); providers may use questions to improve their services. Do not share personal information."
+    "rateLimited": "Too many questions at once; wait a few seconds and try again."
   },
   "NotFound": {
     "title": "Page not found",

@@ -172,11 +172,54 @@ export function highlightsOf(places: Place[], limit = 4): Place[] {
   return picked.slice(0, limit);
 }
 
+/**
+ * The places most visitors head for, most asked-for first: the main gate,
+ * the canteen, the library, student affairs, a coffee, sports, the
+ * infirmary and the car park. There are no visit counts yet, so this is a
+ * hand-kept list of directory ids (a missing id is skipped).
+ */
+export const POPULAR_PLACE_IDS: readonly string[] = [
+  'scene_428518', // Kampüs Girişi
+  'scene_428757', // Yemekhane ve Kantin (T Blok)
+  'scene_428249', // Kütüphane (Bilgi Merkezi)
+  'scene_428759', // Öğrenci İşleri
+  'scene_428533', // Starbucks
+  'scene_428307', // Spor Salonu
+  'scene_428547', // Sağlık Merkezi (Revir)
+  'scene_428463', // Otopark
+];
+
+/**
+ * Suggestions for an empty search field: the popular places the directory
+ * has, topped up with the highlights when some are missing.
+ */
+export function popularOf(
+  places: Place[],
+  limit = POPULAR_PLACE_IDS.length,
+): Place[] {
+  const byId = new Map(places.map((p) => [p.id, p]));
+  const picked = POPULAR_PLACE_IDS.flatMap((id) => byId.get(id) ?? []);
+  for (const place of highlightsOf(places, limit))
+    if (!picked.includes(place)) picked.push(place);
+  return picked.slice(0, limit);
+}
+
 const collator = new Intl.Collator('tr', { numeric: true });
 
-/** Building entrances in block-letter order (A, B, …, G-H, …). */
+/**
+ * One key per block in block-letter order (A, B, …, G-H, …): its main door,
+ * the plainest name ("T Blok Giriş" over "T Blok Yan Giriş"). Side doors stay
+ * in search.
+ */
 export function blockEntrances(places: Place[]): Place[] {
-  return places
-    .filter((p) => categoryOf(p) === 'blocks')
-    .sort((a, b) => collator.compare(a.building ?? '', b.building ?? ''));
+  const main = new Map<string, Place>();
+  for (const p of places) {
+    if (categoryOf(p) !== 'blocks' || !p.building) continue;
+    const known = main.get(p.building);
+    if (!known || p.name_tr.length < known.name_tr.length)
+      main.set(p.building, p);
+  }
+  return [...main.values()].sort((a, b) =>
+    collator.compare(a.building ?? '', b.building ?? ''),
+  );
 }

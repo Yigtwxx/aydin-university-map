@@ -3,13 +3,14 @@
 import { cn } from 'cn';
 import { Building2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { type CSSProperties, useMemo, useState } from 'react';
 
 import { type Place, usePlaceDirectory } from '@/features/campus/queries';
+import { blockTone } from '@/features/map/blockTones';
 
 import { PanoThumb } from './PanoThumb';
-import { CATEGORY_ICONS, PoiBadge } from './placeIcons';
-import { PlaceGlyph } from './PlaceSearch';
+import { CATEGORY_ICONS, CHIP_COLORS } from './placeIcons';
+import { PlaceBadge, PlaceGlyph } from './PlaceSearch';
 import {
   blockEntrances,
   categoryOf,
@@ -64,24 +65,33 @@ export function PlaceBrowser({ exclude, onPick }: Props) {
         {categories.map((c) => {
           const Icon = c === 'blocks' ? Building2 : CATEGORY_ICONS[c];
           const pressed = category === c;
+          const lit = CHIP_COLORS[c];
           return (
             <button
               key={c}
               type="button"
               aria-pressed={pressed}
               onClick={() => setCategory(pressed ? undefined : c)}
+              style={
+                pressed
+                  ? ({
+                      '--chip-bg': lit.bg,
+                      '--chip-fg': lit.fg,
+                    } as CSSProperties)
+                  : undefined
+              }
               className={cn(
                 'flex h-8 shrink-0 items-center gap-1.5 rounded-full pr-3 pl-2.5 text-sm font-medium whitespace-nowrap',
                 'transition-[background-color,color,box-shadow] duration-150 ease-out-soft',
                 pressed
-                  ? 'bg-ink text-stone-raised shadow-thumb'
+                  ? 'bg-(--chip-bg) text-(--chip-fg) shadow-thumb'
                   : 'bg-fill text-ink hover:bg-fill-strong',
               )}
             >
               <Icon
                 className={cn(
                   'size-3.5',
-                  pressed ? 'text-stone-raised' : 'text-ink-muted',
+                  pressed ? 'text-(--chip-fg)' : 'text-ink-muted',
                 )}
                 strokeWidth={2}
                 aria-hidden
@@ -139,24 +149,12 @@ function TileGrid({
               fallback={<PlaceGlyph place={place} className="size-10" />}
               className="aspect-[16/10] w-full rounded-card group-hover:[&_img]:scale-[1.04]"
             >
-              {/* The badge the place wears on the map: a business's pin
-                  face, else its block letter. */}
-              {place.category ? (
-                <PoiBadge
-                  category={place.category}
-                  className="absolute bottom-1.5 left-1.5 size-5.5 shadow-thumb ring-[1.5px] ring-white"
-                  iconClassName="size-3"
-                />
-              ) : (
-                place.building && (
-                  <span
-                    aria-hidden
-                    className="absolute bottom-1.5 left-1.5 flex h-5.5 min-w-5.5 items-center justify-center rounded-[6px] bg-ochre px-1 text-xs font-semibold text-ochre-ink shadow-thumb"
-                  >
-                    {place.building}
-                  </span>
-                )
-              )}
+              {/* The badge the place wears on the map. */}
+              <PlaceBadge
+                place={place}
+                size="md"
+                className="absolute bottom-1.5 left-1.5 shadow-thumb ring-[1.5px] ring-white"
+              />
             </PanoThumb>
             <span className="truncate px-0.5 text-md font-medium tracking-heading">
               {nameOf(place)}
@@ -200,7 +198,12 @@ function BlockKeys({
                 className="group flex h-10 w-full items-center justify-center rounded-control bg-fill transition-colors duration-150 ease-out-soft hover:bg-fill-strong"
               >
                 {/* The same badge the block wears on the map. */}
-                <span className="flex h-6 min-w-6 items-center justify-center rounded-[7px] bg-ochre px-1 text-xs font-semibold text-ochre-ink shadow-thumb transition-transform duration-150 ease-out-soft group-hover:scale-110">
+                <span
+                  className={cn(
+                    'flex h-6 min-w-6 items-center justify-center rounded-[7px] px-1 text-xs font-semibold shadow-thumb transition-transform duration-150 ease-out-soft group-hover:scale-110',
+                    blockTone(place.building),
+                  )}
+                >
                   {place.building}
                 </span>
               </button>

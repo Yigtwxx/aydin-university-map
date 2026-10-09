@@ -40,6 +40,7 @@
     "pickDestination": "Nereye gidiyorsunuz?",
     "pickStartHint": "Bir yer seçin ya da yukarıya yazın.",
     "highlights": "Önemli noktalar",
+    "popular": "Popüler yerler",
     "blocks": "Bloklar",
     "categories": "Yer türleri",
     "arrivalAt": "Varış {time}",
@@ -242,8 +243,7 @@
     "openSource": "{title}: 360° görünümde aç",
     "newTab": "(yeni sekmede açılır)",
     "error": "Asistana şu an ulaşılamıyor. Biraz sonra tekrar deneyin.",
-    "rateLimited": "Çok hızlı soruldu; birkaç saniye bekleyip tekrar deneyin.",
-    "notice": "Yanıtlar ücretsiz yapay zekâ servisleriyle (Groq, Google Gemini) üretilir; sağlayıcılar soruları hizmetlerini geliştirmek için kullanabilir. Kişisel bilgi yazmayın."
+    "rateLimited": "Çok hızlı soruldu; birkaç saniye bekleyip tekrar deneyin."
   },
   "NotFound": {
     "title": "Sayfa bulunamadı",

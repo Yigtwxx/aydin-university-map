@@ -23,6 +23,14 @@
 
   --ochre: #dfa53c;
   --ochre-ink: #1d1505;
+  /* Block badges: one deep tone per group of joined blocks (blockTones.ts). */
+  --block-main: #1e5a6b;
+  --block-ef: #8a2f4f;
+  --block-d: #2e6a4a;
+  --block-m: #5b4391;
+  --block-t: #7a5232;
+  --block-other: #3f4756;
+  --block-ink: #ffffff;
   /* Ice blue: the logomark's centre stone only. Bright on dark surfaces, deep
      on light ones; `ice` follows the theme, `ice-inverse` suits ink tiles. */
   --ice-bright: #a8e0ff;
@@ -38,7 +46,6 @@
   --on-route: #ffffff;
 
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --ease-spring: cubic-bezier(0.32, 1.4, 0.48, 1);
 
   /* Materials (docs/design-system.md#materials). Thick glass carries text
      over the map, regular glass carries controls, tinted glass sits on photos. */
@@ -98,6 +105,12 @@
   --hairline: rgb(255 255 255 / 0.08);
 
   --ochre: #f2b84b;
+  --block-main: #2b7689;
+  --block-ef: #a64566;
+  --block-d: #3d8560;
+  --block-m: #7258ad;
+  --block-t: #94673f;
+  --block-other: #586274;
   --ice: var(--ice-bright);
   --ice-inverse: var(--ice-deep);
   --brick: #e8705a;
@@ -137,6 +150,13 @@
   --color-fill-strong: var(--fill-strong);
   --color-ochre: var(--ochre);
   --color-ochre-ink: var(--ochre-ink);
+  --color-block-main: var(--block-main);
+  --color-block-ef: var(--block-ef);
+  --color-block-d: var(--block-d);
+  --color-block-m: var(--block-m);
+  --color-block-t: var(--block-t);
+  --color-block-other: var(--block-other);
+  --color-block-ink: var(--block-ink);
   --color-brick: var(--brick);
   --color-plane: var(--plane);
   --color-marmara: var(--marmara);

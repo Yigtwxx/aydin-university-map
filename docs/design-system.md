@@ -17,12 +17,18 @@
    what it holds.
 2. **One signal colour.** Sign blue, the blue of Turkish city direction signs,
    means *your route* everywhere: the line, the step markers, the primary action
-   and keyboard focus. Nothing else uses it: selected chips and tabs are ink,
-   360° spots are white.
+   and keyboard focus. Nothing else uses it: selected tabs are ink, a selected
+   place-type chip lights up in its category's colour (`CHIP_COLORS` in
+   `features/route/placeIcons.tsx`: the pin colour of its businesses, deepened
+   for 4.5:1 white text, or the block, ochre or planting tone), 360° spots are
+   white. The assistant's suggested questions wear the badge of the place they
+   ask about in the same tones; its replies are signed with the logomark on ink.
 3. **Colour from the campus.** Campus buildings wear their real ochre facades,
    neighbours stay off-white so the campus reads first, the sky is the live sky.
-   Ochre is the campus accent in the interface too: block letters wear the same
-   ochre badge on the map, in the panel and on photo tiles.
+   Ochre is the campus accent in the interface too (entrance rims, the sun,
+   the door badge of campus gates, the mark of the popular places list).
+   Block letters wear one badge on the map, in the panel and on photo tiles,
+   in a deep tone shared by the blocks that stand together (`block-*`).
 4. **Show the place, not a list.** Places and steps carry a real 360° photo
    from the spot, so people recognise where they are going before they read.
 5. **Calm, precise type.** One grotesk, three weights, sentence case, tabular
@@ -50,8 +56,12 @@ screen), plus the campus and signal colours. Tokens live in
 | `hairline` | ink 8% | white 8% | dividers, inner edges |
 | `route` | `#1F5FD6` | `#5AA2FF` | the route, the primary action, focus |
 | `on-route` | `#FFFFFF` | `#07111F` | text on route blue (5.6:1 / 7.4:1) |
-| `ochre` | `#DFA53C` | `#F2B84B` | campus facades, block badges, entrance rims |
+| `ochre` | `#DFA53C` | `#F2B84B` | campus facades, entrance rims |
 | `ochre-ink` | `#1D1505` | `#1D1505` | letters on ochre, both themes |
+| `block-main` | `#1E5A6B` | `#2B7689` | badges of the main building: A, B, J, N, G-H, O |
+| `block-ef` | `#8A2F4F` | `#A64566` | badges of E and F |
+| `block-d` / `block-m` / `block-t` | `#2E6A4A` / `#5B4391` / `#7A5232` | `#3D8560` / `#7258AD` / `#94673F` | badges of D, M, T |
+| `block-other` | `#3F4756` | `#586274` | other lettered buildings (K, L, P, …); letters white on every block tone (`blockTones.ts`) |
 | `ice` | `#2A8BBF` | `#A8E0FF` | the logomark's centre stone only (`ice-inverse` on ink tiles) |
 | `brick` | `#C4432D` | `#E8705A` | destination pin, errors |
 | `plane` / `marmara` | `#557A4C` / `#2D5D7C` | `#3E5A3C` / `#7FB0CF` | vegetation; moon, water |
@@ -149,7 +159,7 @@ badges); chips, pills and dots are round.
 - **Overlays** are DOM, not WebGL, in a fixed stacking order (pins > labels >
   spots). One projector moves them every frame and fades occluded ones; they
   keep translations, tooltips and keyboard focus.
-  - Block labels: an ochre letter badge with a white ring; up close the name
+  - Block labels: a letter badge in its block's tone with a white ring; up close the name
     ("A Blok") follows in halo text (`.map-halo`: white glow by day, dark glow
     at night).
   - 360° spots: entrances are white dots with an ochre rim at every zoom

@@ -68,6 +68,28 @@ export const POI_COLORS: Record<PoiCategory, string> = {
 };
 
 /**
+ * A pressed quick-filter chip lights up in its category's colour: the pin
+ * colour of its businesses, a block badge's tone, the ochre of the entrance
+ * rims, the green of the campus planting. Pin colours are deepened a little
+ * so white letters keep 4.5:1. Rooms have no colour of their own and stay ink.
+ */
+export const CHIP_COLORS: Record<PlaceCategory, { bg: string; fg: string }> = {
+  blocks: { bg: 'var(--block-main)', fg: '#fff' },
+  gates: { bg: 'var(--ochre)', fg: 'var(--ochre-ink)' },
+  health: { bg: deepen(POI_COLORS.health), fg: '#fff' },
+  library: { bg: deepen(POI_COLORS.library), fg: '#fff' },
+  eat: { bg: deepen(POI_COLORS.food), fg: '#fff' },
+  shop: { bg: deepen(POI_COLORS.shop), fg: '#fff' },
+  services: { bg: deepen(POI_COLORS.service), fg: '#fff' },
+  outdoor: { bg: 'var(--plane)', fg: '#fff' },
+  rooms: { bg: 'var(--ink)', fg: 'var(--stone-raised)' },
+};
+
+function deepen(color: string): string {
+  return `color-mix(in oklab, ${color} 85%, black)`;
+}
+
+/**
  * A business's glyph, white on its category colour: the face of its map pin,
  * and its badge on photo tiles and in lists.
  */

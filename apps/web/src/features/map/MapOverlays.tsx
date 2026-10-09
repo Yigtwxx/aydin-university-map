@@ -17,6 +17,7 @@ import { groundUnder, type Terrain } from '@/features/campus/terrain';
 import type { Building, GraphNode } from '@/features/campus/types';
 
 import { blockChips } from './blockChips';
+import { blockTone } from './blockTones';
 import { useCameraStore, type ZoomTier } from './cameraStore';
 import { MapAnchor } from './MapAnchor';
 import { PoiLayer } from './PoiLayer';
@@ -289,7 +290,7 @@ function BuildingLabels({
           >
             <span
               data-marker
-              className="flex h-5.5 min-w-5.5 items-center justify-center rounded-[7px] bg-ochre px-1 text-xs font-semibold text-ochre-ink shadow-[0_0_0_1.5px_#fff,0_2px_6px_rgb(15_23_36/0.3)]"
+              className={`flex h-5.5 min-w-5.5 items-center justify-center rounded-[7px] px-1 text-xs font-semibold shadow-[0_0_0_1.5px_#fff,0_2px_6px_rgb(15_23_36/0.3)] ${blockTone(label.code)}`}
             >
               {label.code}
             </span>
