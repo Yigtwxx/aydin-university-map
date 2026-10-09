@@ -21,7 +21,7 @@ import {
 } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { FanMark } from '@/components/brand/FanMark';
+import { RouteMark } from '@/components/brand/RouteMark';
 import { Glass } from '@/components/glass/Glass';
 import {
   Popover,
@@ -591,7 +591,7 @@ export function MapApp({ opening = false }: { opening?: boolean }) {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, ease: EASE }}
               >
-                <FanMark className="size-12 animate-fan text-ink" />
+                <RouteMark className="size-12 animate-mark text-ink" />
                 <p className="text-md font-medium text-ink-muted">
                   {t('Map.loading')}
                 </p>
@@ -620,7 +620,7 @@ export function MapApp({ opening = false }: { opening?: boolean }) {
                   )}
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-ink text-stone-raised shadow-thumb [--mark-accent:var(--ice-inverse)]">
-                    <FanMark className="size-4.5" />
+                    <RouteMark className="size-4.5" />
                   </span>
                   <h1 className="truncate text-base font-semibold tracking-heading">
                     {t('Brand.short')}{' '}

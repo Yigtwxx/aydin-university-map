@@ -1,12 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <style>
-    .pin { fill: #0f1724 }
-    .stone { fill: #2a8bbf }
+    .walk { fill: none; stroke: #0f1724; stroke-width: 2.8; stroke-linecap: round }
+    .pin { fill: #2a8bbf }
     @media (prefers-color-scheme: dark) {
-      .pin { fill: #eef1f5 }
-      .stone { fill: #a8e0ff }
+      .walk { stroke: #eef1f5 }
+      .pin { fill: #a8e0ff }
     }
   </style>
-  <path class="pin" fill-rule="evenodd" d="M16 30.8c-.6 0-1.15-.27-1.53-.73C9.8 24.5 4.2 19.6 4.2 13.2a11.8 11.8 0 0 1 23.6 0c0 6.4-5.6 11.3-10.27 16.87-.38.46-.93.73-1.53.73zM7.9 17.6a8.1 8.1 0 0 1 16.2 0h-2.6a5.5 5.5 0 0 0-11 0zM11.9 17.6a4.1 4.1 0 0 1 8.2 0z"/>
-  <path class="stone" d="M13.2 17.6a2.8 2.8 0 0 1 5.6 0z"/>
+  <circle class="walk" cx="7.9" cy="23" r="3.3"/>
+  <path class="walk" d="M10.9 21.4c5.2-2 3.2-7.6 8.2-9.4"/>
+  <path class="pin" fill-rule="evenodd" d="M22.9 20c-.36 0-.7-.16-.93-.44-2.8-3.3-5.07-5.6-5.07-9.36a6 6 0 0 1 12 0c0 3.76-2.27 6.06-5.07 9.36-.23.28-.57.44-.93.44zm0-7.6a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4z"/>
 </svg>

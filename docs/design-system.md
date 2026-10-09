@@ -36,8 +36,9 @@
 6. **Motion answers actions.** The route draws itself when computed, the camera
    glides to it, the 360° view opens in place, the tab thumb slides. There is
    no ambient motion except the live sky, weather and the route's chevrons.
-7. **The fan pattern is the signature.** The plaza's fan cobblestones become the
-   logomark and the loading state, and nothing else is decorative.
+7. **The walk is the signature.** The logomark is what the map does: a path
+   from a start ring to the destination pin. It is also the loading state, and
+   nothing else is decorative. The plaza's fan cobbles stay on the ground.
 
 ## Colour
 
@@ -62,7 +63,7 @@ screen), plus the campus and signal colours. Tokens live in
 | `block-ef` | `#8A2F4F` | `#A64566` | badges of E and F |
 | `block-d` / `block-m` / `block-t` | `#2E6A4A` / `#5B4391` / `#7A5232` | `#3D8560` / `#7258AD` / `#94673F` | badges of D, M, T |
 | `block-other` | `#3F4756` | `#586274` | other lettered buildings (K, L, P, …); letters white on every block tone (`blockTones.ts`) |
-| `ice` | `#2A8BBF` | `#A8E0FF` | the logomark's centre stone only (`ice-inverse` on ink tiles) |
+| `ice` | `#2A8BBF` | `#A8E0FF` | the logomark's destination pin only (`ice-inverse` on ink tiles) |
 | `brick` | `#C4432D` | `#E8705A` | destination pin, errors |
 | `plane` / `marmara` | `#557A4C` / `#2D5D7C` | `#3E5A3C` / `#7FB0CF` | vegetation; moon, water |
 

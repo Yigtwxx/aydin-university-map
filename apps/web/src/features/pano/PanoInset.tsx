@@ -9,7 +9,7 @@ import { cn } from 'cn';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, type Ref, useEffect, useRef, useState } from 'react';
 
-import { FanMark } from '@/components/brand/FanMark';
+import { RouteMark } from '@/components/brand/RouteMark';
 import { Glass } from '@/components/glass/Glass';
 import { bearingDeg, yawForBearing } from '@/features/campus/coords';
 import type { GraphNode } from '@/features/campus/types';
@@ -185,7 +185,7 @@ export function PanoInset({
 
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_50%_40%,#2a3445,#0e141e)]">
-          <FanMark className="size-12 animate-fan text-white/90 [--mark-accent:var(--ice-bright)]" />
+          <RouteMark className="size-12 animate-mark text-white/90 [--mark-accent:var(--ice-bright)]" />
         </div>
       )}
 
@@ -218,7 +218,7 @@ export function PanoInset({
             </span>
           ) : (
             <span className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-white/15">
-              <FanMark className="size-4.5 text-white [--mark-accent:var(--ice-bright)]" />
+              <RouteMark className="size-4.5 text-white [--mark-accent:var(--ice-bright)]" />
             </span>
           )}
           <span className="min-w-0">

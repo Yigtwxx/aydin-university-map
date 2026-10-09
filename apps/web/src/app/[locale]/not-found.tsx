@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { FanMark } from '@/components/brand/FanMark';
+import { RouteMark } from '@/components/brand/RouteMark';
 import { Link } from '@/i18n/navigation';
 
 /**
@@ -25,7 +25,7 @@ export default function NotFound() {
         className="glass glass-thick relative flex w-full max-w-sm flex-col items-start gap-5 rounded-[22px] p-6"
       >
         <span className="flex size-9 items-center justify-center rounded-[10px] bg-ink text-stone-raised shadow-thumb [--mark-accent:var(--ice-inverse)]">
-          <FanMark className="size-5" />
+          <RouteMark className="size-5" />
         </span>
         <div className="flex flex-col gap-2">
           <p className="tabular text-xs font-semibold tracking-heading text-ink-muted">

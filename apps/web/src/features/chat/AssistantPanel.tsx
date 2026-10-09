@@ -15,7 +15,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 
-import { FanMark } from '@/components/brand/FanMark';
+import { RouteMark } from '@/components/brand/RouteMark';
 import { useCampusGraph } from '@/features/campus/queries';
 import { RichText } from '@/features/chat/RichText';
 import { CHIP_COLORS } from '@/features/route/placeIcons';
@@ -195,7 +195,7 @@ export function AssistantPanel({
             Groq then writes the whole answer in a fraction of a second. */}
         {isThinking(messages, status) && (
           <div className="flex items-center gap-2 px-0.5 text-xs text-ink-muted">
-            <FanMark className="size-4 animate-fan" />
+            <RouteMark className="size-4 animate-mark" />
             {t('thinking')}
           </div>
         )}
@@ -409,7 +409,7 @@ function AssistantMark({ className }: { className?: string }) {
         className,
       )}
     >
-      <FanMark />
+      <RouteMark />
     </span>
   );
 }

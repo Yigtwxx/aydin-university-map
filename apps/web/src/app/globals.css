@@ -227,12 +227,12 @@
   --shadow-elevation-2: var(--elevation-2);
   --shadow-thumb: var(--elevation-thumb);
 
-  --animate-fan: fan-sweep 1.4s var(--ease-out) infinite;
+  --animate-mark: mark-pulse 1.4s var(--ease-out) infinite;
   --animate-ping-soft: ping-soft 2.2s var(--ease-out) infinite;
   --animate-shimmer: shimmer 1.6s var(--ease-out) infinite;
 }
 
-@keyframes fan-sweep {
+@keyframes mark-pulse {
   0%,
   100% {
     opacity: 0.25;
