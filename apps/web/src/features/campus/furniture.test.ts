@@ -15,7 +15,10 @@ describe('fetchFurniture', () => {
     await expect(fetchFurniture('/assets', fetchImpl)).resolves.toBe(
       EMPTY_FURNITURE,
     );
-    expect(fetchImpl).toHaveBeenCalledWith('/assets/furniture.json');
+    // Revalidated, so a republished notebook shows at once.
+    expect(fetchImpl).toHaveBeenCalledWith('/assets/furniture.json', {
+      cache: 'no-cache',
+    });
   });
 
   it('fails on other errors', async () => {

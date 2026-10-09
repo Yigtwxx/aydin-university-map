@@ -206,7 +206,11 @@ export async function fetchFurniture(
   baseUrl: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Furniture> {
-  const response = await fetchImpl(`${baseUrl}/furniture.json`);
+  // Revalidate (304 when unchanged), as the graph does: the asset host
+  // caches for an hour, and a notebook fix must not wait for that.
+  const response = await fetchImpl(`${baseUrl}/furniture.json`, {
+    cache: 'no-cache',
+  });
   if (response.status === 404) return EMPTY_FURNITURE;
   if (!response.ok) throw new Error(`furniture.json: HTTP ${response.status}`);
   return normalise((await response.json()) as Partial<Furniture>);
