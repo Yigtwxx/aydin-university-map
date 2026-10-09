@@ -26,6 +26,13 @@ const COPING_OVERHANG_M = 0.15;
 const COPING_M = 0.4;
 /** Bands stand this far proud of the wall, so they never z-fight with it. */
 const BAND_PROUD_M = 0.06;
+/** A framed glass box this high up is a walk over people: a bridge. */
+const BRIDGE_BASE_M = 3;
+/** A bridge's solid parapet, the white fascia the sign is painted on. */
+const PARAPET_M = 1.0;
+/** Glazing bars along a bridge's sides, about this far apart. */
+const MULLION_PITCH_M = 1.6;
+const MULLION_M = 0.08;
 
 /**
  * Plan angle (radians, counter-clockwise from east) that turns a feature's
@@ -266,24 +273,53 @@ function glassBox(
   // Framed, the glass stands between the slabs: sharing their outer faces,
   // the two colours would fight for the same plane and flicker.
   const slab = f.accent ? Math.min(0.3, f.height_m * 0.1) : 0;
+  // A raised walk (a bridge) stands on a solid white parapet, glazed above
+  // it between glazing bars, as the campus's road bridge is.
+  const bridge = Boolean(f.accent) && f.base_m >= BRIDGE_BASE_M;
+  const parapet = bridge ? Math.min(PARAPET_M, f.height_m / 3) : slab;
+  const glassBase = f.base_m + parapet;
+  const glassTop = f.base_m + f.height_m - slab;
   builder.box(
     at,
-    [f.width_m, f.depth_m, f.height_m - slab * 2],
+    [f.width_m, f.depth_m, glassTop - glassBase],
     angle,
-    f.base_m + slab,
+    glassBase,
     new Color(f.colour),
     meta,
     !f.accent && f.base_m > 0,
   );
   if (!f.accent) return;
   const frame = new Color(f.accent);
-  const size: [number, number, number] = [
-    f.width_m + 0.1,
-    f.depth_m + 0.1,
-    slab,
-  ];
-  builder.box(at, size, angle, f.base_m, frame, meta, f.base_m > 0);
-  builder.box(at, size, angle, f.base_m + f.height_m - slab, frame, meta);
+  const outer: [number, number] = [f.width_m + 0.1, f.depth_m + 0.1];
+  builder.box(
+    at,
+    [...outer, parapet],
+    angle,
+    f.base_m,
+    frame,
+    meta,
+    f.base_m > 0,
+  );
+  builder.box(at, [...outer, slab], angle, glassTop, frame, meta);
+  if (!bridge) return;
+  // Bars stop short of the roof slab, so their tops never share its plane.
+  const bars = Math.max(1, Math.round(f.depth_m / MULLION_PITCH_M));
+  const barHeight = glassTop - glassBase - 0.02;
+  for (const side of [-1, 1])
+    for (let i = 0; i <= bars; i++)
+      builder.box(
+        local(
+          at,
+          angle,
+          (side * f.width_m) / 2,
+          -f.depth_m / 2 + (i * f.depth_m) / bars,
+        ),
+        [MULLION_M, MULLION_M, barHeight],
+        angle,
+        glassBase,
+        frame,
+        meta,
+      );
 }
 
 /** A coloured stripe round the whole block. */

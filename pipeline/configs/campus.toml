@@ -239,22 +239,28 @@ facing_deg = 90.0
 colour = "#8a3f2e"
 accent = "#f1ede4"
 # 2026-10-08: glass-covered footbridge from the F/E lane over the road to
-# K Blok. Deck runs ~N-S (bearing 178) from y -63.5 to -79.5 (541 B180 sees
-# the north columns 9.0 m off, 577 sees the east fascia at ath 345-21 with the
-# sign, 459 ath 192-236); underside ~4.8 m (4.3-4.6 from the road scenes
-# 459/577, 5.5 from 541; two 2.6 m flights put the walk at ~5.2).
+# K Blok. 541 B180 sees the north columns 9.0 m off; 577 sees the east fascia
+# at ath 345-21 with the sign; 459 at ath 192-236. Underside ~4.8 m (4.3-4.6
+# from the road scenes 459/577, 5.5 from 541; two 2.6 m flights put the walk
+# at ~5.2).
+# 2026-10-09: the deck crosses square to Fabrikalar Caddesi (road 250.6),
+# bearing 160.6, not 178. From 577 the fascia is frontal, both ends the
+# same height; at 178 the south end would look 20% smaller. Its west side is
+# flush with the landing's west end and its north end with the landing's
+# north side, so the two meet in a clean L (they met at 72 degrees).
 [[blocks.F.facade.features]]
 kind = "glass"
-at = [-39.6, -71.5]
+at = [-37.6, -68.85]
 width_m = 2.8
 depth_m = 16.0
 base_m = 4.8
 height_m = 3.0
-facing_deg = 178.0
+facing_deg = 160.6
 colour = "#9fb7c2"
 accent = "#f2f2f0"
 # North landing along the campus wall, from the U-stair top to the deck: its
-# north fascia spans 541 ath 112-178 (bottom 26 deg up at ~6.6 m).
+# north fascia spans 541 ath 112-178 (bottom 26 deg up at ~6.6 m). Parallel
+# to the road (250.6).
 [[blocks.F.facade.features]]
 kind = "glass"
 at = [-36.6, -61.6]
@@ -262,19 +268,20 @@ width_m = 3.0
 depth_m = 9.5
 base_m = 4.8
 height_m = 3.0
-facing_deg = 250.0
+facing_deg = 250.6
 colour = "#9fb7c2"
 accent = "#f2f2f0"
 # White columns: north pair from 541 ground contacts (ath 174 / 172, feet 9.7
 # and 8.3 deg down), matching 577 ath 24 / 19; south pair on 577 ath 346-348
-# where they meet the column line.
+# where they meet the column line (2026-10-09: the line now runs at 160.6
+# through the north pair, under the deck's west edge).
 [[blocks.F.facade.features]]
 kind = "drum"
 at = [-40.7, -63.8]
 width_m = 0.5
 depth_m = 0.5
 height_m = 4.8
-facing_deg = 178.0
+facing_deg = 160.6
 colour = "#f2f2f0"
 [[blocks.F.facade.features]]
 kind = "drum"
@@ -282,23 +289,23 @@ at = [-40.2, -65.3]
 width_m = 0.5
 depth_m = 0.5
 height_m = 4.8
-facing_deg = 178.0
+facing_deg = 160.6
 colour = "#f2f2f0"
 [[blocks.F.facade.features]]
 kind = "drum"
-at = [-40.2, -78.0]
+at = [-36.61, -75.42]
 width_m = 0.5
 depth_m = 0.5
 height_m = 4.8
-facing_deg = 178.0
+facing_deg = 160.6
 colour = "#f2f2f0"
 [[blocks.F.facade.features]]
 kind = "drum"
-at = [-40.2, -79.4]
+at = [-36.37, -76.11]
 width_m = 0.5
 depth_m = 0.5
 height_m = 4.8
-facing_deg = 178.0
+facing_deg = 160.6
 colour = "#f2f2f0"
 
 # OSM draws J on A's north wall; a passage with a fire stair separates them.

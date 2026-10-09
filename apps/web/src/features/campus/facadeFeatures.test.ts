@@ -97,6 +97,21 @@ describe('buildFeatures', () => {
     );
   });
 
+  it('stands a raised glass walk on a parapet, between glazing bars', () => {
+    const bridge = featureOf({
+      kind: 'glass',
+      base_m: 4.8,
+      height_m: 3,
+      depth_m: 16,
+      accent: '#f2f2f0',
+    });
+    // Glass, parapet (with its underside), roof slab and 11 bars a side.
+    expect(count(build(bridge))).toBe(BOX * 3 + 6 + BOX * 22);
+    // A raised vestibule under 3 m keeps its thin frame.
+    const vestibule = featureOf({ kind: 'glass', base_m: 1.7, accent: '#fff' });
+    expect(count(build(vestibule))).toBe(BOX * 3 + 6);
+  });
+
   it('keeps a framed glass box free of coplanar caps in two colours', () => {
     // A bridge walk: its glass top and its frame's roof in one plane flicker.
     const g = build(

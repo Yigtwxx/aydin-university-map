@@ -157,6 +157,18 @@ evidence = [
 ]
 
 [[terraces]]
+id = "bridge-stair-landing"
+z_m = 5.8
+edge = "wall"
+# 2026-10-09: half landing of the road-bridge U-stair (bridge-stair-north),
+# under the bridge walk. It spans both flights, 1.4 m deep, and runs back
+# under the upper flight as the panelled store that closes the stair's
+# underside (541), so that flight does not hang in the air.
+outline = [[-31.96, -61.51], [-37.52, -63.47], [-38.49, -60.74], [-37.17, -60.27], [-36.69, -61.64], [-32.44, -60.15]]
+note = "half landing of the road-bridge U-stair"
+evidence = [{ scene = "scene_428541", ath = 115, note = "landing between the two flights, white panels with a door under it" }]
+
+[[terraces]]
 id = "clinic-well"
 z_m = 1.2
 edge = "wall"
@@ -470,15 +482,53 @@ evidence = [{ scene = "scene_428538", ath = 229, note = "5-6 steps, rails left a
 
 [[stairs]]
 id = "bridge-stair-north"
-foot = [-31.0, -59.0]
-top = [-34.8, -61.8]
-width_m = 1.8
+# 2026-10-09: the U-stair from the campus up to the road bridge stands under
+# the bridge walk along the fence (fence-south-1 ends at its foot). Frame
+# for the three pieces: from the fence end (-31.4,-61.9), along 250.6 (the
+# fence and the road) and 340.6 into the campus. This lower flight is on the
+# campus side, rising away from 540 (its foot 3.2 m off at B235). The upper
+# flight comes back beside it along the fence, into the walk's floor at
+# 3.2 + 2 x 2.6 = 8.4 (the walk's underside is 8.0). Was one flight ending
+# 2.2 m under the walk.
+foot = [-32.69, -59.44]
+top = [-36.94, -60.93]
+width_m = 1.4
 steps = 16
 base_z = 3.2
 rise_m = 2.6
 railings = "both"
-note = "north landing of the glass-covered road-bridge stair (U-shaped, only the first flight placed); 2026-10-08 check: straight flight of 16-17 risers rising away from 540 along bearing ~233, glass balustrade with handrail on the left, steel handrail on the right"
-evidence = [{ scene = "scene_428540", ath = 156, note = "dark covered stair with glass side, 3-4 m from the camera" }]
+note = "lower flight of the glass-covered road-bridge U-stair: 16-17 risers rising away from 540, glass balustrade on the left, steel handrail on the right"
+evidence = [{ scene = "scene_428540", ath = 156, note = "dark covered stair with glass side, 3-4 m from the camera" }, { scene = "scene_428541", ath = 110, note = "the U-stair under the walk: lower flight, upper flight above it, panelled store under them" }]
+
+[[stairs]]
+id = "bridge-stair-north-upper"
+foot = [-36.44, -62.35]
+top = [-32.19, -60.85]
+width_m = 1.4
+steps = 16
+base_z = 5.8
+rise_m = 2.6
+railings = "both"
+note = "2026-10-09: upper flight of the road-bridge U-stair, from the half landing back north-east along the fence into the bridge walk's floor (8.4)"
+evidence = [{ scene = "scene_428541", ath = 110, note = "upper flight's glass balustrade rising left to the walk under its curved canopy" }]
+
+[[stairs]]
+id = "bridge-stair-south"
+# 2026-10-09: the hospital side's straight glass-railed stair, parallel to
+# the road behind the south fence, up into the deck's east side 11.3 m out
+# from the campus fence. From 577 its foot is at B216 and its top at B231.6.
+# The top meets the deck face (a = 6.76 in the frame above) on that line, and
+# the foot then falls 1.75 m before the fence end, so 32 risers (5.2 m) fit
+# its 8.6 m run.
+foot = [-25.57, -71.83]
+top = [-34.15, -74.85]
+width_m = 1.6
+steps = 32
+base_z = 3.2
+rise_m = 5.2
+railings = "both"
+note = "straight glass-balustraded flight from the hospital-side pavement up to the road bridge's south end"
+evidence = [{ scene = "scene_428577", ath = 345, note = "glass-railed stair behind the south fence rising west to the bridge sign" }, { scene = "scene_428459", ath = 224, note = "bridge glazing going up behind the utility kiosk" }]
 
 [[stairs]]
 id = "t-garden-stair"
