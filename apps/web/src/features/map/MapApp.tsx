@@ -884,31 +884,61 @@ function Attribution({
     t('Attribution.weather'),
     t('Brand.independent'),
   ];
+  // Over the photorealistic tiles a halo is not enough to read the credits
+  // (and Google's logo must stay legible): they sit on a strip of glass,
+  // with Google's white logo on the night glass.
+  const googleLogo = google && (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element -- Google's own logo asset */}
+      <img
+        src="https://maps.gstatic.com/mapfiles/api-3/images/google_gray.svg"
+        alt="Google"
+        className="h-3 w-auto dark:hidden"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element -- Google's own logo asset */}
+      <img
+        src="https://maps.gstatic.com/mapfiles/api-3/images/google_white5.png"
+        alt="Google"
+        className="hidden h-3 w-auto dark:block"
+      />
+    </>
+  );
   return (
     <>
-      <footer
-        inert={inert}
-        className="map-halo pointer-events-auto absolute right-3 bottom-2 z-10 hidden items-center gap-3.5 text-2xs text-ink-muted md:flex"
-      >
-        {google && (
-          // eslint-disable-next-line @next/next/no-img-element -- Google's own logo asset
-          <img
-            src="https://maps.gstatic.com/mapfiles/api-3/images/google_gray.svg"
-            alt="Google"
-            className="h-3 w-auto"
-          />
-        )}
-        {lines.map((line) => (
-          <span key={line}>{line}</span>
-        ))}
-      </footer>
+      {google ? (
+        // Google's line is long: the credits and the note take two lines,
+        // so the strip stays clear of the directions panel.
+        <footer
+          inert={inert}
+          className="glass pointer-events-auto absolute right-3 bottom-2 z-10 hidden flex-col items-end gap-0.5 rounded-[10px] px-3 py-1 text-2xs text-ink-muted md:flex"
+        >
+          <span className="flex items-center gap-3.5">
+            {googleLogo}
+            {lines.slice(0, -1).map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+          </span>
+          <span>{lines.at(-1)}</span>
+        </footer>
+      ) : (
+        <footer
+          inert={inert}
+          className="map-halo pointer-events-auto absolute right-3 bottom-2 z-10 hidden items-center gap-3.5 text-2xs text-ink-muted md:flex"
+        >
+          {lines.map((line) => (
+            <span key={line}>{line}</span>
+          ))}
+        </footer>
+      )}
       <footer
         inert={inert || hidden}
         className={cn(
-          'map-halo pointer-events-auto absolute bottom-[calc(var(--sheet-h,9.25rem)+0.375rem)] left-3.5 z-10 flex items-center gap-2 text-2xs text-ink-muted transition-opacity duration-200 ease-out-soft md:hidden',
+          'pointer-events-auto absolute bottom-[calc(var(--sheet-h,9.25rem)+0.375rem)] left-3.5 z-10 flex items-center gap-2 text-2xs text-ink-muted transition-opacity duration-200 ease-out-soft md:hidden',
+          google ? 'glass rounded-full px-3 py-1' : 'map-halo',
           hidden && 'opacity-0',
         )}
       >
+        {googleLogo}
         <span>{t('Attribution.map')}</span>
         <Popover>
           <PopoverTrigger

@@ -5,7 +5,11 @@ import { Building2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type CSSProperties, useMemo, useState } from 'react';
 
-import { type Place, usePlaceDirectory } from '@/features/campus/queries';
+import {
+  type Place,
+  useOnCampusNetwork,
+  usePlaceDirectory,
+} from '@/features/campus/queries';
 import { blockTone } from '@/features/map/blockTones';
 
 import { PanoThumb } from './PanoThumb';
@@ -35,6 +39,7 @@ export function PlaceBrowser({ exclude, onPick }: Props) {
   const locale = useLocale();
   const { data: directory = [], isError, isPending } = usePlaceDirectory();
   const [category, setCategory] = useState<PlaceCategory>();
+  const reachable = useOnCampusNetwork();
 
   const places = useMemo(
     () => directory.filter((p) => !exclude.includes(p.id)),
@@ -114,7 +119,7 @@ export function PlaceBrowser({ exclude, onPick }: Props) {
               {t('highlights')}
             </h3>
             <TileGrid
-              places={highlightsOf(places)}
+              places={highlightsOf(places, 4, reachable)}
               nameOf={nameOf}
               onPick={pick}
             />

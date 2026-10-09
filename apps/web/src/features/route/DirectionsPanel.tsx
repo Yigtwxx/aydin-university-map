@@ -22,6 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { bearingDeg } from '@/features/campus/coords';
 import {
   type Place,
+  RouteError,
   type RouteResponse,
   type RouteStep,
   useCampusGraph,
@@ -268,6 +269,11 @@ export function DirectionsPanel({
             <motion.div key={`problem-${problem}`} {...enter}>
               <RouteProblemCard
                 problem={problem}
+                detachedName={
+                  error instanceof RouteError && error.message === from?.id
+                    ? from?.name
+                    : to?.name
+                }
                 onRetry={() => void query.refetch()}
                 onAllowStairs={() => setAvoidStairs(false)}
               />
@@ -715,16 +721,20 @@ function Steps({
 /** A route that did not come, in the panel's voice, with the way forward. */
 function RouteProblemCard({
   problem,
+  detachedName,
   onRetry,
   onAllowStairs,
 }: {
   problem: RouteProblem;
+  /** The end off the campus network, for `detached`. */
+  detachedName?: string;
   onRetry: () => void;
   onAllowStairs: () => void;
 }) {
   const t = useTranslations('Route');
   const Icon = problem === 'offline' ? WifiOff : TriangleAlert;
   const text = {
+    detached: t('detached', { place: detachedName ?? '' }),
     noStepFree: t('noStepFree'),
     noRoute: t('noRoute'),
     unknownPlace: t('unknownPlace'),

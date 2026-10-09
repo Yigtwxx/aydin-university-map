@@ -16,6 +16,7 @@ import {
 import { InputGroupAddon } from '@/components/ui/input-group';
 import {
   type Place,
+  useOnCampusNetwork,
   usePlaceDirectory,
   usePlaces,
 } from '@/features/campus/queries';
@@ -67,13 +68,16 @@ export function PlaceSearch({
   const query = useDebounced(input, 150);
   const { data: results = [], isFetching, isError } = usePlaces(query);
   const directory = usePlaceDirectory();
+  const reachable = useOnCampusNetwork();
   // An empty field suggests the popular places instead of an empty list.
   const suggesting = input.trim() === '';
   const suggestions = useMemo(
-    () => popularOf(directory.data ?? []),
-    [directory.data],
+    () => popularOf(directory.data ?? [], undefined, reachable),
+    [directory.data, reachable],
   );
   const shown = suggesting ? suggestions : results;
+  const [open, setOpen] = useState(false);
+  const highlighted = useRef<Place | undefined>(undefined);
 
   const nameOf = (place: Place) =>
     locale === 'en' ? place.name_en : place.name_tr;
@@ -150,13 +154,20 @@ export function PlaceSearch({
       items={items}
       value={selected ?? null}
       filter={null}
+      open={open}
       itemToStringLabel={(place: Place) => nameOf(place)}
       isItemEqualToValue={(a: Place, b: Place) => a.id === b.id}
       onValueChange={(place: Place | null) =>
         onChange(place ? { id: place.id, name: nameOf(place) } : undefined)
       }
       onInputValueChange={(next: string) => setInput(next)}
-      onOpenChange={(open: boolean) => onOpenChange?.(open)}
+      onOpenChange={(next: boolean) => {
+        setOpen(next);
+        onOpenChange?.(next);
+      }}
+      onItemHighlighted={(place: Place | undefined) => {
+        highlighted.current = place;
+      }}
     >
       <label htmlFor={id} className="sr-only">
         {label}
@@ -170,6 +181,26 @@ export function PlaceSearch({
           showClear={Boolean(value)}
           clearLabel={clearLabel}
           showTrigger={false}
+          onKeyDown={(event) => {
+            // Enter with no row highlighted takes the top result, as a map
+            // search does; the list would otherwise close and drop the query.
+            // The results must be this query's, not the debounce's last.
+            const top = results[0];
+            if (
+              event.key !== 'Enter' ||
+              !open ||
+              highlighted.current ||
+              suggesting ||
+              !top ||
+              query.trim() !== input.trim()
+            )
+              return;
+            event.preventBaseUIHandler();
+            event.preventDefault();
+            onChange({ id: top.id, name: nameOf(top) });
+            setOpen(false);
+            onOpenChange?.(false);
+          }}
           className={cn(
             'w-full border-0 bg-transparent transition-[background-color,box-shadow] duration-150 ease-out-soft',
             // 16 px on touch screens stops iOS zooming into the field on focus.
@@ -225,12 +256,20 @@ export function PlaceSearch({
             {t('popular')}
           </p>
         )}
-        {/* Seven rows and a bit on desktop, so it reads as a list. */}
+        {/* Down to the panel's inner edge: the panel's own content fades out
+            while the list is open, so a shorter list left a blank slab of
+            glass under it (most of the sheet on a phone). The "Popular"
+            heading takes its share of the height too. */}
         <ComboboxList
           aria-labelledby={
             suggesting && suggestions.length > 0 ? `${id}-popular` : undefined
           }
-          className="max-h-[min(23.5rem,calc(var(--available-height)-0.5rem))] p-0"
+          className={cn(
+            'p-0',
+            suggesting && suggestions.length > 0
+              ? 'max-h-[calc(var(--available-height)-3rem)]'
+              : 'max-h-[calc(var(--available-height)-1.25rem)]',
+          )}
         >
           {(place: Place) => (
             <ComboboxItem

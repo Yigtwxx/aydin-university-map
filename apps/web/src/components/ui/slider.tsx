@@ -7,8 +7,12 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  getAriaValueText,
   ...props
-}: SliderPrimitive.Root.Props) {
+}: SliderPrimitive.Root.Props & {
+  /** What a screen reader says for a value (e.g. "23:45", not "23.75"). */
+  getAriaValueText?: SliderPrimitive.Thumb.Props['getAriaValueText'];
+}) {
   const _values = Array.isArray(value)
     ? value
     : Array.isArray(defaultValue)
@@ -40,6 +44,7 @@ function Slider({
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}
+            getAriaValueText={getAriaValueText}
             className="relative block size-3 shrink-0 rounded-full border border-ring bg-white ring-ring/50 transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none disabled:opacity-50"
           />
         ))}

@@ -28,9 +28,10 @@ import {
 } from '@/components/ui/popover';
 
 import { Slider } from '@/components/ui/slider';
+import { useHydrated } from '@/hooks/useHydrated';
 
 import type { Sky } from './hooks';
-import { campusHour, useEnvironmentStore } from './store';
+import { atCampusHour, campusHour, useEnvironmentStore } from './store';
 import { nextSunEvent } from './sun';
 import { WeatherSky } from './WeatherSky';
 import {
@@ -41,6 +42,8 @@ import {
 } from './weather';
 
 const CAMPUS_TZ = 'Europe/Istanbul';
+/** A fixed day whose label is as wide as a typical one ("Çar 15 Eki"). */
+const PLACEHOLDER_DAY = new Date('2026-10-15T09:00:00Z');
 
 const DAY_ICONS: Record<Condition, LucideIcon> = {
   clear: Sun,
@@ -149,16 +152,22 @@ export function StatusPill({
       minute: '2-digit',
       timeZone: CAMPUS_TZ,
     }).format(date);
-  const day = new Intl.DateTimeFormat(intl, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    timeZone: CAMPUS_TZ,
-  }).format(now);
+  const dayOf = (date: Date) =>
+    new Intl.DateTimeFormat(intl, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: CAMPUS_TZ,
+    }).format(date);
+  const day = dayOf(now);
   const number = new Intl.NumberFormat(intl, { maximumFractionDigits: 0 });
   const percent = new Intl.NumberFormat(intl, { style: 'percent' });
 
   const isDay = sky.phase === 'day' || sky.phase === 'golden';
+  // The page is prerendered and cached, so the server's clock (and its day
+  // or night icon) can be hours old, and hydration would keep it until the
+  // next minute. The button shows them from the first client render.
+  const hydrated = useHydrated();
   const liveCondition = weather ? conditionOf(weather.weather_code) : undefined;
   // The details are live readings, so the sun event is the real next one:
   // the sunrise while the sun is down, the sunset while it is up.
@@ -187,8 +196,8 @@ export function StatusPill({
         <span className="flex items-center gap-1.5">
           <WeatherIcon
             condition={condition}
-            isDay={isDay}
-            className={`hidden size-4 md:block ${iconTint(condition, isDay)}`}
+            isDay={hydrated ? isDay : true}
+            className={`hidden size-4 md:block ${iconTint(condition, hydrated ? isDay : true)}`}
             strokeWidth={2}
           />
           {weather ? (
@@ -209,25 +218,28 @@ export function StatusPill({
         </span>
         <span aria-hidden className="h-4 w-px bg-hairline" />
         <span className="flex items-center gap-1.5">
+          {/* Until then a same-width stand-in holds the pill's size. */}
           <time
-            dateTime={now.toISOString()}
-            suppressHydrationWarning
-            className="tabular leading-none font-semibold"
+            dateTime={hydrated ? now.toISOString() : undefined}
+            className={`tabular leading-none font-semibold ${hydrated ? '' : 'invisible'}`}
           >
-            {time(now)}
+            {hydrated ? time(now) : '00:00'}
           </time>
           {previewing ? (
             <span className="hidden rounded-full bg-route px-1.5 py-px text-2xs font-semibold text-on-route md:inline">
               {t('previewBadge')}
             </span>
           ) : (
-            <span className="hidden text-ink-muted capitalize xl:inline">
-              {day}
+            <span
+              className={`hidden text-ink-muted capitalize xl:inline ${hydrated ? '' : 'invisible'}`}
+            >
+              {hydrated ? day : dayOf(PLACEHOLDER_DAY)}
             </span>
           )}
         </span>
       </PopoverTrigger>
       <PopoverContent
+        aria-label={t('details')}
         align="end"
         sideOffset={10}
         className="glass-liquid relative isolate w-[min(21rem,calc(100vw-1rem))] gap-4 rounded-[18px] bg-transparent p-4 text-white ring-0 [--glass-shadow:var(--elevation-2)] [&_:focus-visible]:outline-white"
@@ -277,8 +289,8 @@ export function StatusPill({
             </Detail>
             <Detail icon={Eye} label={t('visibility')}>
               {weather.visibility_m >= 1000
-                ? `${number.format(weather.visibility_m / 1000)} km`
-                : `${number.format(weather.visibility_m)} m`}
+                ? `${number.format(weather.visibility_m / 1000)}\u00a0km`
+                : `${number.format(weather.visibility_m)}\u00a0m`}
             </Detail>
             <Detail icon={Cloud} label={t('clouds')}>
               {percent.format(weather.cloud_cover_pct / 100)}
@@ -328,6 +340,7 @@ export function StatusPill({
               max={23.75}
               step={0.25}
               value={[hour ?? campusHour(live)]}
+              getAriaValueText={(_, value) => time(atCampusHour(live, value))}
               onValueChange={(value) =>
                 setHour(Array.isArray(value) ? value[0] : value)
               }

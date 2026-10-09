@@ -147,11 +147,17 @@ export function sceneOf(place: Place): string {
  * Places worth a photo tile before the visitor types: the best-covered place
  * of each non-block category (more 360° spots means a bigger, better-known
  * place), so the main gate beats a side door and the hospital beats a ward.
+ * Only places a walk from the campus reaches (`reachable`): a key place must
+ * not end in "no route".
  */
-export function highlightsOf(places: Place[], limit = 4): Place[] {
-  const byCoverage = [...places].sort(
-    (a, b) => b.node_ids.length - a.node_ids.length,
-  );
+export function highlightsOf(
+  places: Place[],
+  limit = 4,
+  reachable: (place: Place) => boolean = () => true,
+): Place[] {
+  const byCoverage = places
+    .filter(reachable)
+    .sort((a, b) => b.node_ids.length - a.node_ids.length);
   const picked: Place[] = [];
   for (const category of CATEGORY_ORDER) {
     if (category === 'blocks' || category === 'outdoor' || category === 'rooms')
@@ -196,10 +202,11 @@ export const POPULAR_PLACE_IDS: readonly string[] = [
 export function popularOf(
   places: Place[],
   limit = POPULAR_PLACE_IDS.length,
+  reachable: (place: Place) => boolean = () => true,
 ): Place[] {
   const byId = new Map(places.map((p) => [p.id, p]));
   const picked = POPULAR_PLACE_IDS.flatMap((id) => byId.get(id) ?? []);
-  for (const place of highlightsOf(places, limit))
+  for (const place of highlightsOf(places, limit, reachable))
     if (!picked.includes(place)) picked.push(place);
   return picked.slice(0, limit);
 }

@@ -51,7 +51,12 @@ export function panelState({
 
 /** How a failed route is explained, and what the panel offers next. */
 export type RouteProblem =
-  'noStepFree' | 'noRoute' | 'unknownPlace' | 'offline' | 'unavailable';
+  | 'detached'
+  | 'noStepFree'
+  | 'noRoute'
+  | 'unknownPlace'
+  | 'offline'
+  | 'unavailable';
 
 export function routeProblem(
   state: 'offline' | 'error',
@@ -60,6 +65,8 @@ export function routeProblem(
 ): RouteProblem {
   if (state === 'offline') return 'offline';
   if (error instanceof RouteError) {
+    // No ramp would help: the street walk between them is not on the map.
+    if (error.kind === 'detached') return 'detached';
     // Indoors there is no lift data: say why, not "no way".
     if (error.kind === 'no_route')
       return avoidStairs ? 'noStepFree' : 'noRoute';

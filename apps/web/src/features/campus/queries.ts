@@ -1,12 +1,18 @@
 'use client';
 
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useCallback } from 'react';
 
 import { api } from '@/lib/api/client';
 import type { paths } from '@/lib/api/schema';
 import { assetBaseUrl } from '@/lib/assets';
 
 import { type Furniture, fetchFurniture } from './furniture';
+import { detachedEnd, onMainNetwork, walkNetworkOf } from './network';
 import { type Terrain, terrainOf } from './terrain';
 import {
   parseGraph,
@@ -27,8 +33,12 @@ export type RouteStep = RouteResponse['steps'][number];
 export type Place = JsonOk<paths['/places']['get']>[number];
 
 export class RouteError extends Error {
+  /**
+   * `detached`: one end lies off the campus walking network (the message is
+   * that end's place id).
+   */
   constructor(
-    readonly kind: 'no_route' | 'unknown_place' | 'unavailable',
+    readonly kind: 'no_route' | 'detached' | 'unknown_place' | 'unavailable',
     message: string,
   ) {
     super(message);
@@ -58,6 +68,20 @@ export function useCampusGraph() {
     },
     staleTime: Infinity,
   });
+}
+
+/**
+ * Whether a walk from the campus reaches a place (the dormitory's island is
+ * not reached yet). Every place counts while the graph loads.
+ */
+export function useOnCampusNetwork(): (place: Place) => boolean {
+  const { data: graph } = useCampusGraph();
+  // Computed once per graph (walkNetworkOf caches it).
+  const network = graph ? walkNetworkOf(graph) : undefined;
+  return useCallback(
+    (place: Place) => !network || onMainNetwork(network, place.node_ids),
+    [network],
+  );
 }
 
 export function useBuildings() {
@@ -127,7 +151,8 @@ export function usePlaces(query: string) {
     queryKey: ['places', q],
     queryFn: async () => {
       const { data, error } = await api.GET('/places', {
-        params: { query: { q, limit: 8 } },
+        // Enough to fill the list on a phone; it scrolls past that.
+        params: { query: { q, limit: 20 } },
       });
       if (error || !data)
         throw new RouteError('unavailable', 'places not available');
@@ -169,9 +194,28 @@ export function useRoute(
   target: string | undefined,
   avoidStairs: boolean,
 ) {
+  const client = useQueryClient();
   return useQuery<RouteResponse>({
     queryKey: ['route', source, target, avoidStairs],
     queryFn: async ({ signal }) => {
+      // Ends on two unconnected parts of the graph (the campus and the
+      // dormitory) have no walk between them: say so without asking.
+      const graph = client.getQueryData<CampusGraph>(['graph']);
+      if (graph) {
+        const directory = client.getQueryData<Place[]>(['places', '*']);
+        const nodesOf = (id: string) =>
+          directory?.find((place) => place.id === id)?.node_ids ?? [id];
+        const off = detachedEnd(
+          walkNetworkOf(graph),
+          nodesOf(source!),
+          nodesOf(target!),
+        );
+        if (off)
+          throw new RouteError(
+            'detached',
+            off === 'source' ? source! : target!,
+          );
+      }
       // A server that never answers must not keep the panel loading forever.
       const timeout = AbortSignal.timeout(ROUTE_TIMEOUT_MS);
       const result = await api
