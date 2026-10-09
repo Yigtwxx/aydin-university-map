@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import {
+  CanvasTexture,
   Color,
   type InstancedMesh,
   Object3D,
@@ -18,8 +19,9 @@ import { openRing } from './geometry';
 import { useTerrain } from './queries';
 import { raisedAreaGeometry, type RaisedStyle } from './raisedAreas';
 import type { Terrain } from './terrain';
-import { type TreeRecord, treeShape } from './treeShape';
+import { positionHash, type TreeRecord, treeShape } from './treeShape';
 import type { Greenery as GreeneryData } from './types';
+import { crownGeometry, woodTrees } from './woodland';
 
 const AREA_COLORS: Record<string, string> = {
   pitch: '#6FA85A',
@@ -46,11 +48,17 @@ const RAISED: Record<string, RaisedStyle> = {
   flowerbed: { top: BLOOMS, side: FOLIAGE, depth: BED_M },
   pool: { top: WATER, side: COPING, depth: POOL_M },
 };
-const CANOPY = '#5F8F4E';
 const TRUNK = '#6E5A44';
 
 export function Greenery({ data }: { data: GreeneryData }) {
   const terrain = useTerrain();
+  const woods = useMemo(
+    () =>
+      woodTrees(
+        data.areas.filter((a) => a.kind === 'forest').map((a) => a.outline),
+      ),
+    [data],
+  );
   const areas = useMemo(() => {
     const byColor = new Map<string, ShapeGeometry[]>();
     for (const area of data.areas) {
@@ -110,7 +118,7 @@ export function Greenery({ data }: { data: GreeneryData }) {
           style={style}
         />
       ))}
-      <Trees trees={data.trees} terrain={terrain} />
+      <Trees trees={data.trees} woods={woods} terrain={terrain} />
     </>
   );
 }
@@ -149,10 +157,50 @@ function RaisedAreas({
   );
 }
 
-function Trees({ trees, terrain }: { trees: TreeRecord[]; terrain: Terrain }) {
+/** Crown greens, picked per tree: plane, a deeper broadleaf, a yellower one. */
+const CANOPY_TONES = ['#5F8F4E', '#4E8046', '#73984F'] as const;
+
+interface Stand {
+  key: string;
+  trees: TreeRecord[];
+  /** Lobe subdivision: 1 near the campus, 0 for the far woods. */
+  detail: number;
+}
+
+function Trees({
+  trees,
+  woods,
+  terrain,
+}: {
+  trees: TreeRecord[];
+  woods: TreeRecord[];
+  terrain: Terrain;
+}) {
+  const stands: Stand[] = [
+    { key: 'trees', trees, detail: 1 },
+    { key: 'woods', trees: woods, detail: 0 },
+  ];
+  return (
+    <>
+      {stands.map(
+        (stand) =>
+          stand.trees.length > 0 && (
+            <TreeStand key={stand.key} stand={stand} terrain={terrain} />
+          ),
+      )}
+      <TreeShade trees={[...trees, ...woods]} terrain={terrain} />
+    </>
+  );
+}
+
+function TreeStand({ stand, terrain }: { stand: Stand; terrain: Terrain }) {
+  const { trees, detail } = stand;
   const canopy = useRef<InstancedMesh>(null);
   const trunk = useRef<InstancedMesh>(null);
+  const crown = useMemo(() => crownGeometry(detail), [detail]);
+  useEffect(() => () => crown.dispose(), [crown]);
 
+  // Lay the instances; again for a new crown, which rebuilds the mesh.
   useEffect(() => {
     if (!canopy.current || !trunk.current) return;
     const dummy = new Object3D();
@@ -175,11 +223,16 @@ function Trees({ trees, terrain }: { trees: TreeRecord[]; terrain: Terrain }) {
       dummy.rotation.set(0, shape.yaw, 0);
       dummy.updateMatrix();
       canopy.current!.setMatrixAt(i, dummy.matrix);
+      const tone =
+        CANOPY_TONES[
+          Math.floor(positionHash(east, north, 5) * CANOPY_TONES.length)
+        ]!;
       canopy.current!.setColorAt(
         i,
-        tint.set(CANOPY).offsetHSL(0, 0, shape.shade),
+        tint.set(tone).offsetHSL(0, 0, shape.shade),
       );
       dummy.position.set(x, ground + shape.trunkHeight / 2, z);
+      dummy.rotation.set(0, 0, 0);
       dummy.scale.set(shape.trunkRadius, shape.trunkHeight, shape.trunkRadius);
       dummy.updateMatrix();
       trunk.current!.setMatrixAt(i, dummy.matrix);
@@ -191,19 +244,17 @@ function Trees({ trees, terrain }: { trees: TreeRecord[]; terrain: Terrain }) {
     // Bounds from the instances, so frustum culling sees raised trees.
     canopy.current.computeBoundingSphere();
     trunk.current.computeBoundingSphere();
-  }, [trees, terrain]);
+  }, [trees, terrain, crown]);
 
-  if (trees.length === 0) return null;
   return (
     <>
       <instancedMesh
         ref={canopy}
-        args={[undefined, undefined, trees.length]}
+        args={[crown, undefined, trees.length]}
         castShadow
         receiveShadow
       >
-        <icosahedronGeometry args={[1, 1]} />
-        <meshStandardMaterial roughness={0.9} flatShading />
+        <meshStandardMaterial vertexColors roughness={0.85} />
       </instancedMesh>
       <instancedMesh
         ref={trunk}
@@ -215,4 +266,87 @@ function Trees({ trees, terrain }: { trees: TreeRecord[]; terrain: Terrain }) {
       </instancedMesh>
     </>
   );
+}
+
+/**
+ * A soft dark disc on the ground under every crown: the shade a tree keeps
+ * around its foot whatever the sun does (overcast, night, outside the sun's
+ * shadow map), so trees sit on the ground instead of floating.
+ */
+function TreeShade({
+  trees,
+  terrain,
+}: {
+  trees: TreeRecord[];
+  terrain: Terrain;
+}) {
+  const mesh = useRef<InstancedMesh>(null);
+  const texture = useMemo(() => shadeTexture(), []);
+  useEffect(() => () => texture?.dispose(), [texture]);
+
+  useEffect(() => {
+    if (!mesh.current) return;
+    const dummy = new Object3D();
+    trees.forEach((tree, i) => {
+      const [east, north] = tree;
+      const shape = treeShape(tree);
+      const [x, ground, z] = enuToWorld(
+        east,
+        north,
+        terrain.heightAt(east, north),
+      );
+      // Above a lawn's top too, so trees planted in lawns keep their shade.
+      dummy.position.set(x, ground + KERB_M + 0.03, z);
+      dummy.rotation.set(-Math.PI / 2, 0, 0);
+      const r = shape.crownRadius * 1.25;
+      dummy.scale.set(r, r, 1);
+      dummy.updateMatrix();
+      mesh.current!.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.current.instanceMatrix.needsUpdate = true;
+    mesh.current.computeBoundingSphere();
+  }, [trees, terrain]);
+
+  if (!texture || trees.length === 0) return null;
+  return (
+    <instancedMesh
+      ref={mesh}
+      args={[undefined, undefined, trees.length]}
+      renderOrder={layers.greenery + 0.5}
+    >
+      <planeGeometry args={[2, 2]} />
+      <meshBasicMaterial
+        color="#1E2A18"
+        alphaMap={texture}
+        transparent
+        opacity={0.32}
+        {...OVERLAY}
+      />
+    </instancedMesh>
+  );
+}
+
+/** Radial falloff for the shade under a tree (white = dark), or none in tests. */
+function shadeTexture(): CanvasTexture | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return undefined;
+  const g = ctx.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2,
+  );
+  g.addColorStop(0, '#FFFFFF');
+  g.addColorStop(0.45, '#B0B0B0');
+  g.addColorStop(1, '#000000');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  return new CanvasTexture(canvas);
 }
