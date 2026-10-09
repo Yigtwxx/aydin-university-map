@@ -1,6 +1,6 @@
 'use client';
 
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   AdditiveBlending,
@@ -269,10 +269,15 @@ function FurnitureScene({
   useEffect(() => {
     lit.current = { lens: materials.lens, pool: materials.pool };
   }, [materials]);
+  // On demand: dusk or dawn asks for frames until the lamps settle.
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => invalidate(), [night, invalidate]);
   useFrame((_, delta) => {
     const target = night ? 1 : 0;
     const k = reducedMotion ? 1 : 1 - Math.exp(-delta * 1.5);
     glow.current += (target - glow.current) * k;
+    if (Math.abs(target - glow.current) > 0.002) invalidate();
+    else glow.current = target;
     const g = glow.current;
     if (lit.current) {
       lit.current.lens.emissiveIntensity = 2.6 * g;

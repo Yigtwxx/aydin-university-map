@@ -1,11 +1,7 @@
 'use client';
 
-import {
-  CameraControls,
-  Environment,
-  PerformanceMonitor,
-} from '@react-three/drei';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { CameraControls, Environment } from '@react-three/drei';
+import { addTail, Canvas, useFrame, useThree } from '@react-three/fiber';
 import {
   Bloom,
   EffectComposer,
@@ -41,6 +37,7 @@ import { resetIntroClock } from './opening';
 import { palette } from './constants';
 import { enuToWorld } from './coords';
 import { facadeUniforms, patchFacade } from './facadeMaterial';
+import { createFrameRateWatch } from './frameRate';
 import {
   type EnuPoint,
   type FreeView,
@@ -85,6 +82,11 @@ const OVERVIEW_MIN_M = 260;
 const ROUTE_MIN_M = 170;
 /** Nearest the near plane comes; also its value close to the ground. */
 const NEAR_MIN_M = 2;
+/**
+ * The canvas draws on demand; a frame this often (ms) is the safety net for
+ * a change that asked for none (an effect after a mount, a late upload).
+ */
+const HEARTBEAT_MS = 1000;
 /**
  * Heights no solid geometry rises above: the drawn blocks top out at ~35 m,
  * the photoreal tiles carry the district's towers. Rain may be clipped near
@@ -157,6 +159,10 @@ export function CampusScene(props: SceneProps) {
         position: INTRO_POSITION,
       }}
       gl={{ antialias: false, powerPreference: 'high-performance' }}
+      // A still map draws nothing: the GPU idles instead of redrawing the same
+      // view 60-120 times a second. Whatever moves asks for its frames (the
+      // controls, the route's pulse, rain, the opening, eases).
+      frameloop="demand"
     >
       <SceneContents {...props} />
     </Canvas>
@@ -198,6 +204,9 @@ function SceneContents({
   // sheet must not refit the camera).
   const size = useThree((s) => s.size);
   const fov = useThree((s) => (s.camera as PerspectiveCamera).fov);
+  // The canvas draws on demand. A transition wakes it through the controls'
+  // events; a move without one has to ask for its frame.
+  const invalidate = useThree((s) => s.invalidate);
   const view = useRef<FreeView>({ tanH: 0.3, tanV: 0.3 });
   // Framing waits for the canvas to be measured, or it fits the wrong shape.
   const measured = size.width > 0 && size.height > 0;
@@ -312,7 +321,8 @@ function SceneContents({
       z,
       false,
     );
-  }, [playsOpening, glided, measured, campusFrame]);
+    invalidate();
+  }, [playsOpening, glided, measured, campusFrame, invalidate]);
 
   // Glide in on first load, then frame the route, the step being previewed
   // (from behind the walker, facing the next node) or the whole network.
@@ -358,6 +368,7 @@ function SceneContents({
         z + dz * 18,
         animate,
       );
+      invalidate();
       return;
     }
     // A route frames all of itself, wherever it goes, from steep enough
@@ -386,6 +397,7 @@ function SceneContents({
       cz,
       animate,
     );
+    invalidate();
   }, [
     graph,
     route,
@@ -401,6 +413,7 @@ function SceneContents({
     measured,
     campusFrame,
     masses,
+    invalidate,
   ]);
 
   // The opening's grade; a pass-through afterwards, so it stays mounted
@@ -466,6 +479,7 @@ function SceneContents({
         />
       ))}
       <OverlayProjector />
+      <Heartbeat />
       {precipitation && !reducedMotion && (
         <Precipitation kind={precipitation} />
       )}
@@ -484,7 +498,7 @@ function SceneContents({
         restSmoothTime={SMOOTH_S}
       />
       {!assembling && !lean && (
-        <PerformanceMonitor
+        <FrameRateGuard
           onDecline={() => {
             setLean(true);
             setDpr(1);
@@ -524,6 +538,44 @@ function SceneContents({
 }
 
 /**
+ * Turns the effects down when drawing is slow (frameRate.ts), timing only
+ * frames drawn back to back: the first frame after the loop has stopped
+ * spans idle time.
+ */
+function FrameRateGuard({ onDecline }: { onDecline: () => void }) {
+  const watch = useMemo(() => createFrameRateWatch(), []);
+  const paused = useRef(true);
+  const declined = useRef(false);
+  useEffect(
+    () =>
+      addTail(() => {
+        paused.current = true;
+      }),
+    [],
+  );
+  useFrame((_, delta) => {
+    if (paused.current) {
+      paused.current = false;
+      return;
+    }
+    if (declined.current || !watch.frame(delta)) return;
+    declined.current = true;
+    onDecline();
+  });
+  return null;
+}
+
+/** A frame every `HEARTBEAT_MS`, however still the map is. */
+function Heartbeat() {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    const id = window.setInterval(() => invalidate(), HEARTBEAT_MS);
+    return () => window.clearInterval(id);
+  }, [invalidate]);
+  return null;
+}
+
+/**
  * Shifts the projection so the camera target sits in the middle of the
  * uncovered part of the screen (right of the directions panel, above the 360°
  * view) at every zoom level, easing when panels open or close.
@@ -538,6 +590,12 @@ function ViewOffset({
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const size = useThree((s) => s.size);
   const offset = useRef({ x: 0, y: 0, width: 0, height: 0 });
+  // On demand: a panel opening or closing asks for the frames of its ease.
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(
+    () => invalidate(),
+    [insets.left, insets.bottom, size.width, size.height, invalidate],
+  );
   useFrame((_, delta) => {
     const o = offset.current;
     const tx = -insets.left / 2;
@@ -551,6 +609,7 @@ function ViewOffset({
       o.width === size.width &&
       o.height === size.height;
     if (settled) return;
+    invalidate();
     offset.current = { x, y, width: size.width, height: size.height };
     camera.setViewOffset(
       size.width,

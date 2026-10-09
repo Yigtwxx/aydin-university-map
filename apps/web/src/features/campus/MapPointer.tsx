@@ -98,7 +98,7 @@ export function MapPointer({
   const position = useRef(new Vector3());
   const target = useRef(new Vector3());
   const shift = useRef(new Vector3());
-  useFrame((_, delta) => {
+  useFrame(({ invalidate }, delta) => {
     const v = glide.current;
     const ctl = controls.current;
     if (v.lengthSq() === 0 || !ctl) return;
@@ -119,6 +119,8 @@ export function MapPointer({
     glidedTo.current.copy(t);
     v.multiplyScalar(Math.exp(-step / GLIDE_TAU_S));
     if (edge.lengthSq() > 0 || v.length() < GLIDE_STOP_M_S) v.set(0, 0, 0);
+    // On demand: the next frame of the glide, until it stops.
+    invalidate();
   }, -2);
 
   return null;
@@ -133,7 +135,7 @@ interface Shared {
 /** Hooks the gestures to the controls and the page; returns the undo. */
 function attach(
   ctl: CameraControls,
-  { camera, gl, events }: RootState,
+  { camera, gl, events, invalidate }: RootState,
   shared: Shared,
   restSmoothTime: number,
 ): () => void {
@@ -197,6 +199,9 @@ function attach(
     next.target.add(shift);
     const { position: p, target: t } = next;
     void ctl.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, animate);
+    // The canvas draws on demand, and a move without a transition fires no
+    // event the controls' wrapper would draw on.
+    invalidate();
   };
   /** Zooms by `scale` about the point under (x, y), easing. */
   const zoomAt = (x: number, y: number, scale: number, level?: number) => {
@@ -261,6 +266,7 @@ function attach(
         now.target.z,
         false,
       );
+      invalidate();
       const anchor = pickPoint(
         rayAt(event.clientX, event.clientY, now),
         occluders,
@@ -310,6 +316,7 @@ function attach(
     if (v.length() > fastest) v.setLength(fastest);
     shared.glide.current.copy(v);
     shared.glidedTo.current.copy(from.target);
+    invalidate();
     // The marker the drag began on must not open as it is let go.
     if (onMarker) {
       const swallow = (click: MouseEvent) => {

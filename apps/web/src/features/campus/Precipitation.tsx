@@ -104,10 +104,12 @@ export function Precipitation({ kind }: { kind: 'rain' | 'snow' }) {
     [snow, style.speed, style.length],
   );
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock, invalidate }) => {
     const m = material.current;
     if (!m) return;
     m.uniforms.uTime!.value = clock.elapsedTime;
+    // The canvas draws on demand: falling rain or snow keeps it drawing.
+    invalidate();
     if (controls?.getTarget) {
       controls.getTarget(target);
       (m.uniforms.uCenter!.value as Vector3).set(target.x, 0, target.z);

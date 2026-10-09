@@ -207,7 +207,7 @@ export function RouteRibbon({
     started.current = undefined;
   }, [geometry]);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock, invalidate }) => {
     const t = clock.elapsedTime;
     started.current ??= t;
     const progress = reducedMotion
@@ -220,6 +220,8 @@ export function RouteRibbon({
       material.uniforms.uTime!.value = reducedMotion ? 0 : t;
       material.uniforms.uDrawn!.value = drawn;
     }
+    // The canvas draws on demand: a shown route keeps its pulse moving.
+    if (!reducedMotion) invalidate();
   });
 
   if (!geometry || !shadow) return null;

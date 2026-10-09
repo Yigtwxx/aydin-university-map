@@ -1,5 +1,6 @@
 'use client';
 
+import { invalidate } from '@react-three/fiber';
 import { cn } from 'cn';
 import { Earth, Minus, Plus, ScanSearch } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -32,6 +33,11 @@ export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {
     setPhotoreal,
   } = useCameraStore();
   const animate = !reducedMotion;
+  // The map draws on demand. An animated move wakes it through the controls'
+  // transition; an instant one (reduced motion) asks for its frame here.
+  const moved = () => {
+    if (!animate) invalidate();
+  };
 
   return (
     <Glass
@@ -40,7 +46,10 @@ export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {
     >
       <ControlButton
         label={t('north')}
-        onClick={() => void controls?.rotateAzimuthTo(0, animate)}
+        onClick={() => {
+          void controls?.rotateAzimuthTo(0, animate);
+          moved();
+        }}
       >
         <svg
           viewBox="0 0 24 24"
@@ -58,17 +67,19 @@ export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {
       <div className="hidden flex-col md:flex">
         <ControlButton
           label={t('zoomIn')}
-          onClick={() =>
-            void controls?.dolly(controls.distance * ZOOM_IN, animate)
-          }
+          onClick={() => {
+            void controls?.dolly(controls.distance * ZOOM_IN, animate);
+            moved();
+          }}
         >
           <Plus className="size-4.5" strokeWidth={2} />
         </ControlButton>
         <ControlButton
           label={t('zoomOut')}
-          onClick={() =>
-            void controls?.dolly(controls.distance * ZOOM_OUT, animate)
-          }
+          onClick={() => {
+            void controls?.dolly(controls.distance * ZOOM_OUT, animate);
+            moved();
+          }}
         >
           <Minus className="size-4.5" strokeWidth={2} />
         </ControlButton>
@@ -83,6 +94,7 @@ export function MapControls({ reducedMotion }: { reducedMotion: boolean }) {
             topDown ? POLAR_3D : POLAR_TOP_DOWN,
             animate,
           );
+          moved();
           setTopDown(!topDown);
         }}
         className="text-xs font-semibold tracking-heading"

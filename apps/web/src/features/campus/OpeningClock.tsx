@@ -81,7 +81,9 @@ export function OpeningClock({ onGlide, onReveal, onDone }: OpeningClockProps) {
     };
   }, []);
 
-  useFrame((_, delta) => {
+  useFrame(({ invalidate }, delta) => {
+    // The canvas draws on demand: the opening asks for every frame it plays.
+    invalidate();
     if (frames.current < WARMUP_FRAMES) {
       frames.current++;
       return;
