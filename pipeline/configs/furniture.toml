@@ -331,6 +331,11 @@ steps = 8
 base_z = 4.0
 rise_m = 1.7
 railings = "none"
+# 2026-10-09: drawn as a fan wedge. Its right side is the centre stair's left
+# side. Its top runs through the rim's bend at (51.6,-13.7) and tucks under
+# the plaza past it. As a rectangle it left a 7 m2 wedge open by the stair
+# and a 1.3 m strip of wall below the rim.
+corners = { foot_left = [43.79, -12.82], foot_right = [47.6, -17.18], top_left = [49.28, -9.0], top_right = [52.8, -16.13] }
 note = "2026-10-08: dark stone seating tiers below the Starbucks kiosk, north wedge (the tiers curve round the café floor; three straight pieces). Foot = the tiers' base behind the yellow line: 508 monoplot (43.3,-12.2)-(45.0,-14.6), 521 (44.9,-13.3); top rim from 521 (48.6,-9.6)-(51.0,-13.1). 8 tiers counted from 509. Foot +-1.5 m: two-camera fixes put it 1-2 m east of the 508 monoplot"
 evidence = [{ scene = "scene_428508", ath = 60, note = "tier base 8-9 m at bearings 25-43" }, { scene = "scene_428521", ath = 305, note = "tier rim 4.3-7.2 m at bearings 179-211" }]
 
@@ -343,6 +348,9 @@ steps = 15
 base_z = 4.0
 rise_m = 1.7
 railings = "none"
+# 2026-10-09: its own rectangle, written out so the tiers either side share
+# its corners exactly.
+corners = { foot_left = [47.6, -17.18], foot_right = [48.2, -20.12], top_left = [52.8, -16.13], top_right = [53.4, -19.07] }
 note = "2026-10-08: the central stair cut through the tiers, straight up to the Starbucks kiosk (no handrails seen). Base corners triangulated 508+509+510: (48.3,-16.7) and (48.9,-20.0); 508 monoplot (46.6,-17.5)/(47.3,-20.1); used the mean. Top rim from 521 ~(53.8,-17.9)"
 evidence = [{ scene = "scene_428508", ath = 100, note = "central stair base at bearings 66 and 86" }, { scene = "scene_428509", ath = 343, note = "same corners at bearings 46 and 56.5" }, { scene = "scene_428510", ath = 107, note = "same corners at bearings 51 and 57, 25 m" }]
 
@@ -355,6 +363,10 @@ steps = 8
 base_z = 4.0
 rise_m = 1.7
 railings = "none"
+# 2026-10-09: drawn as a fan wedge. Its left side is the centre stair's
+# right side. Its top runs through the rim's bend at (53.3,-22.5) and tucks
+# under the plaza towards the ramp.
+corners = { foot_left = [48.2, -20.12], foot_right = [48.06, -25.63], top_left = [53.4, -19.07], top_right = [53.23, -25.03] }
 note = "2026-10-08: south wedge of the tiers, ending at the retaining wall of the curved café-south ramp. Foot from 508 (47.7,-23.5)-(47.4,-25.9) and 509 (45.1..47.2, -25.5..-26.8); SE top corner = where the ramp's inner rail meets the rim railing, triangulated (53,-25.4) from 509 + 508/510"
 evidence = [{ scene = "scene_428508", ath = 135, note = "tier base 8.7-9.6 m at bearings 109-123" }, { scene = "scene_428509", ath = 2, note = "8 tiers, ramp rail meeting the rim railing at bearing 79" }]
 

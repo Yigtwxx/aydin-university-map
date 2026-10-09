@@ -114,6 +114,38 @@ describe('createTerrain', () => {
     expect(terrain.heightAt(1, 10)).toBe(1.5);
   });
 
+  it('climbs a fanned flight across its whole outline, not just its line', () => {
+    const terrain = createTerrain(
+      furniture({
+        stairs: [
+          {
+            id: 'tiers',
+            foot: [-4, 10],
+            top: [0, 10],
+            width_m: 3,
+            steps: 8,
+            base_z: 0,
+            rise_m: 1.5,
+            railings: 'none',
+            // The top widened north to meet a neighbour.
+            corners: {
+              foot_left: [-4, 11.5],
+              foot_right: [-4, 8.5],
+              top_left: [0, 13.5],
+              top_right: [0, 8.5],
+            },
+          },
+        ],
+      }),
+    );
+    expect(terrain.heightAt(-4, 10)).toBeCloseTo(0);
+    expect(terrain.heightAt(0, 10)).toBeCloseTo(1.5);
+    // In the widened part, outside the rectangle round the walking line.
+    expect(terrain.heightAt(-1, 12.5)).toBeCloseTo(1.125);
+    // Past the fanned side: the street.
+    expect(terrain.heightAt(-2, 14)).toBe(0);
+  });
+
   it('falls away down a slope-edged terrace bank', () => {
     const terrain = createTerrain(
       furniture({

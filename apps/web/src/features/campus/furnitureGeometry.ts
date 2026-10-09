@@ -24,6 +24,7 @@ import { PAVE, type Pave, paveOf } from './paving';
 import {
   distanceToRing,
   type Flight,
+  flightCorners,
   pointInRing,
   signedArea,
   standingHeight,
@@ -209,17 +210,21 @@ export function flightGaps(
   const uy = dy / len;
   const gaps: [number, number][] = [];
   for (const f of flights) {
-    for (const [end, height] of [
-      [f.top, f.base + f.rise],
-      [f.foot, f.base],
+    const c = flightCorners(f);
+    for (const [l, r, height] of [
+      [c.topLeft, c.topRight, f.base + f.rise],
+      [c.footLeft, c.footRight, f.base],
     ] as const) {
       if (Math.abs(height - level) > 0.35) continue;
-      const rx = end[0] - a[0];
-      const ry = end[1] - a[1];
-      if (Math.abs(ux * ry - uy * rx) > 0.9) continue;
-      const half = f.width / 2 + 0.05;
-      const s1 = (rx + f.left[0] * half) * ux + (ry + f.left[1] * half) * uy;
-      const s2 = (rx - f.left[0] * half) * ux + (ry - f.left[1] * half) * uy;
+      const mx = (l[0] + r[0]) / 2 - a[0];
+      const my = (l[1] + r[1]) / 2 - a[1];
+      if (Math.abs(ux * my - uy * mx) > 0.9) continue;
+      // The end's corners, 5 cm wider, projected onto the edge.
+      const ex = r[0] - l[0];
+      const ey = r[1] - l[1];
+      const k = 0.05 / (Math.hypot(ex, ey) || 1);
+      const s1 = (l[0] - ex * k - a[0]) * ux + (l[1] - ey * k - a[1]) * uy;
+      const s2 = (r[0] + ex * k - a[0]) * ux + (r[1] + ey * k - a[1]) * uy;
       const lo = Math.max(0, Math.min(s1, s2) / len);
       const hi = Math.min(1, Math.max(s1, s2) / len);
       if (hi > lo) gaps.push([lo, hi]);
@@ -405,25 +410,56 @@ export function stairTreads(
   return { riser, going, treads };
 }
 
-/** A point in a flight's frame (along, to the left, height) in the world. */
+/**
+ * A point in a flight's frame (along, to the left, height) in the world. A
+ * fanned flight maps the frame onto its corners (bilinear), so its treads
+ * widen or narrow across it and its sides follow the neighbours'.
+ */
 function inFlight(f: Flight, along: number, left: number, h: number): V3 {
-  return w(
-    f.foot[0] + f.dir[0] * along + f.left[0] * left,
-    f.foot[1] + f.dir[1] * along + f.left[1] * left,
-    h,
+  const c = f.corners;
+  if (!c)
+    return w(
+      f.foot[0] + f.dir[0] * along + f.left[0] * left,
+      f.foot[1] + f.dir[1] * along + f.left[1] * left,
+      h,
+    );
+  const u = along / f.run;
+  const v = (left / (f.width / 2) + 1) / 2;
+  const p = lerp2(
+    lerp2(c.footRight, c.footLeft, v),
+    lerp2(c.topRight, c.topLeft, v),
+    u,
   );
+  return w(p[0], p[1], h);
+}
+
+/** Outward plan normal of the edge a→b, turned right of it. */
+function rightOf(a: XY, b: XY): XY {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len = Math.hypot(dx, dy) || 1;
+  return [dy / len, -dx / len];
 }
 
 function addStairs(faces: Faces, f: Flight, steps: number): void {
   const c = furnitureColors;
   const { riser, going, treads } = stairTreads(f, steps);
   const half = f.width / 2;
-  const down = wDir([-f.dir[0], -f.dir[1]]);
-  const left = wDir(f.left);
-  const right = wDir([-f.left[0], -f.left[1]]);
+  const corners = flightCorners(f);
+  // Sides and ends face out of the outline (a fanned flight's are skewed).
+  const left = wDir(rightOf(corners.topLeft, corners.footLeft));
+  const right = wDir(rightOf(corners.footRight, corners.topRight));
+  const ahead = wDir(rightOf(corners.topRight, corners.topLeft));
   const bottom = f.base - BURY_M;
   const nose = Math.min(NOSING_M, going * 0.3);
   for (const { from, to, top } of treads) {
+    const u = from / f.run;
+    const down = wDir(
+      rightOf(
+        lerp2(corners.footLeft, corners.topLeft, u),
+        lerp2(corners.footRight, corners.topRight, u),
+      ),
+    );
     const quad = (a0: number, a1: number, color: string) =>
       faces.add(
         [
@@ -471,7 +507,7 @@ function addStairs(faces: Faces, f: Flight, steps: number): void {
       inFlight(f, f.run, half, f.base + f.rise),
     ],
     c.wall,
-    wDir(f.dir),
+    ahead,
   );
 }
 

@@ -43,6 +43,14 @@ export interface Terrace {
   bank_m?: number | null;
 }
 
+/** A flight's drawn outline when it is not a rectangle (left walking up). */
+export interface StairCorners {
+  foot_left: Point;
+  foot_right: Point;
+  top_left: Point;
+  top_right: Point;
+}
+
 /** A straight flight: centreline from its foot to its top. */
 export interface Stairs {
   id: string;
@@ -56,6 +64,8 @@ export interface Stairs {
   /** Height climbed in total. */
   rise_m: number;
   railings: RailSide;
+  /** Tiers cut to meet their neighbours; foot/top stay the walking line. */
+  corners?: StairCorners | null;
 }
 
 export interface Ramp {
@@ -153,6 +163,7 @@ function normalise(raw: Partial<Furniture>): Furniture {
       ...s,
       base_z: s.base_z ?? 0,
       railings: s.railings ?? 'none',
+      corners: s.corners ?? null,
     })),
     ramps: (raw.ramps ?? []).map((r) => ({
       ...r,

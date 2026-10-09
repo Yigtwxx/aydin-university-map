@@ -90,6 +90,26 @@ class Terrace(BaseModel):
     )
 
 
+class StairCorners(BaseModel):
+    """A flight's drawn outline when it is not a rectangle.
+
+    Left and right as seen walking up. Tiers that fan round a curve are cut
+    to meet their neighbours and the rim they climb to, with no wedge left
+    open between them.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    foot_left: Point
+    foot_right: Point
+    top_left: Point
+    top_right: Point
+
+
+def _cross(o: Point, a: Point, b: Point) -> float:
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+
 class Stairs(BaseModel):
     """A straight flight: centreline from its foot to its top."""
 
@@ -103,6 +123,13 @@ class Stairs(BaseModel):
     base_z: float = Field(default=0.0, description="Ground height at the foot")
     rise_m: float = Field(gt=0.0, le=20.0, description="Height climbed in total")
     railings: Side = Side.NONE
+    corners: StairCorners | None = Field(
+        default=None,
+        description=(
+            "Drawn outline when the flight is not a rectangle; foot, top and "
+            "width stay the walking line"
+        ),
+    )
 
     @property
     def run_m(self) -> float:
@@ -115,6 +142,21 @@ class Stairs(BaseModel):
     def _has_length(self) -> "Stairs":
         if self.run_m < 0.25:
             raise ValueError(f"stairs {self.id}: foot and top coincide")
+        return self
+
+    @model_validator(mode="after")
+    def _corners_wind_upwards(self) -> "Stairs":
+        """The corners make a convex quad, left corners left of the climb."""
+        c = self.corners
+        if c is None:
+            return self
+        quad = [c.foot_right, c.top_right, c.top_left, c.foot_left]
+        turns = [_cross(quad[i - 2], quad[i - 1], quad[i]) for i in range(4)]
+        if not all(t > 0 for t in turns):
+            raise ValueError(
+                f"stairs {self.id}: corners must run foot_right, top_right, "
+                "top_left, foot_left anticlockwise (left is left walking up)"
+            )
         return self
 
 

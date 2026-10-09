@@ -153,6 +153,27 @@ describe('terraces', () => {
     expect(flightGaps([0, 30], [0, 0], 2.8, terrain.flights)).toEqual([]);
   });
 
+  it('opens the coping along a fanned flight’s whole top edge', () => {
+    const terrain = createTerrain(
+      furniture({
+        stairs: [
+          {
+            ...flight,
+            corners: {
+              foot_left: [flight.foot[0], 11.5],
+              foot_right: [flight.foot[0], 8.5],
+              top_left: [0, 13.5],
+              top_right: [0, 8.5],
+            },
+          },
+        ],
+      }),
+    );
+    const [gap] = flightGaps([0, 30], [0, 0], 1.5, terrain.flights);
+    expect(gap![0] * 30).toBeCloseTo(30 - 13.55, 1);
+    expect(gap![1] * 30).toBeCloseTo(30 - 8.45, 1);
+  });
+
   it('draws a slope edge as a bank reaching out from the outline', () => {
     const data = furniture({
       terraces: [{ id: 'lawn', outline, z_m: 1, edge: 'slope' }],

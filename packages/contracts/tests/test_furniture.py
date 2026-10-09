@@ -30,6 +30,21 @@ def test_stairs_need_a_length() -> None:
         _stairs(top=(0.1, 0.0))
 
 
+def test_stairs_corners_take_a_fanned_outline() -> None:
+    corners = {"foot_left": (-1.5, 0.0), "foot_right": (1.5, 0.0),
+               "top_left": (-2.5, 4.0), "top_right": (1.5, 4.0)}  # fmt: skip
+    flight = _stairs(corners=corners)
+    assert flight.corners is not None, "corners should be kept"
+    assert flight.corners.top_left == (-2.5, 4.0), f"got {flight.corners}"
+
+
+def test_stairs_corners_reject_left_and_right_swapped() -> None:
+    corners = {"foot_left": (1.5, 0.0), "foot_right": (-1.5, 0.0),
+               "top_left": (1.5, 4.0), "top_right": (-1.5, 4.0)}  # fmt: skip
+    with pytest.raises(ValidationError, match="anticlockwise"):
+        _stairs(corners=corners)
+
+
 def test_ids_are_unique_across_groups() -> None:
     bench = Item(id="s1", kind=ItemKind.BENCH, at=(1.0, 1.0))
     with pytest.raises(ValidationError, match="duplicate"):

@@ -30,6 +30,18 @@ export interface Flight {
   width: number;
   base: number;
   rise: number;
+  /**
+   * The drawn outline when it is not the rectangle round the walking line
+   * (tiers fanned to meet their neighbours); left as seen walking up.
+   */
+  corners?: FlightCorners;
+}
+
+export interface FlightCorners {
+  footLeft: XY;
+  footRight: XY;
+  topLeft: XY;
+  topRight: XY;
 }
 
 /** A terrace ready to draw and to answer heights. */
@@ -119,6 +131,7 @@ export function flightOf(f: Stairs | Ramp, kind: Flight['kind']): Flight {
   const dy = f.top[1] - f.foot[1];
   const run = Math.hypot(dx, dy) || 1;
   const dir: XY = [dx / run, dy / run];
+  const c = 'corners' in f ? f.corners : null;
   return {
     id: f.id,
     kind,
@@ -130,7 +143,66 @@ export function flightOf(f: Stairs | Ramp, kind: Flight['kind']): Flight {
     width: f.width_m,
     base: f.base_z,
     rise: f.rise_m,
+    ...(c && {
+      corners: {
+        footLeft: c.foot_left,
+        footRight: c.foot_right,
+        topLeft: c.top_left,
+        topRight: c.top_right,
+      },
+    }),
   };
+}
+
+/** A flight's outline: its corners, or the rectangle round its line. */
+export function flightCorners(f: Flight): FlightCorners {
+  if (f.corners) return f.corners;
+  const h = f.width / 2;
+  const at = (p: XY, side: number): XY => [
+    p[0] + f.left[0] * h * side,
+    p[1] + f.left[1] * h * side,
+  ];
+  return {
+    footLeft: at(f.foot, 1),
+    footRight: at(f.foot, -1),
+    topLeft: at(f.top, 1),
+    topRight: at(f.top, -1),
+  };
+}
+
+/** Distance from a point to the line through a and b. */
+function lineDistance(e: number, n: number, a: XY, b: XY): number {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  return (
+    Math.abs(dx * (n - a[1]) - dy * (e - a[0])) / (Math.hypot(dx, dy) || 1)
+  );
+}
+
+/**
+ * How far up a flight a point is (0 at the foot, 1 at the top), or
+ * undefined off it. A fanned flight's foot and top edges need not be
+ * parallel: the share runs between the two.
+ */
+export function flightShare(
+  f: Flight,
+  e: number,
+  n: number,
+): number | undefined {
+  if (!f.corners) {
+    const [along, across] = flightCoords(f, e, n);
+    return along >= 0 && along <= f.run && Math.abs(across) <= f.width / 2
+      ? along / f.run
+      : undefined;
+  }
+  const c = f.corners;
+  const quad = [c.footRight, c.topRight, c.topLeft, c.footLeft];
+  // Its edges count, as a rectangle's do.
+  if (!pointInRing(e, n, quad) && distanceToRing(e, n, quad) > 1e-6)
+    return undefined;
+  const toFoot = lineDistance(e, n, c.footLeft, c.footRight);
+  const toTop = lineDistance(e, n, c.topLeft, c.topRight);
+  return toFoot / (toFoot + toTop || 1);
 }
 
 /** Position in a flight's frame: metres along from the foot, and to the left. */
@@ -256,9 +328,8 @@ export function createTerrain(furniture: Furniture): Terrain {
     flights,
     heightAt(e, n) {
       for (const f of flights) {
-        const [along, across] = flightCoords(f, e, n);
-        if (along >= 0 && along <= f.run && Math.abs(across) <= f.width / 2)
-          return f.base + (f.rise * along) / f.run;
+        const share = flightShare(f, e, n);
+        if (share !== undefined) return f.base + f.rise * share;
       }
       const at = innermost(e, n);
       let height = at >= 0 ? terraces[at]!.z : 0;
