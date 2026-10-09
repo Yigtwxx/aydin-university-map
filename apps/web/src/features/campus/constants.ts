@@ -29,6 +29,9 @@ export const groundColors = {
   casing: { major: '#BDB4A0', minor: '#C9C1AF', path: '#D8C9AC' },
   fill: { major: '#FFFFFF', minor: '#FFFFFF', path: '#F8F0DE' },
   campusOutline: '#C48E2C',
+  /** Street paint: a shade darker than the white street fill. */
+  marking: '#D5CEC0',
+  pitchLine: '#F7F6F0',
 } as const;
 
 /**
@@ -41,10 +44,12 @@ export const layers = {
   areas: 1,
   greenery: 2,
   casing: 3,
+  /** Road fills take 4-6 (paths, minor, major). */
   roads: 4,
-  outline: 7,
-  routeShadow: 8,
-  route: 9,
+  markings: 7,
+  outline: 8,
+  routeShadow: 9,
+  route: 10,
 } as const;
 
 /**

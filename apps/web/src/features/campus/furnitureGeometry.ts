@@ -20,6 +20,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 import type { Furniture, ItemKind, RailSide, SeatingGroup } from './furniture';
 import { openRing } from './geometry';
+import { PAVE, type Pave, paveOf } from './paving';
 import {
   distanceToRing,
   type Flight,
@@ -113,10 +114,14 @@ const wDir = ([e, n]: XY, up = 0): V3 => [e, up, -n];
 class Faces {
   private readonly positions: number[] = [];
   private readonly colors: number[] = [];
+  private readonly paving: number[] = [];
   private readonly tint = new Color();
 
-  /** A planar convex polygon, turned so its front faces `towards`. */
-  add(points: V3[], color: string, towards: V3): void {
+  /**
+   * A planar convex polygon, turned so its front faces `towards`, with the
+   * paving drawn on it (paving.ts).
+   */
+  add(points: V3[], color: string, towards: V3, pave: Pave = PAVE.none): void {
     if (points.length < 3) return;
     const [p0, p1, p2] = points as [V3, V3, V3];
     const ux = p1[0] - p0[0];
@@ -136,6 +141,7 @@ class Faces {
       for (const p of [ordered[0]!, ordered[i]!, ordered[i + 1]!]) {
         this.positions.push(p[0], p[1], p[2]);
         this.colors.push(this.tint.r, this.tint.g, this.tint.b);
+        this.paving.push(pave);
       }
     }
   }
@@ -152,6 +158,7 @@ class Faces {
       new Float32BufferAttribute(this.positions, 3),
     );
     geometry.setAttribute('color', new Float32BufferAttribute(this.colors, 3));
+    geometry.setAttribute('paving', new Float32BufferAttribute(this.paving, 1));
     geometry.computeVertexNormals();
     geometry.computeBoundingSphere();
     return geometry;
@@ -239,6 +246,7 @@ function addTerrace(
   flights: readonly Flight[],
 ): void {
   const c = furnitureColors;
+  const pave = paveOf(t.id);
   for (let i = 0; i < t.triangles.length; i += 6) {
     faces.add(
       [
@@ -248,6 +256,7 @@ function addTerrace(
       ],
       c.paving,
       UP,
+      pave,
     );
   }
   const raised = t.z > t.surround;

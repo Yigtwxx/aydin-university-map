@@ -17,6 +17,7 @@ import {
   seatingLayout,
   stairTreads,
 } from './furnitureGeometry';
+import { PAVE } from './paving';
 import { pointInRing, createTerrain, distanceToRing } from './terrain';
 
 const flight: Stairs = {
@@ -160,6 +161,42 @@ describe('terraces', () => {
     geometry.computeBoundingBox();
     const bank = createTerrain(data).terraces[0]!.bank;
     expect(geometry.boundingBox!.min.x).toBeCloseTo(-bank);
+  });
+});
+
+describe('terrace paving', () => {
+  const outline: [number, number][] = [
+    [0, 0],
+    [20, 0],
+    [20, 20],
+    [0, 20],
+  ];
+  const paveAt = (id: string) => {
+    const data = furniture({
+      terraces: [{ id, outline, z_m: 1, edge: 'wall' }],
+    });
+    const geometry = masonryGeometry(data, createTerrain(data))!;
+    const position = geometry.getAttribute('position');
+    const normal = geometry.getAttribute('normal');
+    const paving = geometry.getAttribute('paving');
+    const tops = new Set<number>();
+    const sides = new Set<number>();
+    for (let i = 0; i < position.count; i++) {
+      const top =
+        normal.getY(i) > 0.99 && Math.abs(position.getY(i) - 1) < 1e-6;
+      (top ? tops : sides).add(paving.getX(i));
+    }
+    return { tops: [...tops], sides: [...sides] };
+  };
+
+  it('lays the plaza in fan cobbles and other terraces in setts', () => {
+    expect(paveAt('square').tops).toEqual([PAVE.fan]);
+    expect(paveAt('gate-plaza').tops).toEqual([PAVE.fan]);
+    expect(paveAt('sw-yard').tops).toEqual([PAVE.setts]);
+  });
+
+  it('leaves walls and copings plain', () => {
+    expect(paveAt('square').sides).toEqual([PAVE.none]);
   });
 });
 

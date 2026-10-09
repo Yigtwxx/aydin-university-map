@@ -2,13 +2,22 @@
 
 import { Line } from '@react-three/drei';
 import { useEffect, useMemo } from 'react';
-import { type BufferGeometry, Shape, ShapeGeometry, Vector2 } from 'three';
+import {
+  type BufferGeometry,
+  MeshStandardMaterial,
+  Shape,
+  ShapeGeometry,
+  Vector2,
+} from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { liftOntoTerraces } from './clip';
+import { GroundPaint } from './GroundPaint';
+import { type RoadClass, roadClass } from './groundMarkings';
 import { groundColors, layers, OVERLAY } from './constants';
 import { enuToWorld } from './coords';
 import { openRing } from './geometry';
+import { patchPaving } from './paving';
 import { useTerrain } from './queries';
 import { type RibbonLine, ribbonGeometry } from './ribbon';
 import {
@@ -20,35 +29,6 @@ import {
 } from './sunken';
 import type { Terrain } from './terrain';
 import type { Ground } from './types';
-
-type RoadClass = 'major' | 'minor' | 'path';
-
-const MAJOR = new Set([
-  'motorway',
-  'motorway_link',
-  'trunk',
-  'trunk_link',
-  'primary',
-  'primary_link',
-  'secondary',
-  'secondary_link',
-  'busway',
-]);
-const PATH = new Set([
-  'footway',
-  'path',
-  'pedestrian',
-  'steps',
-  'cycleway',
-  'bridleway',
-  'track',
-]);
-
-function roadClass(kind: string): RoadClass {
-  if (MAJOR.has(kind)) return 'major';
-  if (PATH.has(kind)) return 'path';
-  return 'minor';
-}
 
 /** Casing (outline) width added on each side, in metres. */
 const CASING_M: Record<RoadClass, number> = {
@@ -166,6 +146,7 @@ export function GroundLayer({ data }: { data: Ground }) {
         areaLift={layers.lift}
         streetLevel
       />
+      <GroundPaint data={data} />
       {raised && (
         <FlatLayers areas={raised.areas} roads={raised.roads} areaLift={0} />
       )}
@@ -235,25 +216,26 @@ function FlatLayers({
   const stencil = streetLevel ? STREET_LEVEL : {};
   return (
     <>
-      {areas.map(({ kind, geometry }) => (
-        <mesh
-          key={kind}
-          geometry={geometry}
-          position-y={areaLift}
-          renderOrder={layers.areas}
-          receiveShadow
-        >
-          <meshStandardMaterial
-            color={
-              groundColors.areas[kind as keyof typeof groundColors.areas] ??
-              groundColors.areas.pedestrian
-            }
-            roughness={1}
-            {...OVERLAY}
-            {...stencil}
-          />
-        </mesh>
-      ))}
+      {areas.map(({ kind, geometry }) =>
+        !streetLevel && PAVED_AREAS.has(kind) ? (
+          <PavedArea key={kind} kind={kind} geometry={geometry} />
+        ) : (
+          <mesh
+            key={kind}
+            geometry={geometry}
+            position-y={areaLift}
+            renderOrder={layers.areas}
+            receiveShadow
+          >
+            <meshStandardMaterial
+              color={areaColor(kind)}
+              roughness={1}
+              {...OVERLAY}
+              {...stencil}
+            />
+          </mesh>
+        ),
+      )}
       {roads.map(
         ({ cls, casing }) =>
           casing && (
@@ -293,6 +275,44 @@ function FlatLayers({
           ),
       )}
     </>
+  );
+}
+
+/** Grounds whose part on a terrace shows the terrace's paving. */
+const PAVED_AREAS: ReadonlySet<string> = new Set(['campus', 'pedestrian']);
+
+const areaColor = (kind: string) =>
+  groundColors.areas[kind as keyof typeof groundColors.areas] ??
+  groundColors.areas.pedestrian;
+
+/**
+ * Campus grounds lifted onto a terrace, laid in that terrace's paving: setts,
+ * or the fan cobbles on the plaza (`paving` attribute from liftOntoTerraces).
+ */
+function PavedArea({
+  kind,
+  geometry,
+}: {
+  kind: string;
+  geometry: BufferGeometry;
+}) {
+  const material = useMemo(() => {
+    const m = new MeshStandardMaterial({
+      color: areaColor(kind),
+      roughness: 1,
+      ...OVERLAY,
+    });
+    patchPaving(m);
+    return m;
+  }, [kind]);
+  useEffect(() => () => material.dispose(), [material]);
+  return (
+    <mesh
+      geometry={geometry}
+      material={material}
+      renderOrder={layers.areas}
+      receiveShadow
+    />
   );
 }
 

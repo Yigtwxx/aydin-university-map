@@ -34,6 +34,7 @@ import {
   type FurnitureClass,
   makeViewer,
 } from './furnitureScale';
+import { patchPaving } from './paving';
 import { useFurniture } from './queries';
 import { type Terrain, terrainOf } from './terrain';
 
@@ -194,7 +195,14 @@ function FurnitureScene({
         viewer,
         cls,
       );
+    const masonry = new MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.9,
+      metalness: 0,
+    });
+    patchPaving(masonry);
     return {
+      masonry,
       small: make('small'),
       medium: make('medium'),
       large: make('large'),
@@ -305,9 +313,12 @@ function FurnitureScene({
   return (
     <group>
       {masonry && (
-        <mesh geometry={masonry} castShadow receiveShadow>
-          <meshStandardMaterial vertexColors roughness={0.9} metalness={0} />
-        </mesh>
+        <mesh
+          geometry={masonry}
+          material={materials.masonry}
+          castShadow
+          receiveShadow
+        />
       )}
       {rails && <mesh geometry={rails} material={materials.metal} />}
       {fence && (

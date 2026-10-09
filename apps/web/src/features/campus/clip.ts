@@ -1,5 +1,6 @@
 import { BufferGeometry, Float32BufferAttribute } from 'three';
 
+import { paveOf } from './paving';
 import type { TerraceShape } from './terrain';
 
 type XY = [number, number];
@@ -74,6 +75,7 @@ const overlap = (
  * The layer itself stays at street level, where the terraces' tops hide it;
  * drawing these parts with the same material and render order puts the
  * paths and paving on the terraces without splitting the original geometry.
+ * Each lifted vertex carries its terrace's paving (`paving`, see paving.ts).
  */
 export function liftOntoTerraces(
   geometry: BufferGeometry,
@@ -92,7 +94,7 @@ export function liftOntoTerraces(
       if (area2(tri) < 0) tri.reverse();
       tris.push({ tri, box: boxOf(tri) });
     }
-    return { z: t.z + lift, box: t.bbox, tris };
+    return { z: t.z + lift, box: t.bbox, tris, pave: paveOf(t.id) };
   });
 
   const position = geometry.getAttribute('position');
@@ -105,6 +107,7 @@ export function liftOntoTerraces(
   };
 
   const out: number[] = [];
+  const paving: number[] = [];
   for (let k = 0; k + 2 < count; k += 3) {
     const tri: XY[] = [at(k), at(k + 1), at(k + 2)];
     const a = area2(tri);
@@ -119,8 +122,10 @@ export function liftOntoTerraces(
         if (poly.length < 3 || area2(poly) < 1e-6) continue;
         // Counter-clockwise in (east, north) faces up in the world.
         for (let i = 1; i + 1 < poly.length; i++) {
-          for (const [e, n] of [poly[0]!, poly[i]!, poly[i + 1]!])
+          for (const [e, n] of [poly[0]!, poly[i]!, poly[i + 1]!]) {
             out.push(e, region.z, -n);
+            paving.push(region.pave);
+          }
         }
       }
     }
@@ -131,5 +136,6 @@ export function liftOntoTerraces(
   const normals = new Float32Array(out.length);
   for (let i = 1; i < normals.length; i += 3) normals[i] = 1;
   lifted.setAttribute('normal', new Float32BufferAttribute(normals, 3));
+  lifted.setAttribute('paving', new Float32BufferAttribute(paving, 1));
   return lifted;
 }
