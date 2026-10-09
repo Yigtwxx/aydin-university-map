@@ -1253,9 +1253,20 @@ export interface SeatingLayout {
 
 /** Closest table pitch: a table with chairs needs about this much. */
 const MIN_PITCH_M = 1.75;
+/** Closest pitch under umbrellas: canopies at least 2 m across, apart. */
+const MIN_UMBRELLA_PITCH_M = 2.2;
+/** A canopy's radius as a share of the pitch, so neighbours keep a gap. */
+const CANOPY_SHARE = 0.46;
+const MAX_CANOPY_M = 1.5;
 /** Tables keep this far from the area's edge (a chair's depth). */
 const SEAT_MARGIN_M = 0.55;
 const CHAIR_RADIUS_M = 0.62;
+/**
+ * Table centres keep this far from a railing or fence, so the chairs, and the
+ * canopy over them, stay on the café's side of it.
+ */
+const BARRIER_CLEARANCE_M = 1.0;
+const UMBRELLA_BARRIER_CLEARANCE_M = MAX_CANOPY_M;
 
 /** Stable 0..1 noise from a string and an index. */
 function noise(seed: string, i: number): number {
@@ -1277,9 +1288,14 @@ const bearing = (e: number, n: number) =>
 /**
  * Café tables on a grid aligned with the area's longest side, as far apart
  * as the area allows; chairs round each table facing it, a little askew
- * (they move every day); an umbrella over each table when the café has them.
+ * (they move every day); an umbrella over each table when the café has them,
+ * clear of its neighbours'. Nothing stands across a `barriers` line
+ * (railings and fences): a sketched area may reach over one.
  */
-export function seatingLayout(group: SeatingGroup): SeatingLayout {
+export function seatingLayout(
+  group: SeatingGroup,
+  barriers: readonly XY[][] = [],
+): SeatingLayout {
   let ring = openRing(group.outline);
   if (signedArea(ring) < 0) ring = [...ring].reverse();
   const area = signedArea(ring);
@@ -1320,8 +1336,19 @@ export function seatingLayout(group: SeatingGroup): SeatingLayout {
     y0 = Math.min(y0, y);
     y1 = Math.max(y1, y);
   }
+  const clearance = group.umbrellas
+    ? UMBRELLA_BARRIER_CLEARANCE_M
+    : BARRIER_CLEARANCE_M;
+  const clearOfBarriers = (e: number, n: number) =>
+    barriers.every((line) =>
+      line
+        .slice(1)
+        .every((b, i) => distanceToRing(e, n, [line[i]!, b]) >= clearance),
+    );
   const fits = ([e, n]: XY) =>
-    pointInRing(e, n, ring) && distanceToRing(e, n, ring) >= SEAT_MARGIN_M;
+    pointInRing(e, n, ring) &&
+    distanceToRing(e, n, ring) >= SEAT_MARGIN_M &&
+    clearOfBarriers(e, n);
   const grid = (s: number): XY[] => {
     let best: XY[] = [];
     for (const phase of [0, 0.5]) {
@@ -1345,7 +1372,8 @@ export function seatingLayout(group: SeatingGroup): SeatingLayout {
   };
 
   const wanted = group.tables;
-  let pitch = Math.min(6, Math.max(MIN_PITCH_M, Math.sqrt(area / wanted)));
+  const minPitch = group.umbrellas ? MIN_UMBRELLA_PITCH_M : MIN_PITCH_M;
+  let pitch = Math.min(6, Math.max(minPitch, Math.sqrt(area / wanted)));
   let points = grid(pitch);
   if (points.length >= wanted) {
     // Spread out as far as the area allows.
@@ -1356,12 +1384,12 @@ export function seatingLayout(group: SeatingGroup): SeatingLayout {
       points = wider;
     }
   } else {
-    while (points.length < wanted && pitch > MIN_PITCH_M) {
-      pitch = Math.max(MIN_PITCH_M, pitch * 0.95);
+    while (points.length < wanted && pitch > minPitch) {
+      pitch = Math.max(minPitch, pitch * 0.95);
       points = grid(pitch);
     }
   }
-  if (points.length === 0) points = [[cx, cy]];
+  if (points.length === 0 && clearOfBarriers(cx, cy)) points = [[cx, cy]];
   points = points
     .map((p) => ({ p, d: Math.hypot(p[0] - cx, p[1] - cy) }))
     .sort((a, b) => a.d - b.d)
@@ -1379,7 +1407,7 @@ export function seatingLayout(group: SeatingGroup): SeatingLayout {
       umbrellas.push({
         at: p,
         heading: facing,
-        size: Math.min(1.5, Math.max(0.9, pitch * 0.52)),
+        size: Math.min(MAX_CANOPY_M, pitch * CANOPY_SHARE),
       });
     for (let k = 0; k < seats; k++) {
       const jitter = (i: number) => noise(group.id, t * 64 + k * 4 + i) - 0.5;
@@ -1490,6 +1518,7 @@ export function furnitureInstances(
     for (const p of fencePiers(railing.line as XY[]))
       push('globe', itemMatrix(p, railing.base_z + railing.height_m + 0.09, 0));
   }
+  const barrierLines = furniture.railings.map((r) => r.line as XY[]);
   for (const group of furniture.seating) {
     const ring = openRing(group.outline);
     let ce = 0;
@@ -1502,7 +1531,7 @@ export function furnitureInstances(
       ce / ring.length,
       cn / ring.length,
     ]);
-    const layout = seatingLayout(group);
+    const layout = seatingLayout(group, barrierLines);
     for (const p of layout.tables)
       push('table', itemMatrix(p.at, base, p.heading));
     for (const p of layout.chairs)

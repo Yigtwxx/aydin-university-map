@@ -273,6 +273,34 @@ describe('seatingLayout', () => {
     }
   });
 
+  it('keeps neighbouring canopies apart', () => {
+    for (const tables of [4, 8, 14]) {
+      const { umbrellas } = seatingLayout({ ...group, tables });
+      for (let i = 0; i < umbrellas.length; i++)
+        for (let j = i + 1; j < umbrellas.length; j++) {
+          const [a, b] = [umbrellas[i]!, umbrellas[j]!];
+          const gap =
+            Math.hypot(a.at[0] - b.at[0], a.at[1] - b.at[1]) -
+            (a.size ?? 0) -
+            (b.size ?? 0);
+          expect(gap).toBeGreaterThan(0);
+        }
+    }
+  });
+
+  it('keeps tables and their canopies off a fence across the area', () => {
+    const fence: [number, number][] = [
+      [6, -1],
+      [6, 9],
+    ];
+    const { tables, umbrellas } = seatingLayout(group, [fence]);
+    expect(tables.length).toBeGreaterThan(0);
+    for (const { at } of tables)
+      expect(Math.abs(at[0] - 6)).toBeGreaterThanOrEqual(1.5);
+    for (const { at, size } of umbrellas)
+      expect(Math.abs(at[0] - 6)).toBeGreaterThanOrEqual(size ?? 0);
+  });
+
   it('places what fits in a small area, without umbrellas when it has none', () => {
     const layout = seatingLayout({
       ...group,
