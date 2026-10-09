@@ -122,6 +122,18 @@ badges); chips, pills and dots are round.
   paving with a dashed ochre boundary, streets as white strips with casings,
   footpaths in light paving, then greenery and trees. Flat layers draw without
   depth writes in a fixed order, so they never shimmer.
+  - Terrace tops are paved (`paving.ts`): the square and the gate plaza in the
+    fan cobbles of the brief, other terraces in small setts. Joints fade out
+    before they get smaller than a pixel, so from afar the paving is plain.
+  - Street paint (`groundMarkings.ts`): zebras where footpaths cross a street,
+    a dashed centre line on through roads, white lines on rectangular pitches.
+    Street paint is a shade darker than the white fill and fades with
+    distance.
+- **Light:** the sun's shadow frustum follows the view and tightens close up,
+  so furniture throws crisp shadows. The image is tone-mapped (Khronos PBR
+  Neutral, hues kept) and, after dusk only, lit windows and lanterns bloom
+  softly. A device that cannot hold the frame rate drops bloom, cheapens the
+  AO and renders at one pixel per CSS pixel.
 - **Massing:** campus buildings in ochre, neighbours off-white, both with
   procedural window bands (darker glass by day, warm lit windows at night).
   Ambient occlusion (N8AO) grounds the blocks.
@@ -143,6 +155,9 @@ badges); chips, pills and dots are round.
     their kerbs painted traffic yellow (`#E9B92E`), as on the campus.
   - Marigold beds stand a little higher than the lawn, blooms on foliage
     sides. The E court's pool is water in a white coping.
+  - Trees are clumps of foliage lobes, darker underneath, in three greens,
+    each with a soft shade disc at its foot. Areas mapped as woods are planted
+    with a capped, seeded scatter of simpler trees.
   - Campus landmarks are drawn where they stand: the seal on its stepped
     plinth and the "❤IAU" letters at the main gate, clipped topiary balls, the
     bronze rhino at the south gate, and the purple book-swap kiosk.
