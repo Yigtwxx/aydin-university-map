@@ -1,13 +1,21 @@
 'use client';
 
 import { Sky, Stars } from '@react-three/drei';
-import { useMemo } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { useEffect, useMemo, useRef } from 'react';
+import { type DirectionalLight, Vector3 } from 'three';
 
 import type { SkyPhase } from '@/features/environment/hooks';
 import type { Sun } from '@/features/environment/sun';
 import type { Condition } from '@/features/environment/weather';
 
 import { enuToWorld } from './coords';
+import {
+  SHADOW_HALF_MAX_M,
+  SHADOW_MAP_PX,
+  shadowHalfWidth,
+  snapToTexel,
+} from './shadowFit';
 
 const SUN_DISTANCE = 700;
 /** Share of the hemisphere fill kept next to the image-based sky light. */
@@ -26,7 +34,9 @@ interface Lighting {
 const BY_PHASE: Record<SkyPhase, Lighting> = {
   day: {
     sunColor: '#FFF4E2',
-    sunIntensity: 3.0,
+    // Tone mapping rolls the brightest paving off, so the sun can be a
+    // little stronger against a dimmer sky fill: crisper light and shade.
+    sunIntensity: 3.3,
     hemiSky: '#EAF2F7',
     hemiGround: '#B9AF99',
     hemiIntensity: 1.0,
@@ -150,20 +160,97 @@ export function SkyRig({
           look.hemiIntensity * HEMI_SHARE * (1 + (1 - dim.light) * 0.9),
         ]}
       />
-      <directionalLight
-        position={sunPosition}
+      <SunLight
+        direction={sunPosition}
         intensity={look.sunIntensity * dim.light}
         color={look.sunColor}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-420}
-        shadow-camera-right={420}
-        shadow-camera-top={420}
-        shadow-camera-bottom={-420}
-        shadow-camera-far={2200}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.6}
       />
     </>
+  );
+}
+
+/** Shadow texels a surface is pushed along its normal before it is tested. */
+const NORMAL_BIAS_TEXELS = 1.5;
+
+/**
+ * The sun (or moon) light. Its shadow frustum follows the point the camera
+ * looks at and tightens as the camera comes down, so close up the benches,
+ * lamps and trees throw crisp shadows; from afar it covers the campus.
+ */
+function SunLight({
+  direction,
+  intensity,
+  color,
+}: {
+  direction: [number, number, number];
+  intensity: number;
+  color: string;
+}) {
+  const light = useRef<DirectionalLight>(null);
+  const scene = useThree((s) => s.scene);
+  // Scratch vectors and the frustum size last applied, kept across frames.
+  const work = useRef({
+    sun: new Vector3(),
+    target: new Vector3(),
+    snapped: new Vector3(),
+    half: 0,
+  });
+
+  useEffect(() => {
+    const target = light.current?.target;
+    if (!target) return;
+    scene.add(target);
+    return () => {
+      scene.remove(target);
+    };
+  }, [scene]);
+
+  useFrame((state) => {
+    const l = light.current;
+    if (!l) return;
+    const controls = state.controls as unknown as {
+      getTarget?: (out: Vector3) => Vector3;
+      distance?: number;
+    } | null;
+    const w = work.current;
+    const { sun, target, snapped } = w;
+    sun.set(...direction).normalize();
+    if (controls?.getTarget) controls.getTarget(target);
+    else target.set(0, 0, 0);
+    target.y = 0;
+
+    const half = shadowHalfWidth(controls?.distance ?? SHADOW_HALF_MAX_M * 2);
+    const cam = l.shadow.camera;
+    if (half !== w.half) {
+      w.half = half;
+      cam.left = -half;
+      cam.right = half;
+      cam.top = half;
+      cam.bottom = -half;
+      cam.updateProjectionMatrix();
+      l.shadow.normalBias = ((2 * half) / SHADOW_MAP_PX) * NORMAL_BIAS_TEXELS;
+    }
+    snapToTexel(target, sun, (2 * half) / SHADOW_MAP_PX, snapped);
+    l.target.position.copy(snapped);
+    l.target.updateMatrixWorld();
+    l.position.copy(snapped).addScaledVector(sun, SUN_DISTANCE);
+  });
+
+  return (
+    <directionalLight
+      ref={light}
+      position={direction}
+      intensity={intensity}
+      color={color}
+      castShadow
+      shadow-mapSize={[SHADOW_MAP_PX, SHADOW_MAP_PX]}
+      shadow-camera-left={-SHADOW_HALF_MAX_M}
+      shadow-camera-right={SHADOW_HALF_MAX_M}
+      shadow-camera-top={SHADOW_HALF_MAX_M}
+      shadow-camera-bottom={-SHADOW_HALF_MAX_M}
+      shadow-camera-far={2200}
+      shadow-bias={-0.0004}
+      shadow-normalBias={0.6}
+    />
   );
 }

@@ -1,8 +1,19 @@
 'use client';
 
-import { CameraControls, Environment } from '@react-three/drei';
+import {
+  CameraControls,
+  Environment,
+  PerformanceMonitor,
+} from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { EffectComposer, N8AO, Vignette } from '@react-three/postprocessing';
+import {
+  Bloom,
+  EffectComposer,
+  N8AO,
+  ToneMapping,
+  Vignette,
+} from '@react-three/postprocessing';
+import { ToneMappingMode } from 'postprocessing';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   BackSide,
@@ -396,6 +407,12 @@ function SceneContents({
   // (removing an effect recompiles the composer's pass).
   const grade = useMemo(() => new IntroGradeEffect(), []);
   useEffect(() => () => grade.dispose(), [grade]);
+  const night = sky.phase === 'night' || sky.phase === 'twilight';
+  // A device that cannot hold the frame rate drops the costly passes for
+  // good (never back and forth): half-resolution AO at its cheapest, no
+  // bloom, one pixel per CSS pixel.
+  const [lean, setLean] = useState(false);
+  const setDpr = useThree((s) => s.setDpr);
 
   return (
     <>
@@ -466,15 +483,40 @@ function SceneContents({
         bounds={bounds}
         restSmoothTime={SMOOTH_S}
       />
+      {!assembling && !lean && (
+        <PerformanceMonitor
+          onDecline={() => {
+            setLean(true);
+            setDpr(1);
+          }}
+        />
+      )}
       <EffectComposer multisampling={4} enableNormalPass={false} stencilBuffer>
         <N8AO
           aoRadius={7}
           distanceFalloff={1.2}
           intensity={sky.phase === 'night' ? 1.2 : 1.8}
-          quality="medium"
+          quality={lean ? 'performance' : 'medium'}
           halfRes
         />
+        {/* Only what really shines after dark crosses the threshold: lit
+            windows, shop fronts, lanterns and the fence's globe lamps. */}
+        {night && !lean ? (
+          <Bloom
+            mipmapBlur
+            luminanceThreshold={0.82}
+            luminanceSmoothing={0.18}
+            intensity={0.55}
+            radius={0.62}
+          />
+        ) : (
+          <></>
+        )}
         <primitive object={grade} />
+        {/* Khronos PBR Neutral: rolls the sunlit paving and the night lights
+            off softly instead of clipping them, and keeps hues (the campus
+            ochre stays ochre). */}
+        <ToneMapping mode={ToneMappingMode.NEUTRAL} />
         <Vignette offset={0.32} darkness={0.42} />
       </EffectComposer>
     </>
@@ -589,7 +631,7 @@ function SkyEnvironment({
       key={key}
       frames={1}
       resolution={128}
-      environmentIntensity={night ? 0.35 : 0.9}
+      environmentIntensity={night ? 0.35 : 0.72}
     >
       <mesh scale={100}>
         <sphereGeometry args={[1, 32, 16]} />
